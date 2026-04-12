@@ -187,4 +187,44 @@ mod tests {
             .collect();
         assert!(!undermines.is_empty());
     }
+
+    #[test]
+    fn undercut_detected_via_reserved_marker() {
+        // Target: defeasible rule r0: p => q. Arg `q` uses r0.
+        // Attacker: defeasible rule concluding ¬__applicable_0 (the reserved
+        // undercut marker for rule id 0). This is what `add_undercut_rule`
+        // produces internally, but we construct it here by hand so we're
+        // testing the attack-detection path independently.
+        let mut kb = KnowledgeBase::new();
+        kb.add_ordinary(Literal::atom("p"));
+        kb.add_ordinary(Literal::atom("trigger"));
+        let rules = vec![
+            Rule::defeasible(RuleId(0), vec![Literal::atom("p")], Literal::atom("q")),
+            Rule::defeasible(
+                RuleId(1),
+                vec![Literal::atom("trigger")],
+                Literal::neg("__applicable_0"),
+            ),
+        ];
+        let args = construct_arguments(&kb, &rules).unwrap();
+        let attacks = compute_attacks(&args, &rules);
+        let undercuts: Vec<&Attack> = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Undercut)
+            .collect();
+        assert!(
+            !undercuts.is_empty(),
+            "expected at least one Undercut attack, got {:?}",
+            attacks
+        );
+        // The undercut must target the q-argument (built from r0).
+        let q_arg = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("q"))
+            .unwrap();
+        assert!(
+            undercuts.iter().any(|u| u.target == q_arg.id),
+            "expected an undercut attack targeting the q-argument"
+        );
+    }
 }

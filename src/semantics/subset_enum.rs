@@ -10,6 +10,14 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 /// Upper bound on the number of arguments we enumerate via subset search.
+///
+/// **Note on the gap between limit and practical responsiveness.** This hard
+/// limit of 30 stops the `1u64 << n` power-set iteration from overflowing,
+/// but it does NOT guarantee a responsive computation: at `n = 30`, the
+/// inner loop runs ~10^9 iterations. The crate-level docs recommend staying
+/// below ~20 arguments for interactive-speed results. Frameworks in the
+/// 21–30 range will complete but may take many seconds to minutes. Above 30,
+/// [`crate::Error::TooLarge`] is returned.
 pub(crate) const ENUMERATION_LIMIT: usize = 30;
 
 /// Collect the arguments of `af` into a deterministic sorted `Vec`, failing

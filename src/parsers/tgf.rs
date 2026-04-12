@@ -35,7 +35,8 @@ pub fn parse_tgf(input: &str) -> Result<ArgumentationFramework<String>, Error> {
                     lineno + 1
                 )));
             }
-            af.add_attack(&parts[0].to_string(), &parts[1].to_string())?;
+            af.add_attack(&parts[0].to_string(), &parts[1].to_string())
+                .map_err(|e| Error::Parse(format!("line {}: {}", lineno + 1, e)))?;
         }
     }
     Ok(af)
