@@ -445,12 +445,24 @@ impl StructuredSystem {
         !attacker_strictly_less
     }
 
-    /// Elitist strict set comparison `Γ ◁Eli Γ'` per M&P 2014 Def 3.19 + 3.21 note.
+    /// Elitist strict set comparison `Γ ◁Eli Γ'` per M&P 2014 Def 3.19.
     ///
-    /// Returns true iff Γ is strictly less than Γ' under Elitist ordering:
-    /// - If Γ = ∅: false (rule 1).
-    /// - If Γ' = ∅ and Γ ≠ ∅: true (rules 1+2).
-    /// - Else: ∃X ∈ Γ. ∀Y ∈ Γ'. X < Y.
+    /// Returns true iff Γ is strictly less preferred than Γ' under the
+    /// Elitist set ordering. Definition 3.19 has three rules:
+    ///
+    /// 1. If `Γ = ∅`, then `Γ ⋬s Γ'` (the empty set is never strictly
+    ///    less than anything — by convention, "no defeasible commitments"
+    ///    is the strongest possible position).
+    /// 2. If `Γ' = ∅` and `Γ ≠ ∅`, then `Γ ⊴s Γ'` (and via the strict
+    ///    counterpart, `Γ ◁s Γ'`). Any non-empty set is strictly less
+    ///    preferred than the empty set.
+    /// 3. Otherwise, `Γ ⊴Eli Γ'` iff `∃X ∈ Γ. ∀Y ∈ Γ'. X ≤ Y` (some
+    ///    element of Γ is dominated by every element of Γ'). The strict
+    ///    counterpart `◁Eli` substitutes `<` for `≤`.
+    ///
+    /// The implementation uses the strict counterpart directly via
+    /// [`Self::is_preferred`], which returns true only on the strict
+    /// version of the rule preference relation.
     fn rule_set_strict_lt(&self, gamma: &[RuleId], gamma_prime: &[RuleId]) -> bool {
         if gamma.is_empty() {
             return false;

@@ -475,9 +475,35 @@ fn undercut_rule_defeats_wet_argument() {
 ///   Priorities: d4 < d2, d2 < d5 (rule level)
 ///               u <' s, x <' s    (premise level)
 ///
-/// Expected outcome (paper Example 3.22): C3 does NOT defeat B1 because
-/// of the premise ordering; D4 strictly defeats B2; the resulting
-/// extension contains A3 (concluding r), so r is skeptically justified.
+/// Expected outcome (paper Example 3.18, scenario "D4 strictly defeats B2
+/// AND C3 does not defeat B1"): the unique extension across all semantics
+/// contains `{A1, A2, A3, B1, C1, C2, C3, D3, D4}`. r is skeptically
+/// justified.
+///
+/// **Note 1 (premise preferences are decorative for our implementation).**
+/// The paper attributes "C3 does not defeat B1" to the premise ordering
+/// `u <' s`. In our crate, the same outcome is derived from M&P Def 3.19
+/// rule 2: C3's last-defeasible-rule frontier is `{d4}` (non-empty)
+/// while B1's is `∅` (B1 is a premise leaf), and a non-empty frontier is
+/// strictly less preferred than an empty one — so C3 ≺ B1 by rule-level
+/// reasoning alone, no premise ordering required. We retain the
+/// `prefer_premise(s, u)` and `prefer_premise(s, x)` calls below for
+/// paper fidelity, but they could be removed without changing any defeat
+/// outcome in this example. Premise-level preference behaviour is
+/// validated by the dedicated unit test
+/// `premise_preference_blocks_undermine_when_target_premise_stronger`
+/// in `src/aspic/defeat.rs`.
+///
+/// **Note 2 (the resulting extension violates direct consistency).**
+/// Per M&P 2014 Example 4.4, the running example as encoded above
+/// produces an extension containing both `s` (B1) and `¬s` (C3) — a
+/// direct consistency violation. The paper notes this is the expected
+/// outcome when `Rs` is not closed under transposition: adding `s → ¬v`
+/// (the transposition of `s2: v → ¬s`) would let B1 be continued to a
+/// `¬v` argument that successfully rebuts C3 on C2, excluding the
+/// consistency-violating extensions. The
+/// `running_example_with_transposition_satisfies_postulates` test below
+/// demonstrates the fix.
 fn running_example() -> argumentation::aspic::BuildOutput {
     let mut sys = StructuredSystem::new();
     sys.add_necessary(Literal::atom("p"));
@@ -630,14 +656,127 @@ fn married_bachelor_preferred_extensions_satisfy_postulates() {
 
 #[test]
 fn running_example_r_is_in_grounded_extension() {
+    // M&P 2014 Example 3.18 + 4.4: paper-faithful pin of the running
+    // example outcome. The grounded extension contains the full set
+    // `{A1, A2, A3, B1, C1, C2, C3, D3, D4}` from Example 3.18, which
+    // means BOTH `s` (B1) and `¬s` (C3) are in the extension — a direct
+    // consistency violation that Example 4.4 explicitly identifies and
+    // attributes to the strict-rule set not being closed under
+    // transposition.
     let built = running_example();
-    let r_arg = built
-        .argument_by_conclusion(&Literal::atom("r"))
-        .expect("r-argument should be constructed");
     let grounded = built.framework.grounded_extension();
+
+    // Locate the key arguments by conclusion. (B1, B2, B3 are the
+    // s-derived chain; C1-C3 the u-derived chain; D3-D4 the x-derived
+    // chain. We pin the ones the paper explicitly mentions.)
+    let r_arg = built.argument_by_conclusion(&Literal::atom("r")).unwrap();
+    let s_arg = built.argument_by_conclusion(&Literal::atom("s")).unwrap();
+    let not_s_arg = built.argument_by_conclusion(&Literal::neg("s")).unwrap();
+    let p_arg = built.argument_by_conclusion(&Literal::atom("p")).unwrap();
+    let q_arg = built.argument_by_conclusion(&Literal::atom("q")).unwrap();
+    let v_arg = built.argument_by_conclusion(&Literal::atom("v")).unwrap();
+    let not_t_arg = built.argument_by_conclusion(&Literal::neg("t")).unwrap();
+
+    // Paper Example 3.18: r is skeptically justified.
     assert!(
         grounded.contains(&r_arg.id),
-        "expected r-argument in grounded, got {:?}",
+        "expected r-argument (A3) in grounded, got {:?}",
         grounded
     );
+    // Paper Example 3.18: B1 (s premise) is in the extension because
+    // C3 does not defeat it. This is the load-bearing assertion for
+    // Def 3.19 rule 2 (empty rule frontier dominates non-empty).
+    assert!(
+        grounded.contains(&s_arg.id),
+        "expected s-argument (B1) in grounded — C3 should not defeat B1 \
+         because B1's empty rule frontier dominates C3's {{d4}} \
+         (M&P Def 3.19 rule 2)"
+    );
+    // C3 (concluding ¬s via the u-chain) is also in the extension.
+    assert!(
+        grounded.contains(&not_s_arg.id),
+        "expected ¬s-argument (C3) in grounded"
+    );
+    // Other supporting arguments from the paper's `S` set.
+    assert!(grounded.contains(&p_arg.id), "p (A1) should be in grounded");
+    assert!(grounded.contains(&q_arg.id), "q (A2) should be in grounded");
+    assert!(grounded.contains(&v_arg.id), "v (C2) should be in grounded");
+    assert!(
+        grounded.contains(&not_t_arg.id),
+        "¬t (D4) should be in grounded — D4 strictly defeats B2 via d5 > d2"
+    );
+
+    // Paper Example 4.4: this extension violates direct consistency
+    // because the strict rules are not closed under transposition.
+    // Pin that the postulate checker correctly detects this.
+    let report = built.check_postulates(&grounded);
+    assert!(
+        report.violations.iter().any(|v| matches!(
+            v,
+            argumentation::aspic::PostulateViolation::DirectInconsistency {
+                literal,
+            } if literal == &Literal::atom("s")
+        )),
+        "expected DirectInconsistency on s, got {:?}",
+        report.violations
+    );
+}
+
+#[test]
+fn running_example_with_transposition_satisfies_postulates() {
+    // M&P 2014 Example 4.4 explicitly says: adding the transposition
+    // `s → ¬v` of `v → ¬s` to Rs lets B1 be continued to a ¬v argument
+    // that successfully rebuts C3 on C2, excluding the
+    // consistency-violating extensions. This test demonstrates that fix.
+    let mut sys = StructuredSystem::new();
+    sys.add_necessary(Literal::atom("p"));
+    sys.add_ordinary(Literal::atom("s"));
+    sys.add_ordinary(Literal::atom("u"));
+    sys.add_ordinary(Literal::atom("x"));
+    let d1 = sys.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("q"));
+    let d2 = sys.add_defeasible_rule(vec![Literal::atom("s")], Literal::atom("t"));
+    let _d3 = sys.add_undercut_rule(d1, vec![Literal::atom("t")]);
+    let d4 = sys.add_defeasible_rule(vec![Literal::atom("u")], Literal::atom("v"));
+    let d5 = sys.add_defeasible_rule(
+        vec![Literal::atom("v"), Literal::atom("x")],
+        Literal::neg("t"),
+    );
+    let _d6 = sys.add_defeasible_rule(vec![Literal::atom("s")], Literal::neg("p"));
+    let _s1 = sys.add_strict_rule(
+        vec![Literal::atom("p"), Literal::atom("q")],
+        Literal::atom("r"),
+    );
+    let _s2 = sys.add_strict_rule(vec![Literal::atom("v")], Literal::neg("s"));
+    // The transposition: s → ¬v.
+    let _s3 = sys.add_strict_rule(vec![Literal::atom("s")], Literal::neg("v"));
+    sys.prefer_rule(d2, d4).unwrap();
+    sys.prefer_rule(d5, d2).unwrap();
+    sys.prefer_premise(Literal::atom("s"), Literal::atom("u"))
+        .unwrap();
+    sys.prefer_premise(Literal::atom("s"), Literal::atom("x"))
+        .unwrap();
+
+    let built = sys.build_framework().unwrap();
+    let preferred = built.framework.preferred_extensions().unwrap();
+    assert!(
+        !preferred.is_empty(),
+        "expected at least one preferred extension"
+    );
+    // Every preferred extension must satisfy direct consistency now —
+    // the transposition rule should exclude any extension containing
+    // both s and ¬s.
+    for ext in &preferred {
+        let report = built.check_postulates(ext);
+        let has_direct_inconsistency = report.violations.iter().any(|v| {
+            matches!(
+                v,
+                argumentation::aspic::PostulateViolation::DirectInconsistency { .. }
+            )
+        });
+        assert!(
+            !has_direct_inconsistency,
+            "preferred extension {:?} still has direct inconsistency: {:?}",
+            ext, report.violations
+        );
+    }
 }
