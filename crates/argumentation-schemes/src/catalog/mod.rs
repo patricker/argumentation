@@ -10,6 +10,7 @@
 //! central ID registry. The `catalog_coverage::scheme_ids_are_unique` test
 //! enforces this at runtime.
 
+pub mod causal;
 pub mod epistemic;
 pub mod popular;
 pub mod practical;
@@ -26,7 +27,6 @@ pub const SOURCE_ID_OFFSET: u32 = 200;
 /// First popular-scheme ID. Range: 300..400.
 pub const POPULAR_ID_OFFSET: u32 = 300;
 /// First causal-scheme ID. Range: 400..500.
-#[allow(dead_code)]
 pub const CAUSAL_ID_OFFSET: u32 = 400;
 /// First analogical-scheme ID. Range: 500..600.
 #[allow(dead_code)]
@@ -45,6 +45,9 @@ pub fn default_catalog() -> CatalogRegistry {
         reg.register(scheme);
     }
     for scheme in popular::all() {
+        reg.register(scheme);
+    }
+    for scheme in causal::all() {
         reg.register(scheme);
     }
     reg
