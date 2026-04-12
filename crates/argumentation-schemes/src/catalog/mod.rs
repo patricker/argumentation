@@ -11,13 +11,13 @@
 //! enforces this at runtime.
 
 pub mod epistemic;
+pub mod practical;
 
 use crate::registry::CatalogRegistry;
 
 /// First epistemic-scheme ID. Range: 1..100.
 pub const EPISTEMIC_ID_OFFSET: u32 = 1;
 /// First practical-scheme ID. Range: 100..200.
-#[allow(dead_code)]
 pub const PRACTICAL_ID_OFFSET: u32 = 100;
 /// First source-based-scheme ID. Range: 200..300.
 #[allow(dead_code)]
@@ -36,6 +36,9 @@ pub const ANALOGICAL_ID_OFFSET: u32 = 500;
 pub fn default_catalog() -> CatalogRegistry {
     let mut reg = CatalogRegistry::new();
     for scheme in epistemic::all() {
+        reg.register(scheme);
+    }
+    for scheme in practical::all() {
         reg.register(scheme);
     }
     reg
