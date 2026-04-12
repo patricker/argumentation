@@ -1,9 +1,9 @@
 //! ASPIC+ structured argumentation (Modgil & Prakken 2014).
-//!
-//! Build arguments from a knowledge base and strict/defeasible rules.
-//! Compute attacks (undercut, undermine, rebut). Resolve defeats via
-//! rule preferences. Emit an abstract framework for Dung-semantics evaluation.
 
+pub mod kb;
 pub mod language;
+pub mod rules;
 
+pub use kb::{KnowledgeBase, Premise};
 pub use language::Literal;
+pub use rules::{Rule, RuleId, RuleKind};
