@@ -20,8 +20,8 @@ arguments.
 | `Small-result-b2.apx`  | 5 | 8  | two mutual attacks (a0↔a1, a3↔a4) plus isolated unattacked `a2_0`; exercises preferred/stable split around an uncontested defender |
 | `Small-result-b41.apx` | 6 | 9  | three unattacked source arguments (a0_0, a1_0, a3_0) plus a rebut cycle on a2_2/a4_2/a5_2 — multiple stable extensions, empty grounded |
 | `Small-result-b8.apx`  | 8 | 11 | one "central" argument (a1_0) attacking many peripheral args that each partially attack back — nested defense |
-| `Small-result-b57.apx` | 8 | 12 | a1_0 in mutual attack with many defenders; similar to b8 but structurally denser |
-| `Small-result-b35.apx` | 7 | 22 | dense framework combining mutual attacks, odd cycles, and nested defenses — 6 complete extensions, semi-stable ⊊ complete |
+| `Small-result-b57.apx` | 8 | 13 | a1_0 in mutual attack with many defenders; similar to b8 but structurally denser |
+| `Small-result-b35.apx` | 7 | 24 | dense framework combining mutual attacks, odd cycles, and nested defenses — 6 complete extensions, semi-stable ⊊ complete |
 
 ## Expected outputs
 
@@ -31,6 +31,11 @@ files) and transcribed into this directory's `.txt` files under
 `expected/`. The ICCMA native format is `[[a,b],[c,d]]` per file plus a
 `N solution(s) found` footer; we convert to one-argument-per-line with
 `---` separators between extensions for easier diffing.
+
+The conversion was performed by hand for the 30 expected files (5 instances ×
+6 semantics). All converted outputs are validated against the crate's own
+extension enumerators by `tests/ground_truth_iccma.rs` — any transcription
+error would surface as a test failure on first run.
 
 Mapping:
 
