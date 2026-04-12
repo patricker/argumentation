@@ -440,4 +440,79 @@ mod tests {
         // because rule 0 lives in the latter's sub-argument tree too.
         assert_eq!(undercuts, 2);
     }
+
+    #[test]
+    fn rebut_propagates_through_three_level_strict_wrapper() {
+        // KB: p (ordinary), q (ordinary)
+        // Rules:
+        //   d1: p ⇒ x            (defeasible)
+        //   s1: x → y            (strict; wraps d1)
+        //   s2: y → z            (strict; wraps s1(d1))
+        //   d2: q ⇒ ¬x           (defeasible, rebuts d1's x-conclusion)
+        //
+        // Arguments:
+        //   A1: p          premise
+        //   A2: p ⇒ x      d1
+        //   A3: x → y      s1(A2)         [top strict, defeasible sub A2]
+        //   A4: y → z      s2(A3)         [top strict, defeasible sub two levels down]
+        //   B1: q          premise
+        //   B2: q ⇒ ¬x     d2             [top defeasible]
+        //
+        // Expected: B2 rebuts A2 directly (same level), and per the strict-wrap
+        // fix B2 must ALSO rebut A3 (via sub A2) AND A4 (via sub A2 two levels
+        // deep). If the recursion stops at depth 1, the A4 rebut is missed and
+        // A4 remains unattacked in the Dung AF — producing the same incoherent
+        // extensions as the original strict-wrap bug.
+        let mut kb = KnowledgeBase::new();
+        kb.add_ordinary(Literal::atom("p"));
+        kb.add_ordinary(Literal::atom("q"));
+        let rules = vec![
+            Rule::defeasible(RuleId(0), vec![Literal::atom("p")], Literal::atom("x")),
+            Rule::strict(RuleId(1), vec![Literal::atom("x")], Literal::atom("y")),
+            Rule::strict(RuleId(2), vec![Literal::atom("y")], Literal::atom("z")),
+            Rule::defeasible(RuleId(3), vec![Literal::atom("q")], Literal::neg("x")),
+        ];
+        let args = construct_arguments(&kb, &rules).unwrap();
+        let attacks = compute_attacks(&args, &rules);
+        let rebuts: Vec<&Attack> = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Rebut)
+            .collect();
+
+        let a2 = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("x"))
+            .expect("x-argument");
+        let a3 = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("y"))
+            .expect("y-argument");
+        let a4 = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("z"))
+            .expect("z-argument");
+        let b2 = args
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("x"))
+            .expect("¬x-argument");
+
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == b2.id && r.target == a2.id),
+            "expected B2 rebuts A2 (direct)"
+        );
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == b2.id && r.target == a3.id),
+            "expected B2 rebuts A3 (1-level strict wrap over A2)"
+        );
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == b2.id && r.target == a4.id),
+            "expected B2 rebuts A4 (2-level strict wrap over A2)"
+        );
+    }
 }
