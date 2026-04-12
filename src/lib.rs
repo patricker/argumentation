@@ -86,9 +86,9 @@ pub use semantics::{Label, Labelling};
 ///
 /// This is exposed so that consumers can statically assert against it
 /// (e.g. in tests) or feature-check their framework sizes before calling
-/// exponential enumerators. See the subset-enum module docs for the
-/// responsiveness caveat — practical responsiveness is closer to ~20
-/// arguments even though the hard limit is 30.
+/// exponential enumerators. The limit is set to 22, matching the
+/// crate-level claim of "practical up to ~20 arguments" with a small
+/// safety margin.
 pub const ENUMERATION_LIMIT: usize = semantics::ENUMERATION_LIMIT;
 
 #[cfg(test)]
