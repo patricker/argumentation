@@ -13,7 +13,9 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod critical;
 pub mod error;
+pub mod scheme;
 pub mod types;
 
 pub use error::Error;
