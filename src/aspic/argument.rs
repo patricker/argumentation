@@ -6,9 +6,13 @@
 //!
 //! **Cyclic rule sets are rejected up front.** Forward chaining over rule
 //! cycles (`p ⇒ p`, or `p ⇒ q, q ⇒ p`) produces infinite argument sequences
-//! with fresh ids at each iteration, so the chaining loop would not
-//! terminate. We detect rule-dependency cycles by DFS before chaining
-//! starts and return [`crate::Error::Aspic`] if any are found.
+//! with fresh ids at each iteration: even though each argument tree has a
+//! unique `(rule_id, sub_args)` tuple and the inner `already_exists` check
+//! catches duplicates *at the same depth*, a genuine cycle keeps producing
+//! deeper trees indefinitely (`A0: p → A1: p via rule on A0 → A2: p via
+//! rule on A1 → ...`). The `already_exists` guard does not save us here,
+//! so we detect rule-dependency cycles by DFS before chaining starts and
+//! return [`crate::Error::Aspic`] if any are found.
 
 use super::kb::{KnowledgeBase, Premise};
 use super::language::Literal;

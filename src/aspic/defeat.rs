@@ -48,6 +48,16 @@ impl StructuredSystem {
         &mut self.kb
     }
 
+    /// Convenience forwarder for [`KnowledgeBase::add_necessary`].
+    pub fn add_necessary(&mut self, l: Literal) {
+        self.kb.add_necessary(l);
+    }
+
+    /// Convenience forwarder for [`KnowledgeBase::add_ordinary`].
+    pub fn add_ordinary(&mut self, l: Literal) {
+        self.kb.add_ordinary(l);
+    }
+
     /// Add a strict rule, returning its id.
     pub fn add_strict_rule(&mut self, premises: Vec<Literal>, conclusion: Literal) -> RuleId {
         let id = RuleId(self.next_rule_id);
@@ -103,6 +113,10 @@ impl StructuredSystem {
     /// Whether rule `a` is strictly preferred to rule `b` under the transitive
     /// closure of recorded preferences.
     fn is_preferred(&self, a: RuleId, b: RuleId) -> bool {
+        // Self-preference is not a valid strict preference.
+        if a == b {
+            return false;
+        }
         // BFS from `a` following preferred-to edges; return true if we reach `b`.
         let mut visited: HashSet<RuleId> = HashSet::new();
         let mut frontier: Vec<RuleId> = vec![a];
@@ -135,10 +149,10 @@ impl StructuredSystem {
         match &arg.origin {
             Origin::Premise(_) => Vec::new(),
             Origin::RuleApplication(rid) => {
-                if let Some(rule) = self.rules.iter().find(|r| r.id == *rid) {
-                    if rule.is_defeasible() {
-                        return vec![*rid];
-                    }
+                if let Some(rule) = self.rules.iter().find(|r| r.id == *rid)
+                    && rule.is_defeasible()
+                {
+                    return vec![*rid];
                 }
                 // Strict top: recurse into sub-arguments.
                 let mut result = Vec::new();
@@ -152,18 +166,28 @@ impl StructuredSystem {
         }
     }
 
-    /// Whether an attack succeeds as a defeat under the last-link principle.
+    /// Whether an attack succeeds as a defeat under the last-link principle
+    /// with Elitist preference comparison (Modgil & Prakken 2014 §5.2).
     ///
     /// - Undercut always succeeds (regardless of preferences).
     /// - Rebut and undermine succeed unless the target's last-link frontier
-    ///   contains a rule that is strictly preferred to some rule in the
-    ///   attacker's last-link frontier (weak Elitist comparison).
+    ///   contains a rule that is strictly preferred to *every* rule in the
+    ///   attacker's last-link frontier (Elitist ordering).
+    ///
+    /// For single-rule frontiers (the common case) this collapses to a direct
+    /// pairwise comparison `target_rule > attacker_rule`.
     fn is_defeat(&self, attack: &Attack, args: &[Argument]) -> bool {
         if attack.kind == AttackKind::Undercut {
             return true;
         }
-        let attacker = args.iter().find(|a| a.id == attack.attacker).unwrap();
-        let target = args.iter().find(|a| a.id == attack.target).unwrap();
+        let attacker = args
+            .iter()
+            .find(|a| a.id == attack.attacker)
+            .expect("attack references nonexistent attacker argument");
+        let target = args
+            .iter()
+            .find(|a| a.id == attack.target)
+            .expect("attack references nonexistent target argument");
         let attacker_rules = self.last_defeasible_frontier(attacker, args);
         let target_rules = self.last_defeasible_frontier(target, args);
         if attacker_rules.is_empty() || target_rules.is_empty() {
@@ -171,11 +195,11 @@ impl StructuredSystem {
             // the attack succeeds as a defeat.
             return true;
         }
-        // Attack fails iff some target-frontier rule is strictly preferred to
-        // some attacker-frontier rule.
+        // Elitist: target beats attacker iff SOME target rule is strictly
+        // preferred to EVERY attacker rule.
         let target_beats_attacker = target_rules
             .iter()
-            .any(|tr| attacker_rules.iter().any(|ar| self.is_preferred(*tr, *ar)));
+            .any(|tr| attacker_rules.iter().all(|ar| self.is_preferred(*tr, *ar)));
         !target_beats_attacker
     }
 
@@ -297,5 +321,37 @@ mod tests {
         let system = StructuredSystem::new();
         let af = system.to_framework().unwrap();
         assert_eq!(af.arguments().count(), 0);
+    }
+
+    #[test]
+    fn elitist_single_rule_frontier_still_works() {
+        // Regression test for the quantifier change from ∃/∃ to Elitist ∃/∀.
+        // With single-rule frontiers on both sides, Elitist collapses to the
+        // same result as the old ∃/∃ code: strong rule's argument beats weak
+        // rule's argument. This test pins that behavior so future quantifier
+        // experiments don't silently break the penguin case.
+        let mut system = StructuredSystem::new();
+        system.kb_mut().add_ordinary(Literal::atom("p"));
+        system.kb_mut().add_ordinary(Literal::atom("q"));
+        let r_strong = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
+        let r_weak = system.add_defeasible_rule(vec![Literal::atom("q")], Literal::neg("x"));
+        system.prefer_rule(r_strong, r_weak);
+
+        let built = system.build_framework().unwrap();
+        let preferred = built.framework.preferred_extensions().unwrap();
+        assert_eq!(preferred.len(), 1);
+        let ext = &preferred[0];
+        let x_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("x"))
+            .unwrap();
+        let nx_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("x"))
+            .unwrap();
+        assert!(ext.contains(&x_arg.id));
+        assert!(!ext.contains(&nx_arg.id));
     }
 }
