@@ -1,0 +1,6 @@
+% Dung 1995 Figure 1: a -> b -> c
+arg(a).
+arg(b).
+arg(c).
+att(a, b).
+att(b, c).

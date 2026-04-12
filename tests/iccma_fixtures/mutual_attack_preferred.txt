@@ -1,0 +1,4 @@
+# Two preferred extensions:
+a
+---
+b
