@@ -1,0 +1,17 @@
+[package]
+name = "argumentation"
+version = "0.1.0"
+edition = "2024"
+description = "Formal argumentation: Dung abstract AFs + ASPIC+ structured arguments"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/patricker/argumentation"
+readme = "README.md"
+keywords = ["argumentation", "logic", "reasoning", "dung", "aspic"]
+categories = ["algorithms", "science"]
+
+[dependencies]
+petgraph = "0.6"
+thiserror = "2.0"
+
+[dev-dependencies]
+proptest = "1.4"
