@@ -63,6 +63,9 @@ pub struct BuildOutput {
     pub attacks: Vec<Attack>,
     /// The abstract framework with edges for defeats (post-preference).
     pub framework: ArgumentationFramework<ArgumentId>,
+    /// Copy of the rule set used to construct the arguments. Retained
+    /// for post-hoc analyses like [`Self::check_postulates`].
+    pub rules: Vec<Rule>,
 }
 
 impl BuildOutput {
@@ -93,6 +96,19 @@ impl BuildOutput {
             .iter()
             .filter(|a| &a.conclusion == literal)
             .collect()
+    }
+
+    /// Check the Caminada-Amgoud rationality postulates against a given
+    /// extension. Returns a [`PostulateReport`] listing any violations.
+    ///
+    /// A clean report (empty `violations`) means the extension satisfies
+    /// sub-argument closure, closure under strict rules, direct
+    /// consistency, and indirect consistency.
+    pub fn check_postulates(
+        &self,
+        extension: &HashSet<ArgumentId>,
+    ) -> super::postulates::PostulateReport {
+        super::postulates::check_postulates(&self.arguments, &self.rules, extension)
     }
 }
 
@@ -532,6 +548,7 @@ impl StructuredSystem {
             arguments,
             attacks,
             framework,
+            rules: self.rules.clone(),
         })
     }
 

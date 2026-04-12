@@ -582,6 +582,53 @@ fn whisky_weakest_link_concludes_not_likes_whisky() {
 }
 
 #[test]
+fn penguin_preferred_extension_satisfies_rationality_postulates() {
+    use argumentation::aspic::StructuredSystem;
+    let mut sys = StructuredSystem::new();
+    sys.add_ordinary(Literal::atom("penguin"));
+    sys.add_strict_rule(vec![Literal::atom("penguin")], Literal::atom("bird"));
+    let r1 = sys.add_defeasible_rule(vec![Literal::atom("bird")], Literal::atom("flies"));
+    let r2 = sys.add_defeasible_rule(vec![Literal::atom("penguin")], Literal::neg("flies"));
+    sys.prefer_rule(r2, r1).unwrap();
+
+    let built = sys.build_framework().unwrap();
+    let preferred = built.framework.preferred_extensions().unwrap();
+    assert_eq!(preferred.len(), 1);
+    let report = built.check_postulates(&preferred[0]);
+    assert!(
+        report.is_clean(),
+        "penguin preferred extension should satisfy postulates, got {:?}",
+        report.violations
+    );
+}
+
+#[test]
+fn married_bachelor_preferred_extensions_satisfy_postulates() {
+    use argumentation::aspic::StructuredSystem;
+    let mut sys = StructuredSystem::new();
+    sys.add_ordinary(Literal::atom("WearsRing"));
+    sys.add_ordinary(Literal::atom("PartyAnimal"));
+    sys.add_defeasible_rule(vec![Literal::atom("WearsRing")], Literal::atom("Married"));
+    sys.add_defeasible_rule(
+        vec![Literal::atom("PartyAnimal")],
+        Literal::atom("Bachelor"),
+    );
+    sys.add_strict_rule(vec![Literal::atom("Married")], Literal::neg("Bachelor"));
+    sys.add_strict_rule(vec![Literal::atom("Bachelor")], Literal::neg("Married"));
+    let built = sys.build_framework().unwrap();
+    let preferred = built.framework.preferred_extensions().unwrap();
+    for ext in &preferred {
+        let report = built.check_postulates(ext);
+        assert!(
+            report.is_clean(),
+            "married/bachelor extension {:?} failed postulates: {:?}",
+            ext,
+            report.violations
+        );
+    }
+}
+
+#[test]
 fn running_example_r_is_in_grounded_extension() {
     let built = running_example();
     let r_arg = built
