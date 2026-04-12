@@ -39,6 +39,21 @@ assert!(grounded.contains(&"a") && grounded.contains(&"c"));
 
 See `src/lib.rs` for the ASPIC+ quick example.
 
+## v0.2.0 highlights
+
+- **Premise-level preferences** via `StructuredSystem::prefer_premise`. The
+  M&P 2014 running example (Example 3.7/3.22) now encodes faithfully.
+- **Weakest-link defeat ordering** via `DefeatOrdering::WeakestLink`. The
+  M&P 2014 Whisky example (Example 3.26) resolves to the paper's expected
+  outcome.
+- **Rationality postulate checks** via `BuildOutput::check_postulates`.
+  Validates a given extension against the four Caminada-Amgoud postulates
+  (sub-argument closure, closure under strict rules, direct consistency,
+  indirect consistency).
+- **Labelling-primary API**: `grounded_labelling`, `preferred_labellings`,
+  `stable_labellings`, `ideal_labelling`, `semi_stable_labellings` — thin
+  wrappers matching the extension methods.
+
 ## Performance
 
 Current implementation uses subset-enumeration for extension semantics, which is exponential in the number of arguments. Practical up to ~20 arguments. Larger instances will need SAT/ASP solvers in a future version.

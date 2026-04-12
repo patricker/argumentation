@@ -58,6 +58,27 @@
 //! for small-to-medium frameworks (up to ~20 arguments). Larger instances
 //! require SAT-based enumeration; that's a planned future extension.
 //!
+//! ## Choosing a defeat ordering
+//!
+//! ASPIC+ defines two argument orderings for last-link defeat resolution:
+//!
+//! - [`aspic::DefeatOrdering::LastLink`] (default) compares the last
+//!   defeasible rule of each argument, falling through to the last
+//!   ordinary premise when both rule frontiers are empty. Appropriate
+//!   for legal and normative reasoning.
+//! - [`aspic::DefeatOrdering::WeakestLink`] compares the full set of
+//!   defeasible rules and ordinary premises used in an argument.
+//!   Appropriate for empirical reasoning where a chain is only as strong
+//!   as its weakest link.
+//!
+//! Select an ordering at system construction time:
+//!
+//! ```
+//! use argumentation::aspic::{StructuredSystem, DefeatOrdering};
+//!
+//! let _sys = StructuredSystem::with_ordering(DefeatOrdering::WeakestLink);
+//! ```
+//!
 //! ## References
 //!
 //! - Dung, P.M. (1995). *On the acceptability of arguments...* AIJ 77(2).

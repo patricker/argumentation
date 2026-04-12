@@ -99,7 +99,8 @@ impl BuildOutput {
     }
 
     /// Check the Caminada-Amgoud rationality postulates against a given
-    /// extension. Returns a [`PostulateReport`] listing any violations.
+    /// extension. Returns a [`super::postulates::PostulateReport`] listing
+    /// any violations.
     ///
     /// A clean report (empty `violations`) means the extension satisfies
     /// sub-argument closure, closure under strict rules, direct
