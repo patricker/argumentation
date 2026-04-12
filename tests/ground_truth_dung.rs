@@ -737,3 +737,113 @@ fn dung1995_example2_semi_stable() {
         "semi-stable",
     );
 }
+
+// ---------------------------------------------------------------------------
+// Fixture: grounded ⊊ ideal distinguisher.
+//
+// Structure:
+//   Args: {a, b, c, d, e}
+//   Attacks: a→b, b→a, a→c, b→c, c→d, d→c, d→e
+//
+// Reading: {a, b} form a mutual-attack pair, both attacking c. c is also
+// in a mutual attack with d, and d attacks e. In the grounded labelling
+// every argument is undec: a and b defeat each other; c is attacked by
+// undec a/b AND in a mutual attack with d; d is attacked by undec c;
+// e is attacked by undec d. So grounded = ∅.
+//
+// However, d is skeptically accepted under preferred: every preferred
+// extension must contain d. There are two preferreds — {a, d} and {b, d} —
+// so their intersection is {d}, and {d} is admissible (d's only attacker
+// is c, which is defeated by any of a/b/d itself — in {d} alone, c is
+// attacked by d). Therefore ideal = {d}, giving grounded = ∅ ⊊ {d} = ideal.
+//
+// This is the canonical structure witnessing strict inclusion of grounded
+// in ideal; Dung, Mancarella & Toni (2007) "Computing ideal sceptical
+// argumentation" motivates ideal semantics with examples of this flavor.
+// The crate's existing invariant test `grounded_subset_of_ideal` checks
+// grounded ⊆ ideal but cannot detect a regression that silently widens
+// grounded to match ideal, nor one that narrows ideal to match grounded.
+// ---------------------------------------------------------------------------
+
+fn grounded_subset_of_ideal_distinguisher() -> ArgumentationFramework<&'static str> {
+    let mut af = ArgumentationFramework::new();
+    for arg in ["a", "b", "c", "d", "e"] {
+        af.add_argument(arg);
+    }
+    af.add_attack(&"a", &"b").unwrap();
+    af.add_attack(&"b", &"a").unwrap();
+    af.add_attack(&"a", &"c").unwrap();
+    af.add_attack(&"b", &"c").unwrap();
+    af.add_attack(&"c", &"d").unwrap();
+    af.add_attack(&"d", &"c").unwrap();
+    af.add_attack(&"d", &"e").unwrap();
+    af
+}
+
+#[test]
+fn grounded_subset_of_ideal_grounded_is_empty() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_eq!(af.grounded_extension(), HashSet::new());
+}
+
+#[test]
+fn grounded_subset_of_ideal_ideal_is_d() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_eq!(af.ideal_extension().unwrap(), ext(&["d"]));
+}
+
+#[test]
+fn grounded_subset_of_ideal_distinguishes() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    let grounded = af.grounded_extension();
+    let ideal = af.ideal_extension().unwrap();
+    // The whole point of this fixture: ideal must strictly contain grounded.
+    assert!(
+        grounded.is_subset(&ideal),
+        "expected grounded ⊆ ideal, got grounded={grounded:?} ideal={ideal:?}"
+    );
+    assert_ne!(
+        grounded, ideal,
+        "expected grounded ⊊ ideal (strict), got grounded == ideal == {grounded:?}"
+    );
+}
+
+#[test]
+fn grounded_subset_of_ideal_complete() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_extensions_equal(
+        af.complete_extensions().unwrap(),
+        vec![ext(&[]), ext(&["d"]), ext(&["a", "d"]), ext(&["b", "d"])],
+        "complete",
+    );
+}
+
+#[test]
+fn grounded_subset_of_ideal_preferred() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_extensions_equal(
+        af.preferred_extensions().unwrap(),
+        vec![ext(&["a", "d"]), ext(&["b", "d"])],
+        "preferred",
+    );
+}
+
+#[test]
+fn grounded_subset_of_ideal_stable() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_extensions_equal(
+        af.stable_extensions().unwrap(),
+        vec![ext(&["a", "d"]), ext(&["b", "d"])],
+        "stable",
+    );
+}
+
+#[test]
+fn grounded_subset_of_ideal_semi_stable() {
+    let af = grounded_subset_of_ideal_distinguisher();
+    assert_extensions_equal(
+        af.semi_stable_extensions().unwrap(),
+        vec![ext(&["a", "d"]), ext(&["b", "d"])],
+        "semi-stable",
+    );
+}
