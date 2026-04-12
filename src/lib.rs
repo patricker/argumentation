@@ -18,3 +18,5 @@ pub use error::Error;
 
 pub mod framework;
 pub use framework::ArgumentationFramework;
+
+pub mod semantics;
