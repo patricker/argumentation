@@ -127,8 +127,7 @@ pub fn compute_attacks(args: &[Argument], rules: &[Rule]) -> Vec<Attack> {
             // `¬__applicable_<rule_id>` for some defeasible rule used by target.
             // This namespace is reserved; see add_undercut_rule in defeat.rs.
             for used in defeasible_rules_used(target, args, rules) {
-                let undercut_marker =
-                    super::language::Literal::neg(format!("__applicable_{}", used.0));
+                let undercut_marker = super::language::Literal::undercut_marker(used.0);
                 if attacker.conclusion == undercut_marker {
                     attacks.push(Attack {
                         attacker: attacker.id,
@@ -203,7 +202,7 @@ mod tests {
             Rule::defeasible(
                 RuleId(1),
                 vec![Literal::atom("trigger")],
-                Literal::neg("__applicable_0"),
+                Literal::undercut_marker(0),
             ),
         ];
         let args = construct_arguments(&kb, &rules).unwrap();

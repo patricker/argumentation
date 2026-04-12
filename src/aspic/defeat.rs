@@ -82,7 +82,7 @@ impl StructuredSystem {
     /// Consumers should never build this literal by hand — the `__applicable_`
     /// prefix is reserved and must not be used in user atom names.
     pub fn add_undercut_rule(&mut self, target: RuleId, premises: Vec<Literal>) -> RuleId {
-        let conclusion = Literal::neg(format!("__applicable_{}", target.0));
+        let conclusion = Literal::undercut_marker(target.0);
         self.add_defeasible_rule(premises, conclusion)
     }
 
@@ -91,8 +91,33 @@ impl StructuredSystem {
     /// The effective preference ordering is the transitive closure of these
     /// pairs, computed on demand in `is_preferred`: a chain of direct
     /// preferences `r3 > r2 > r1` implies `r3 > r1`.
-    pub fn prefer_rule(&mut self, preferred: RuleId, less_preferred: RuleId) {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::Error::Aspic`] if the preference would be reflexive
+    /// (`a > a`) or would create a cycle in the transitive closure (e.g.
+    /// adding `r2 > r1` when `r1 > r2` is already implied). Both cases
+    /// violate strict-partial-order semantics and would silently produce
+    /// contradictory `is_preferred` results.
+    pub fn prefer_rule(
+        &mut self,
+        preferred: RuleId,
+        less_preferred: RuleId,
+    ) -> Result<(), crate::Error> {
+        if preferred == less_preferred {
+            return Err(crate::Error::Aspic(format!(
+                "reflexive preference rejected: rule {:?} cannot be preferred to itself",
+                preferred
+            )));
+        }
+        if self.is_preferred(less_preferred, preferred) {
+            return Err(crate::Error::Aspic(format!(
+                "cyclic preference rejected: rule {:?} is already (transitively) preferred to {:?}",
+                less_preferred, preferred
+            )));
+        }
         self.preferences.push((preferred, less_preferred));
+        Ok(())
     }
 
     /// Read-side accessor for the knowledge base (for debugging/visualization).
@@ -254,7 +279,7 @@ mod tests {
         system.add_strict_rule(vec![Literal::atom("penguin")], Literal::atom("bird"));
         let r1 = system.add_defeasible_rule(vec![Literal::atom("bird")], Literal::atom("flies"));
         let r2 = system.add_defeasible_rule(vec![Literal::atom("penguin")], Literal::neg("flies"));
-        system.prefer_rule(r2, r1);
+        system.prefer_rule(r2, r1).unwrap();
 
         let built = system.build_framework().unwrap();
         let preferred = built.framework.preferred_extensions().unwrap();
@@ -284,8 +309,8 @@ mod tests {
         let r1 = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
         let r2 = system.add_defeasible_rule(vec![Literal::atom("q")], Literal::atom("y"));
         let r3 = system.add_defeasible_rule(vec![Literal::atom("r")], Literal::atom("z"));
-        system.prefer_rule(r3, r2);
-        system.prefer_rule(r2, r1);
+        system.prefer_rule(r3, r2).unwrap();
+        system.prefer_rule(r2, r1).unwrap();
         assert!(
             system.is_preferred(r3, r1),
             "transitive r3 > r1 should hold"
@@ -300,10 +325,7 @@ mod tests {
         system.kb_mut().add_ordinary(Literal::atom("trigger"));
         let uc = system.add_undercut_rule(target, vec![Literal::atom("trigger")]);
         let uc_rule = system.rules().iter().find(|r| r.id == uc).unwrap();
-        assert_eq!(
-            uc_rule.conclusion,
-            Literal::neg(format!("__applicable_{}", target.0))
-        );
+        assert_eq!(uc_rule.conclusion, Literal::undercut_marker(target.0));
     }
 
     #[test]
@@ -315,7 +337,7 @@ mod tests {
         assert_eq!(system.kb().premises().len(), 1);
         assert_eq!(system.rules().len(), 2);
         assert!(system.preferences().is_empty());
-        system.prefer_rule(r1, r2);
+        system.prefer_rule(r1, r2).unwrap();
         assert_eq!(system.preferences().len(), 1);
     }
 
@@ -338,7 +360,7 @@ mod tests {
         system.kb_mut().add_ordinary(Literal::atom("q"));
         let r_strong = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
         let r_weak = system.add_defeasible_rule(vec![Literal::atom("q")], Literal::neg("x"));
-        system.prefer_rule(r_strong, r_weak);
+        system.prefer_rule(r_strong, r_weak).unwrap();
 
         let built = system.build_framework().unwrap();
         let preferred = built.framework.preferred_extensions().unwrap();
@@ -356,5 +378,27 @@ mod tests {
             .unwrap();
         assert!(ext.contains(&x_arg.id));
         assert!(!ext.contains(&nx_arg.id));
+    }
+
+    #[test]
+    fn prefer_rule_rejects_cyclic_preferences() {
+        let mut system = StructuredSystem::new();
+        system.add_ordinary(Literal::atom("p"));
+        system.add_ordinary(Literal::atom("q"));
+        let r1 = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
+        let r2 = system.add_defeasible_rule(vec![Literal::atom("q")], Literal::atom("y"));
+        system.prefer_rule(r1, r2).unwrap();
+        // Adding r2 > r1 now would create a cycle.
+        let result = system.prefer_rule(r2, r1);
+        assert!(matches!(result, Err(crate::Error::Aspic(_))));
+    }
+
+    #[test]
+    fn prefer_rule_rejects_reflexive_preferences() {
+        let mut system = StructuredSystem::new();
+        system.add_ordinary(Literal::atom("p"));
+        let r1 = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
+        let result = system.prefer_rule(r1, r1);
+        assert!(matches!(result, Err(crate::Error::Aspic(_))));
     }
 }

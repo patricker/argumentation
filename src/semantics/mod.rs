@@ -11,3 +11,4 @@ pub mod stable;
 pub(crate) mod subset_enum;
 
 pub use labelling::{Label, Labelling};
+pub(crate) use subset_enum::ENUMERATION_LIMIT;

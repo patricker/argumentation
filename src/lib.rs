@@ -44,7 +44,7 @@
 //!     vec![Literal::atom("penguin")],
 //!     Literal::neg("flies"),
 //! );
-//! sys.prefer_rule(r2, r1);
+//! sys.prefer_rule(r2, r1).unwrap();
 //!
 //! let built = sys.build_framework().unwrap();
 //! let preferred = built.framework.preferred_extensions().unwrap();
@@ -76,6 +76,25 @@ pub mod framework;
 pub mod parsers;
 pub mod semantics;
 
+pub use aspic::StructuredSystem;
 pub use error::Error;
 pub use framework::ArgumentationFramework;
 pub use semantics::{Label, Labelling};
+
+/// Maximum number of arguments supported by the subset-enumeration
+/// extension algorithms before [`Error::TooLarge`] is returned.
+///
+/// This is exposed so that consumers can statically assert against it
+/// (e.g. in tests) or feature-check their framework sizes before calling
+/// exponential enumerators. See the subset-enum module docs for the
+/// responsiveness caveat — practical responsiveness is closer to ~20
+/// arguments even though the hard limit is 30.
+pub const ENUMERATION_LIMIT: usize = semantics::ENUMERATION_LIMIT;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn enumeration_limit_is_accessible_and_positive() {
+        assert!(crate::ENUMERATION_LIMIT >= 20);
+    }
+}

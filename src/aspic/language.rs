@@ -16,13 +16,46 @@ pub enum Literal {
 
 impl Literal {
     /// Construct a positive literal.
+    ///
+    /// # Panics (debug builds)
+    ///
+    /// Panics if `name` starts with the reserved prefix `__applicable_`,
+    /// which is used internally by [`crate::aspic::StructuredSystem::add_undercut_rule`]
+    /// to encode undercut attacks. Use `add_undercut_rule` to target a
+    /// defeasible rule rather than constructing the literal directly.
     pub fn atom(name: impl Into<String>) -> Self {
-        Literal::Atom(name.into())
+        let name = name.into();
+        debug_assert!(
+            !name.starts_with("__applicable_"),
+            "`__applicable_` prefix is reserved for ASPIC+ undercut encoding; use StructuredSystem::add_undercut_rule"
+        );
+        Literal::Atom(name)
     }
 
     /// Construct a negated literal.
+    ///
+    /// # Panics (debug builds)
+    ///
+    /// Panics if `name` starts with the reserved prefix `__applicable_`.
+    /// See [`Self::atom`] for context.
     pub fn neg(name: impl Into<String>) -> Self {
-        Literal::Neg(name.into())
+        let name = name.into();
+        debug_assert!(
+            !name.starts_with("__applicable_"),
+            "`__applicable_` prefix is reserved for ASPIC+ undercut encoding; use StructuredSystem::add_undercut_rule"
+        );
+        Literal::Neg(name)
+    }
+
+    /// Construct the reserved undercut-marker literal for a given rule id.
+    ///
+    /// This is the single sanctioned constructor for the `__applicable_<id>`
+    /// reserved namespace and is used internally by
+    /// [`crate::aspic::StructuredSystem::add_undercut_rule`] and
+    /// [`crate::aspic::compute_attacks`]. Consumers should never call this
+    /// directly — use `add_undercut_rule` instead.
+    pub(crate) fn undercut_marker(rule_id: usize) -> Literal {
+        Literal::Neg(format!("__applicable_{}", rule_id))
     }
 
     /// Return the contrary of this literal (negation).
@@ -71,5 +104,24 @@ mod tests {
         let p = Literal::atom("p");
         let q = Literal::atom("q");
         assert!(!p.is_contrary_of(&q));
+    }
+
+    #[test]
+    #[should_panic(expected = "__applicable_")]
+    fn atom_rejects_reserved_prefix_in_debug() {
+        let _ = Literal::atom("__applicable_42");
+    }
+
+    #[test]
+    #[should_panic(expected = "__applicable_")]
+    fn neg_rejects_reserved_prefix_in_debug() {
+        let _ = Literal::neg("__applicable_42");
+    }
+
+    #[test]
+    fn undercut_marker_bypasses_the_check() {
+        // The sanctioned constructor is allowed to use the reserved prefix.
+        let m = Literal::undercut_marker(42);
+        assert_eq!(m, Literal::Neg("__applicable_42".to_string()));
     }
 }
