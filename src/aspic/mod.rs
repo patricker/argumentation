@@ -9,7 +9,7 @@ pub mod rules;
 
 pub use argument::{Argument, ArgumentId, Origin, construct_arguments};
 pub use attacks::{Attack, AttackKind, compute_attacks};
-pub use defeat::{BuildOutput, StructuredSystem};
+pub use defeat::{BuildOutput, DefeatOrdering, StructuredSystem};
 pub use kb::{KnowledgeBase, Premise};
 pub use language::Literal;
 pub use rules::{Rule, RuleId, RuleKind};

@@ -12,6 +12,27 @@ use super::rules::{Rule, RuleId};
 use crate::framework::ArgumentationFramework;
 use std::collections::HashSet;
 
+/// Defeat resolution ordering for ASPIC+.
+///
+/// Per M&P 2014 §3.5, two orderings are defined:
+///
+/// - [`DefeatOrdering::LastLink`] (default): compares arguments at the
+///   last defeasible rule or, when both rule frontiers are empty, at the
+///   last-premise frontier. Appropriate for legal and normative reasoning
+///   where rules carry more weight than the facts they act on.
+/// - [`DefeatOrdering::WeakestLink`]: compares arguments on the full set
+///   of defeasible rules and ordinary premises they use. Appropriate for
+///   empirical reasoning where a chain is only as strong as its weakest
+///   link.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum DefeatOrdering {
+    /// Last-link ordering. Default.
+    #[default]
+    LastLink,
+    /// Weakest-link ordering.
+    WeakestLink,
+}
+
 /// An ASPIC+ structured argumentation system.
 #[derive(Debug, Default)]
 pub struct StructuredSystem {
@@ -25,6 +46,8 @@ pub struct StructuredSystem {
     /// frontier when both arguments' last-defeasible-rule frontiers are
     /// empty (per M&P 2014 Definition 3.21).
     premise_preferences: Vec<(Literal, Literal)>,
+    /// Defeat resolution ordering. Default: LastLink.
+    ordering: DefeatOrdering,
     next_rule_id: usize,
 }
 
@@ -77,6 +100,19 @@ impl StructuredSystem {
     /// Create a new empty system.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Create a new system with a specific defeat ordering.
+    pub fn with_ordering(ordering: DefeatOrdering) -> Self {
+        Self {
+            ordering,
+            ..Self::default()
+        }
+    }
+
+    /// Return the currently active defeat ordering.
+    pub fn ordering(&self) -> DefeatOrdering {
+        self.ordering
     }
 
     /// Mutable access to the knowledge base.
@@ -288,6 +324,46 @@ impl StructuredSystem {
         }
     }
 
+    /// Collect all defeasible rules used anywhere in an argument's
+    /// derivation tree (not just the last ones). Used by weakest-link
+    /// defeat ordering.
+    fn all_defeasible_rules(&self, arg: &Argument, args: &[Argument]) -> Vec<RuleId> {
+        let mut out = Vec::new();
+        if let Origin::RuleApplication(rid) = &arg.origin
+            && let Some(rule) = self.rules.iter().find(|r| r.id == *rid)
+            && rule.is_defeasible()
+        {
+            out.push(*rid);
+        }
+        for sub_id in &arg.sub_arguments {
+            if let Some(sub) = args.iter().find(|a| a.id == *sub_id) {
+                out.extend(self.all_defeasible_rules(sub, args));
+            }
+        }
+        out
+    }
+
+    /// Collect all ordinary (defeasible) premises used anywhere in an
+    /// argument's derivation tree. Used by weakest-link defeat ordering.
+    fn all_ordinary_premises(&self, arg: &Argument, args: &[Argument]) -> Vec<Literal> {
+        let mut out = Vec::new();
+        match &arg.origin {
+            Origin::Premise(p) => {
+                if p.is_defeasible() {
+                    out.push(p.literal().clone());
+                }
+            }
+            Origin::RuleApplication(_) => {
+                for sub_id in &arg.sub_arguments {
+                    if let Some(sub) = args.iter().find(|a| a.id == *sub_id) {
+                        out.extend(self.all_ordinary_premises(sub, args));
+                    }
+                }
+            }
+        }
+        out
+    }
+
     /// Collect the "last-premise frontier": all ordinary premises that
     /// lie at the leaves of this argument's derivation tree.
     ///
@@ -341,40 +417,99 @@ impl StructuredSystem {
             .iter()
             .find(|a| a.id == attack.target)
             .expect("attack references nonexistent target argument");
-        let attacker_rules = self.last_defeasible_frontier(attacker, args);
-        let target_rules = self.last_defeasible_frontier(target, args);
 
-        if !attacker_rules.is_empty() && !target_rules.is_empty() {
-            // Both sides have defeasible rules: compare at the rule level
-            // (Elitist).
-            let target_beats_attacker = target_rules
-                .iter()
-                .any(|tr| attacker_rules.iter().all(|ar| self.is_preferred(*tr, *ar)));
-            return !target_beats_attacker;
+        // An attack succeeds as a defeat iff the attacker is NOT strictly
+        // less preferred than the target (i.e. target does not strictly
+        // dominate attacker). Per M&P 2014.
+        let attacker_strictly_less = match self.ordering {
+            DefeatOrdering::LastLink => self.last_link_prec(attacker, target, args),
+            DefeatOrdering::WeakestLink => self.weakest_link_prec(attacker, target, args),
+        };
+        !attacker_strictly_less
+    }
+
+    /// Elitist strict set comparison `Γ ◁Eli Γ'` per M&P 2014 Def 3.19 + 3.21 note.
+    ///
+    /// Returns true iff Γ is strictly less than Γ' under Elitist ordering:
+    /// - If Γ = ∅: false (rule 1).
+    /// - If Γ' = ∅ and Γ ≠ ∅: true (rules 1+2).
+    /// - Else: ∃X ∈ Γ. ∀Y ∈ Γ'. X < Y.
+    fn rule_set_strict_lt(&self, gamma: &[RuleId], gamma_prime: &[RuleId]) -> bool {
+        if gamma.is_empty() {
+            return false;
+        }
+        if gamma_prime.is_empty() {
+            return true;
+        }
+        gamma
+            .iter()
+            .any(|x| gamma_prime.iter().all(|y| self.is_preferred(*y, *x)))
+    }
+
+    /// Same as [`Self::rule_set_strict_lt`] but over ordinary-premise sets.
+    fn premise_set_strict_lt(&self, gamma: &[Literal], gamma_prime: &[Literal]) -> bool {
+        if gamma.is_empty() {
+            return false;
+        }
+        if gamma_prime.is_empty() {
+            return true;
+        }
+        gamma
+            .iter()
+            .any(|x| gamma_prime.iter().all(|y| self.is_premise_preferred(y, x)))
+    }
+
+    /// Last-link strict preference `A ≺ B` per M&P 2014 Def 3.21.
+    ///
+    /// A ≺ B iff:
+    /// - LastDefRules(A) ◁s LastDefRules(B), OR
+    /// - Both LastDefRules are empty AND Prem(A) ◁s Prem(B).
+    fn last_link_prec(&self, a: &Argument, b: &Argument, args: &[Argument]) -> bool {
+        let a_rules = self.last_defeasible_frontier(a, args);
+        let b_rules = self.last_defeasible_frontier(b, args);
+        if self.rule_set_strict_lt(&a_rules, &b_rules) {
+            return true;
+        }
+        if a_rules.is_empty() && b_rules.is_empty() {
+            let a_prems = self.last_premise_frontier(a, args);
+            let b_prems = self.last_premise_frontier(b, args);
+            return self.premise_set_strict_lt(&a_prems, &b_prems);
+        }
+        false
+    }
+
+    /// Weakest-link strict preference `A ≺ B` per M&P 2014 Def 3.23.
+    ///
+    /// A ≺ B iff (case 3, the general case used when at least one side
+    /// is plausible and defeasible):
+    /// Premp(A) ⊴s Premp(B) AND DefRules(A) ⊴s DefRules(B),
+    /// with at least one of the two being strict (`◁s`).
+    ///
+    /// Special cases:
+    /// - Both strict (no defeasible rules on either side): compare only
+    ///   premises.
+    /// - Both firm (no ordinary premises on either side): compare only
+    ///   defeasible rules.
+    fn weakest_link_prec(&self, a: &Argument, b: &Argument, args: &[Argument]) -> bool {
+        let a_rules = self.all_defeasible_rules(a, args);
+        let b_rules = self.all_defeasible_rules(b, args);
+        let a_prems = self.all_ordinary_premises(a, args);
+        let b_prems = self.all_ordinary_premises(b, args);
+
+        let a_strict = a_rules.is_empty() && b_rules.is_empty();
+        let a_firm = a_prems.is_empty() && b_prems.is_empty();
+
+        if a_strict {
+            return self.premise_set_strict_lt(&a_prems, &b_prems);
+        }
+        if a_firm {
+            return self.rule_set_strict_lt(&a_rules, &b_rules);
         }
 
-        // Fall-through: at least one side has an empty defeasible frontier.
-        // Per M&P 2014 Def 3.21, compare premise frontiers when BOTH sides
-        // have empty rule frontiers.
-        if attacker_rules.is_empty() && target_rules.is_empty() {
-            let attacker_prems = self.last_premise_frontier(attacker, args);
-            let target_prems = self.last_premise_frontier(target, args);
-            if attacker_prems.is_empty() || target_prems.is_empty() {
-                return true;
-            }
-            // Elitist on premises: target beats attacker iff some target
-            // premise is strictly preferred to every attacker premise.
-            let target_beats_attacker = target_prems.iter().any(|tp| {
-                attacker_prems
-                    .iter()
-                    .all(|ap| self.is_premise_preferred(tp, ap))
-            });
-            return !target_beats_attacker;
-        }
-
-        // One side has rules, the other doesn't. Attack succeeds by
-        // default — the rule-less side has no preferences to invoke.
-        true
+        // Case 3: both plausible and defeasible. Use the ≺ form: replace
+        // ⊴ with ◁ (strict) in the conjunction per the paper's note.
+        self.premise_set_strict_lt(&a_prems, &b_prems)
+            && self.rule_set_strict_lt(&a_rules, &b_rules)
     }
 
     /// Single-pass construction: build all arguments, compute all attacks,

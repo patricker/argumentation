@@ -507,6 +507,80 @@ fn running_example() -> argumentation::aspic::BuildOutput {
     sys.build_framework().unwrap()
 }
 
+/// M&P 2014 Example 3.26: the Scotland/Whisky case.
+///
+///   Kp = {BornInScotland, FitnessLover}
+///   Rd:  d1: BornInScotland ⇒ Scottish
+///        d2: Scottish ⇒ LikesWhisky
+///        d3: FitnessLover ⇒ ¬LikesWhisky
+///
+///   Priorities: BornInScotland <' FitnessLover, d1 < d2, d1 < d3, d3 < d2
+///
+/// Under LAST-LINK (default), comparison is {d2} vs {d3}: since d3 < d2,
+/// A3 strictly defeats B2 → conclude LikesWhisky.
+///
+/// Under WEAKEST-LINK, comparison is {d1, d2} vs {d3} with the premise
+/// ordering also factored in. Per the paper, B2 ≻ A3 → conclude ¬LikesWhisky.
+fn build_scotland_whisky(
+    ordering: argumentation::aspic::DefeatOrdering,
+) -> argumentation::aspic::BuildOutput {
+    use argumentation::aspic::StructuredSystem;
+    let mut sys = StructuredSystem::with_ordering(ordering);
+    sys.add_ordinary(Literal::atom("BornInScotland"));
+    sys.add_ordinary(Literal::atom("FitnessLover"));
+    let d1 = sys.add_defeasible_rule(
+        vec![Literal::atom("BornInScotland")],
+        Literal::atom("Scottish"),
+    );
+    let d2 = sys.add_defeasible_rule(
+        vec![Literal::atom("Scottish")],
+        Literal::atom("LikesWhisky"),
+    );
+    let d3 = sys.add_defeasible_rule(
+        vec![Literal::atom("FitnessLover")],
+        Literal::neg("LikesWhisky"),
+    );
+    sys.prefer_rule(d2, d1).unwrap();
+    sys.prefer_rule(d3, d1).unwrap();
+    sys.prefer_rule(d2, d3).unwrap();
+    sys.prefer_premise(
+        Literal::atom("FitnessLover"),
+        Literal::atom("BornInScotland"),
+    )
+    .unwrap();
+    sys.build_framework().unwrap()
+}
+
+#[test]
+fn whisky_last_link_concludes_likes_whisky() {
+    use argumentation::aspic::DefeatOrdering;
+    let built = build_scotland_whisky(DefeatOrdering::LastLink);
+    let likes = built
+        .argument_by_conclusion(&Literal::atom("LikesWhisky"))
+        .expect("LikesWhisky argument");
+    let grounded = built.framework.grounded_extension();
+    assert!(
+        grounded.contains(&likes.id),
+        "last-link should accept LikesWhisky, got {:?}",
+        grounded
+    );
+}
+
+#[test]
+fn whisky_weakest_link_concludes_not_likes_whisky() {
+    use argumentation::aspic::DefeatOrdering;
+    let built = build_scotland_whisky(DefeatOrdering::WeakestLink);
+    let not_likes = built
+        .argument_by_conclusion(&Literal::neg("LikesWhisky"))
+        .expect("¬LikesWhisky argument");
+    let grounded = built.framework.grounded_extension();
+    assert!(
+        grounded.contains(&not_likes.id),
+        "weakest-link should accept ¬LikesWhisky, got {:?}",
+        grounded
+    );
+}
+
 #[test]
 fn running_example_r_is_in_grounded_extension() {
     let built = running_example();
