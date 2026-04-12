@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-12
+
+### Added
+- **Premise-level preferences** (`StructuredSystem::prefer_premise`,
+  `is_premise_preferred`, `premise_preferences`). Per M&P 2014 Def 3.21,
+  falls through when both arguments' last-defeasible-rule frontiers are
+  empty. Unlocks encoding the M&P running example.
+- **Weakest-link defeat ordering** (`DefeatOrdering::{LastLink, WeakestLink}`
+  + `StructuredSystem::with_ordering`). Per M&P 2014 Def 3.23, compares
+  the full set of defeasible rules and ordinary premises. Default remains
+  LastLink for backwards compatibility.
+- **Rationality postulate checks**: `src/aspic/postulates.rs` + new
+  `BuildOutput::check_postulates` method. Validates against Caminada-Amgoud
+  (2007) postulates 1-4 (sub-argument closure, closure under strict rules,
+  direct consistency, indirect consistency).
+- **Labelling-primary methods**: `grounded_labelling`, `preferred_labellings`,
+  `stable_labellings`, `ideal_labelling`, `semi_stable_labellings` as
+  first-class accessors on `ArgumentationFramework<A>`.
+- M&P 2014 running example (Example 3.7/3.22) and Whisky example
+  (Example 3.26) encoded in `tests/ground_truth_aspic.rs`.
+
+### Changed
+- `BuildOutput` now carries a `rules: Vec<Rule>` field. Pre-1.0 additive
+  breaking change for code that constructs `BuildOutput` values directly
+  (rare; most consumers go through `build_framework`).
+- `StructuredSystem` gains `premise_preferences` and `ordering` fields.
+  `StructuredSystem::new()` still produces a system with default `LastLink`
+  ordering and no premise preferences.
+
 ## [0.1.2] - 2026-04-12
 
 ### Added
