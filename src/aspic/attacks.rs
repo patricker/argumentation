@@ -1,25 +1,33 @@
 //! Attack relations between ASPIC+ arguments.
 //!
-//! Per Modgil & Prakken 2014 §3.2:
-//! - **Undermining:** `A` undermines `B` iff `A`'s conclusion is the contrary
-//!   of some *ordinary premise* used by `B`.
-//! - **Undercutting:** `A` undercuts `B` iff `A`'s conclusion expresses "the
-//!   defeasible rule `r` does not apply," for some defeasible rule `r` used
-//!   in `B`. Our encoding uses a reserved literal namespace
-//!   `¬__applicable_<rule_id>`. Consumers should use
+//! Per Modgil & Prakken 2014 §3.3.1 Definition 3.10:
+//! - **Undermining:** `A` undermines `B` (on `ϕ`) iff `A`'s conclusion is the
+//!   contrary of some *ordinary premise* `ϕ` used anywhere in `B`'s tree.
+//! - **Undercutting:** `A` undercuts `B` (on `B'`) iff `A`'s conclusion
+//!   expresses "the defeasible rule `r` does not apply," for some defeasible
+//!   rule `r` used in a defeasible-topped sub-argument `B' ∈ Sub(B)`. Our
+//!   encoding uses the reserved literal namespace `¬__applicable_<rule_id>`;
+//!   consumers should use
 //!   [`crate::aspic::StructuredSystem::add_undercut_rule`] rather than
 //!   constructing this literal by hand.
-//! - **Rebutting:** `A` rebuts `B` iff `A`'s conclusion is the contrary of
-//!   `B`'s conclusion, and `B`'s top rule is defeasible.
+//! - **Rebutting:** `A` rebuts `B` (on `B'`) iff `A`'s conclusion is the
+//!   contrary of some sub-argument `B' ∈ Sub(B)`'s conclusion, and `B'`'s
+//!   top rule is defeasible.
 //!
-//! **Note on strict-topped arguments and rebut.** An argument `B` that ends
-//! in a strict rule cannot be directly rebut at its top level (because the
-//! definition requires the top rule to be defeasible). However, because
-//! `construct_arguments` materialises every intermediate sub-argument as its
-//! own `Argument` with its own id, rebut attacks against *defeasible
-//! sub-arguments* of `B` are picked up correctly by iterating `(attacker,
-//! target)` over all argument pairs. Don't "optimise" this loop by skipping
-//! sub-arguments; you'd lose attack coverage.
+//! **All three attack kinds are recorded against the outer target `B`**, not
+//! just against the sub-argument where the conflict lands. This matches the
+//! paper's "A rebuts B on B'" phrasing: the Dung AF edge is `(A, B)`. Because
+//! `construct_arguments` also materialises every intermediate sub-argument as
+//! its own `Argument` with its own id, the (attacker, target) iteration
+//! additionally yields `(A, B')` as a separate edge — both edges exist in the
+//! resulting framework, which is consistent with the paper's treatment of
+//! every sub-argument as an independent argument.
+//!
+//! Historical note: an earlier version of this module only checked the
+//! target's top-level conclusion for rebut, which produced logically
+//! inconsistent extensions when strict rules wrapped defeasible
+//! sub-arguments (e.g. Example 4.1 Married/Bachelor from M&P 2014). The
+//! sub-argument traversal in [`compute_attacks`]'s rebut loop is the fix.
 
 use super::argument::{Argument, ArgumentId, Origin};
 use super::kb::Premise;
@@ -92,6 +100,21 @@ fn ordinary_premises_used<'a>(arg: &'a Argument, args: &'a [Argument]) -> Vec<&'
     out
 }
 
+/// Recursively collect `arg` and all its sub-arguments (transitive closure).
+///
+/// Used by the rebut check to find defeasible-topped sub-arguments whose
+/// conclusion the attacker might contradict; per M&P 2014 §3.3.1, rebutting
+/// on a sub-argument is an attack on the outer parent.
+fn all_sub_arguments<'a>(arg: &'a Argument, args: &'a [Argument]) -> Vec<&'a Argument> {
+    let mut out = vec![arg];
+    for sub_id in &arg.sub_arguments {
+        if let Some(sub) = args.iter().find(|a| a.id == *sub_id) {
+            out.extend(all_sub_arguments(sub, args));
+        }
+    }
+    out
+}
+
 /// Compute all attacks between arguments.
 pub fn compute_attacks(args: &[Argument], rules: &[Rule]) -> Vec<Attack> {
     let mut attacks = Vec::new();
@@ -100,16 +123,22 @@ pub fn compute_attacks(args: &[Argument], rules: &[Rule]) -> Vec<Attack> {
             if attacker.id == target.id {
                 continue;
             }
-            // Rebut: attacker's conclusion is contrary of target's conclusion,
-            // and target ends in a defeasible rule.
-            if attacker.conclusion.is_contrary_of(&target.conclusion)
-                && target.top_rule_is_defeasible(rules)
-            {
-                attacks.push(Attack {
-                    attacker: attacker.id,
-                    target: target.id,
-                    kind: AttackKind::Rebut,
-                });
+            // Rebut: attacker's conclusion is contrary of some defeasible-topped
+            // sub-argument `B'` of target. We iterate over the target's full
+            // sub-argument tree (including itself) because per M&P 2014
+            // Definition 3.10 "A rebuts B on B'" means the edge is (A, B),
+            // regardless of whether the rebut "lands" at the top or deeper in.
+            for sub in all_sub_arguments(target, args) {
+                if attacker.conclusion.is_contrary_of(&sub.conclusion)
+                    && sub.top_rule_is_defeasible(rules)
+                {
+                    attacks.push(Attack {
+                        attacker: attacker.id,
+                        target: target.id,
+                        kind: AttackKind::Rebut,
+                    });
+                    break;
+                }
             }
             // Undermine: attacker's conclusion is contrary of an ordinary premise
             // used by target.
@@ -224,6 +253,111 @@ mod tests {
         assert!(
             undercuts.iter().any(|u| u.target == q_arg.id),
             "expected an undercut attack targeting the q-argument"
+        );
+    }
+
+    #[test]
+    fn rebut_propagates_through_strict_wrapper() {
+        // Regression test for M&P 2014 Example 4.1 (Married/Bachelor).
+        //
+        // KB: WearsRing, PartyAnimal (both ordinary)
+        // Rd: d1: WearsRing ⇒ Married
+        //     d2: PartyAnimal ⇒ Bachelor
+        // Rs: s1: Married → ¬Bachelor
+        //     s2: Bachelor → ¬Married
+        //
+        // Arguments:
+        //   A1 = WearsRing (premise)
+        //   A2 = A1 ⇒ Married (via d1, defeasible top)
+        //   A3 = A2 → ¬Bachelor (via s1, strict top)
+        //   B1 = PartyAnimal (premise)
+        //   B2 = B1 ⇒ Bachelor (via d2, defeasible top)
+        //   B3 = B2 → ¬Married (via s2, strict top)
+        //
+        // The paper says "A3 rebuts B3 on its subargument B2, and B3 rebuts
+        // A3 on its subargument A2." So in the Dung AF we must have BOTH:
+        //   - (A3, B2) and (A3, B3) for the A3-rebuts-B3-on-B2 claim
+        //   - (B3, A2) and (B3, A3) for the B3-rebuts-A3-on-A2 claim
+        //
+        // A previous implementation only detected the sub-argument landing
+        // (A3, B2) and (B3, A2), which left A3 and B3 unattacked in the AF —
+        // producing a grounded extension that contained both ¬Bachelor AND
+        // ¬Married while excluding both Married and Bachelor. Incoherent.
+        let mut kb = KnowledgeBase::new();
+        kb.add_ordinary(Literal::atom("WearsRing"));
+        kb.add_ordinary(Literal::atom("PartyAnimal"));
+        let rules = vec![
+            Rule::defeasible(
+                RuleId(0),
+                vec![Literal::atom("WearsRing")],
+                Literal::atom("Married"),
+            ),
+            Rule::defeasible(
+                RuleId(1),
+                vec![Literal::atom("PartyAnimal")],
+                Literal::atom("Bachelor"),
+            ),
+            Rule::strict(
+                RuleId(2),
+                vec![Literal::atom("Married")],
+                Literal::neg("Bachelor"),
+            ),
+            Rule::strict(
+                RuleId(3),
+                vec![Literal::atom("Bachelor")],
+                Literal::neg("Married"),
+            ),
+        ];
+        let args = construct_arguments(&kb, &rules).unwrap();
+        let all_attacks = compute_attacks(&args, &rules);
+        let rebuts: Vec<&Attack> = all_attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Rebut)
+            .collect();
+        // Locate arguments by conclusion.
+        let married = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("Married"))
+            .unwrap();
+        let bachelor = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("Bachelor"))
+            .unwrap();
+        let not_bachelor = args
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("Bachelor"))
+            .unwrap();
+        let not_married = args
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("Married"))
+            .unwrap();
+
+        // Direct sub-arg rebuts (pre-existing behaviour):
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == not_bachelor.id && r.target == bachelor.id),
+            "expected ¬Bachelor rebuts Bachelor (direct sub)"
+        );
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == not_married.id && r.target == married.id),
+            "expected ¬Married rebuts Married (direct sub)"
+        );
+
+        // Strict-wrapper propagation (the fix):
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == not_bachelor.id && r.target == not_married.id),
+            "expected ¬Bachelor rebuts ¬Married via sub-argument B2 (strict wrapper)"
+        );
+        assert!(
+            rebuts
+                .iter()
+                .any(|r| r.attacker == not_married.id && r.target == not_bachelor.id),
+            "expected ¬Married rebuts ¬Bachelor via sub-argument A2 (strict wrapper)"
         );
     }
 }

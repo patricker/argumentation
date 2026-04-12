@@ -97,6 +97,9 @@ mod tests {
 
     #[test]
     fn enumeration_limit_matches_semantics() {
-        assert_eq!(crate::ENUMERATION_LIMIT, crate::semantics::ENUMERATION_LIMIT);
+        assert_eq!(
+            crate::ENUMERATION_LIMIT,
+            crate::semantics::ENUMERATION_LIMIT
+        );
     }
 }
