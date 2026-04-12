@@ -1,0 +1,13 @@
+[package]
+name = "argumentation-schemes"
+version = "0.1.0"
+edition = "2024"
+description = "Walton argumentation schemes with critical questions, built on the argumentation crate"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["argumentation", "schemes", "walton", "reasoning", "critical-questions"]
+categories = ["algorithms"]
+
+[dependencies]
+argumentation = { path = "../.." }
+thiserror = "2.0"
