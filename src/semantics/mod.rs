@@ -4,6 +4,9 @@ pub mod admissibility;
 pub mod complete;
 pub mod grounded;
 pub mod ideal;
+pub mod labelling;
 pub mod preferred;
 pub mod semi_stable;
 pub mod stable;
+
+pub use labelling::{Label, Labelling};
