@@ -11,6 +11,7 @@
 //! enforces this at runtime.
 
 pub mod epistemic;
+pub mod popular;
 pub mod practical;
 pub mod source;
 
@@ -23,7 +24,6 @@ pub const PRACTICAL_ID_OFFSET: u32 = 100;
 /// First source-based-scheme ID. Range: 200..300.
 pub const SOURCE_ID_OFFSET: u32 = 200;
 /// First popular-scheme ID. Range: 300..400.
-#[allow(dead_code)]
 pub const POPULAR_ID_OFFSET: u32 = 300;
 /// First causal-scheme ID. Range: 400..500.
 #[allow(dead_code)]
@@ -42,6 +42,9 @@ pub fn default_catalog() -> CatalogRegistry {
         reg.register(scheme);
     }
     for scheme in source::all() {
+        reg.register(scheme);
+    }
+    for scheme in popular::all() {
         reg.register(scheme);
     }
     reg
