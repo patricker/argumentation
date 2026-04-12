@@ -22,3 +22,5 @@ pub use framework::ArgumentationFramework;
 pub mod semantics;
 
 pub mod parsers;
+
+pub mod aspic;
