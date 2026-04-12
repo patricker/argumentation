@@ -21,7 +21,7 @@ pub struct CriticalQuestionInstance {
 }
 
 /// A scheme instantiated with concrete bindings, ready for ASPIC+ integration.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SchemeInstance {
     /// The scheme this instance was created from.
     pub scheme_name: String,
@@ -40,6 +40,14 @@ pub struct SchemeInstance {
 /// to be a prefix. Without this, a template `?threatener` containing
 /// the substring `?threat` would be corrupted by an earlier substitution
 /// of slot `threat`.
+///
+/// **Note on binding values:** substitution is multi-pass over the
+/// accumulated string, so a binding *value* that contains `?slot` syntax
+/// matching a later (shorter-key) binding will itself be substituted.
+/// Walton scheme bindings are concrete entity names (`"alice"`,
+/// `"darth_vader"`) so this never fires in practice, but consumers
+/// passing bindings from less-controlled sources (LLM output, free-text
+/// dialog) should sanitise `?` from values first.
 fn resolve_template(template: &str, bindings: &HashMap<String, String>) -> String {
     let mut sorted: Vec<(&String, &String)> = bindings.iter().collect();
     sorted.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
@@ -298,6 +306,25 @@ mod tests {
             resolved,
             "Does darth_vader carry out destroy_planet to force join_dark_side?"
         );
+    }
+
+    #[test]
+    fn resolve_template_handles_three_way_prefix_overlap() {
+        // Belt-and-braces regression: three slots whose names form a
+        // strict prefix chain (event ⊏ event_a ⊏ event_a_extended).
+        // Length-descending sort must substitute the longest first so
+        // none of the shorter names match inside the longer ones.
+        let bindings: HashMap<String, String> = [
+            ("event".to_string(), "trigger".to_string()),
+            ("event_a".to_string(), "alpha".to_string()),
+            ("event_a_extended".to_string(), "alpha_plus".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let template = "saw ?event then ?event_a then ?event_a_extended";
+        let resolved = resolve_template(template, &bindings);
+        assert_eq!(resolved, "saw trigger then alpha then alpha_plus");
     }
 
     #[test]
