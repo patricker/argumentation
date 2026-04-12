@@ -7,6 +7,10 @@
 //!   #
 //!   a b
 //!   b c
+//!
+//! Lines starting with `%` are treated as comments and ignored, matching
+//! the APX parser's convention. (TGF itself does not standardise
+//! comments; this is a crate-level convenience.)
 
 use crate::Error;
 use crate::framework::ArgumentationFramework;
@@ -17,7 +21,7 @@ pub fn parse_tgf(input: &str) -> Result<ArgumentationFramework<String>, Error> {
     let mut in_edges = false;
     for (lineno, raw_line) in input.lines().enumerate() {
         let line = raw_line.trim();
-        if line.is_empty() {
+        if line.is_empty() || line.starts_with('%') {
             continue;
         }
         if line == "#" {
@@ -49,6 +53,15 @@ mod tests {
     #[test]
     fn parse_simple_tgf() {
         let input = "a\nb\nc\n#\na b\nb c\n";
+        let af = parse_tgf(input).unwrap();
+        assert_eq!(af.arguments().count(), 3);
+        assert_eq!(af.attackers(&"b".to_string()).len(), 1);
+        assert_eq!(af.attackers(&"c".to_string()).len(), 1);
+    }
+
+    #[test]
+    fn parse_tgf_with_percent_comments() {
+        let input = "% header comment\na\nb\n% mid comment\nc\n#\n% edge section\na b\nb c\n";
         let af = parse_tgf(input).unwrap();
         assert_eq!(af.arguments().count(), 3);
         assert_eq!(af.attackers(&"b".to_string()).len(), 1);
