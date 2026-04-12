@@ -13,6 +13,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod aspic;
 pub mod critical;
 pub mod error;
 pub mod instance;
