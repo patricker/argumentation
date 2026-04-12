@@ -12,6 +12,7 @@
 
 pub mod epistemic;
 pub mod practical;
+pub mod source;
 
 use crate::registry::CatalogRegistry;
 
@@ -20,7 +21,6 @@ pub const EPISTEMIC_ID_OFFSET: u32 = 1;
 /// First practical-scheme ID. Range: 100..200.
 pub const PRACTICAL_ID_OFFSET: u32 = 100;
 /// First source-based-scheme ID. Range: 200..300.
-#[allow(dead_code)]
 pub const SOURCE_ID_OFFSET: u32 = 200;
 /// First popular-scheme ID. Range: 300..400.
 #[allow(dead_code)]
@@ -39,6 +39,9 @@ pub fn default_catalog() -> CatalogRegistry {
         reg.register(scheme);
     }
     for scheme in practical::all() {
+        reg.register(scheme);
+    }
+    for scheme in source::all() {
         reg.register(scheme);
     }
     reg
