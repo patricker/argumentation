@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-12
+
+### Added
+- **Real ICCMA 2019 benchmark fixtures** under `tests/iccma_fixtures/real_2019/`.
+  Five small instances (5-8 arguments) from the official
+  `iccma-instances.tar.gz` archive plus expected outputs transcribed from the
+  matching `reference-results.tar.gz`. A new test harness
+  (`tests/ground_truth_iccma.rs`) runs each instance through all six
+  semantics (grounded, complete, preferred, stable, ideal, semi-stable)
+  and compares against third-party ground truth that we did not compute
+  ourselves — 30 fixture/semantic test pairs. See
+  `tests/iccma_fixtures/real_2019/PROVENANCE.md` for URLs and format notes.
+- **`grounded ⊊ ideal` distinguisher fixture** in `tests/ground_truth_dung.rs`:
+  a 5-argument framework (mutual attack `a↔b`, both attacking `c`, mutual
+  attack `c↔d`, `d→e`) where grounded = ∅ but ideal = `{d}`. The existing
+  invariant test only checks `grounded ⊆ ideal`; this fixture pins the
+  strict inclusion that is the whole motivation for ideal semantics.
+- **Caminada-style complete labelling ground truth** for the existing
+  mutual-attack, three-cycle, and four-chain fixtures, covering the
+  characteristic shapes: multiple in/out labellings with an all-undec
+  labelling, the unique all-undec labelling on an odd cycle, and the
+  unique alternating in/out labelling on a chain.
+
 ## [0.1.1] - 2026-04-12
 
 ### Fixed
