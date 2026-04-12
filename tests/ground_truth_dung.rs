@@ -7,7 +7,7 @@
 //! cross-semantic consistency (e.g. grounded ⊆ every preferred), not
 //! absolute correctness.
 
-use argumentation::ArgumentationFramework;
+use argumentation::{ArgumentationFramework, Label};
 use std::collections::{BTreeSet, HashSet};
 
 /// Compare two collections of extensions for set-of-set equality, ignoring
@@ -846,4 +846,75 @@ fn grounded_subset_of_ideal_semi_stable() {
         vec![ext(&["a", "d"]), ext(&["b", "d"])],
         "semi-stable",
     );
+}
+
+// ---------------------------------------------------------------------------
+// Caminada-style complete labelling ground truth.
+//
+// Caminada (2006) "On the Issue of Reinstatement in Argumentation" shows
+// that complete extensions are in bijection with complete labellings: a
+// labelling assigning each argument one of {in, out, undec} such that
+// in-args have all attackers out and out-args have at least one attacker
+// in. These tests pin the labellings for three fixtures above, exercising
+// the three characteristic shapes: (1) multiple in/out labellings plus an
+// all-undec one on a mutual attack, (2) the unique all-undec labelling on
+// an odd cycle, and (3) the single alternating-in/out labelling on a chain.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn mutual_attack_complete_labellings_include_undec_case() {
+    let af = mutual_attack();
+    let labellings = af.complete_labellings().unwrap();
+    // Three complete extensions → three complete labellings.
+    assert_eq!(labellings.len(), 3);
+
+    // One labelling has both args undec (corresponds to ∅ extension).
+    let undec_labelling = labellings
+        .iter()
+        .find(|l| l.label_of(&"a") == Some(Label::Undec) && l.label_of(&"b") == Some(Label::Undec))
+        .expect("expected one labelling with both args undec");
+    assert_eq!(undec_labelling.in_set(), HashSet::new());
+
+    // One labelling has a=in, b=out.
+    assert!(
+        labellings
+            .iter()
+            .any(|l| l.label_of(&"a") == Some(Label::In) && l.label_of(&"b") == Some(Label::Out))
+    );
+    // One labelling has b=in, a=out.
+    assert!(
+        labellings
+            .iter()
+            .any(|l| l.label_of(&"b") == Some(Label::In) && l.label_of(&"a") == Some(Label::Out))
+    );
+}
+
+#[test]
+fn three_cycle_complete_labelling_is_all_undec() {
+    // Three-cycle a→b→c→a: no stable, no non-trivial complete → the only
+    // complete labelling labels every argument undec.
+    let af = three_cycle();
+    let labellings = af.complete_labellings().unwrap();
+    assert_eq!(labellings.len(), 1);
+    let labelling = &labellings[0];
+    assert_eq!(labelling.label_of(&"a"), Some(Label::Undec));
+    assert_eq!(labelling.label_of(&"b"), Some(Label::Undec));
+    assert_eq!(labelling.label_of(&"c"), Some(Label::Undec));
+    assert_eq!(labelling.in_set(), HashSet::new());
+}
+
+#[test]
+fn four_chain_single_labelling_assigns_alternating_in_out() {
+    // Chain a→b→c→d. Unique complete extension {a, c}. Labelling:
+    // a=in (unattacked), b=out (attacker a=in), c=in (attacker b=out),
+    // d=out (attacker c=in).
+    let af = four_chain();
+    let labellings = af.complete_labellings().unwrap();
+    assert_eq!(labellings.len(), 1);
+    let labelling = &labellings[0];
+    assert_eq!(labelling.label_of(&"a"), Some(Label::In));
+    assert_eq!(labelling.label_of(&"b"), Some(Label::Out));
+    assert_eq!(labelling.label_of(&"c"), Some(Label::In));
+    assert_eq!(labelling.label_of(&"d"), Some(Label::Out));
+    assert_eq!(labelling.in_set(), ext(&["a", "c"]));
 }
