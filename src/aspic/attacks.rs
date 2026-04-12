@@ -48,7 +48,11 @@ pub struct Attack {
 }
 
 /// Recursively collect all defeasible rules used in an argument's construction.
-fn defeasible_rules_used(arg: &Argument, args: &[Argument], rules: &[Rule]) -> Vec<super::rules::RuleId> {
+fn defeasible_rules_used(
+    arg: &Argument,
+    args: &[Argument],
+    rules: &[Rule],
+) -> Vec<super::rules::RuleId> {
     let mut out = Vec::new();
     match &arg.origin {
         Origin::Premise(_) => {}
@@ -123,7 +127,8 @@ pub fn compute_attacks(args: &[Argument], rules: &[Rule]) -> Vec<Attack> {
             // `¬__applicable_<rule_id>` for some defeasible rule used by target.
             // This namespace is reserved; see add_undercut_rule in defeat.rs.
             for used in defeasible_rules_used(target, args, rules) {
-                let undercut_marker = super::language::Literal::neg(format!("__applicable_{}", used.0));
+                let undercut_marker =
+                    super::language::Literal::neg(format!("__applicable_{}", used.0));
                 if attacker.conclusion == undercut_marker {
                     attacks.push(Attack {
                         attacker: attacker.id,
@@ -157,7 +162,10 @@ mod tests {
         ];
         let args = construct_arguments(&kb, &rules).unwrap();
         let attacks = compute_attacks(&args, &rules);
-        let rebuts: Vec<&Attack> = attacks.iter().filter(|a| a.kind == AttackKind::Rebut).collect();
+        let rebuts: Vec<&Attack> = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Rebut)
+            .collect();
         assert!(rebuts.len() >= 2);
     }
 
@@ -173,7 +181,10 @@ mod tests {
         )];
         let args = construct_arguments(&kb, &rules).unwrap();
         let attacks = compute_attacks(&args, &rules);
-        let undermines: Vec<&Attack> = attacks.iter().filter(|a| a.kind == AttackKind::Undermine).collect();
+        let undermines: Vec<&Attack> = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Undermine)
+            .collect();
         assert!(!undermines.is_empty());
     }
 }

@@ -7,8 +7,8 @@ pub mod kb;
 pub mod language;
 pub mod rules;
 
-pub use argument::{construct_arguments, Argument, ArgumentId, Origin};
-pub use attacks::{compute_attacks, Attack, AttackKind};
+pub use argument::{Argument, ArgumentId, Origin, construct_arguments};
+pub use attacks::{Attack, AttackKind, compute_attacks};
 pub use defeat::{BuildOutput, StructuredSystem};
 pub use kb::{KnowledgeBase, Premise};
 pub use language::Literal;

@@ -10,22 +10,20 @@ use std::collections::HashSet;
 
 /// Generate a random AF with 1-6 arguments and 0-10 attack edges.
 fn arb_framework() -> impl Strategy<Value = ArgumentationFramework<u8>> {
-    (1u8..=6, prop::collection::vec((0u8..6, 0u8..6), 0..10)).prop_map(
-        |(n, edges)| {
-            let mut af = ArgumentationFramework::new();
-            for i in 0..n {
-                af.add_argument(i);
+    (1u8..=6, prop::collection::vec((0u8..6, 0u8..6), 0..10)).prop_map(|(n, edges)| {
+        let mut af = ArgumentationFramework::new();
+        for i in 0..n {
+            af.add_argument(i);
+        }
+        for (a, t) in edges {
+            if a < n && t < n {
+                // Infallible: both args are in 0..n and were added above; add_attack is
+                // idempotent and accepts self-loops, so no error mode applies.
+                let _ = af.add_attack(&a, &t);
             }
-            for (a, t) in edges {
-                if a < n && t < n {
-                    // Infallible: both args are in 0..n and were added above; add_attack is
-                    // idempotent and accepts self-loops, so no error mode applies.
-                    let _ = af.add_attack(&a, &t);
-                }
-            }
-            af
-        },
-    )
+        }
+        af
+    })
 }
 
 proptest! {

@@ -4,8 +4,8 @@
 //! then constructs arguments, computes attacks, resolves defeats via
 //! the last-link principle, and emits a Dung AF.
 
-use super::argument::{construct_arguments, Argument, ArgumentId, Origin};
-use super::attacks::{compute_attacks, Attack, AttackKind};
+use super::argument::{Argument, ArgumentId, Origin, construct_arguments};
+use super::attacks::{Attack, AttackKind, compute_attacks};
 use super::kb::KnowledgeBase;
 use super::language::Literal;
 use super::rules::{Rule, RuleId};
@@ -253,18 +253,21 @@ mod tests {
         system.kb_mut().add_ordinary(Literal::atom("penguin"));
         system.add_strict_rule(vec![Literal::atom("penguin")], Literal::atom("bird"));
         let r1 = system.add_defeasible_rule(vec![Literal::atom("bird")], Literal::atom("flies"));
-        let r2 = system.add_defeasible_rule(
-            vec![Literal::atom("penguin")],
-            Literal::neg("flies"),
-        );
+        let r2 = system.add_defeasible_rule(vec![Literal::atom("penguin")], Literal::neg("flies"));
         system.prefer_rule(r2, r1);
 
         let built = system.build_framework().unwrap();
         let preferred = built.framework.preferred_extensions().unwrap();
         assert_eq!(preferred.len(), 1);
         let ext = &preferred[0];
-        let flies_arg = built.arguments.iter().find(|a| a.conclusion == Literal::atom("flies"));
-        let not_flies_arg = built.arguments.iter().find(|a| a.conclusion == Literal::neg("flies"));
+        let flies_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("flies"));
+        let not_flies_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("flies"));
         if let (Some(f), Some(nf)) = (flies_arg, not_flies_arg) {
             assert!(!ext.contains(&f.id));
             assert!(ext.contains(&nf.id));
@@ -283,17 +286,17 @@ mod tests {
         let r3 = system.add_defeasible_rule(vec![Literal::atom("r")], Literal::atom("z"));
         system.prefer_rule(r3, r2);
         system.prefer_rule(r2, r1);
-        assert!(system.is_preferred(r3, r1), "transitive r3 > r1 should hold");
+        assert!(
+            system.is_preferred(r3, r1),
+            "transitive r3 > r1 should hold"
+        );
     }
 
     #[test]
     fn undercut_helper_constructs_reserved_literal() {
         let mut system = StructuredSystem::new();
         system.kb_mut().add_ordinary(Literal::atom("p"));
-        let target = system.add_defeasible_rule(
-            vec![Literal::atom("p")],
-            Literal::atom("q"),
-        );
+        let target = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("q"));
         system.kb_mut().add_ordinary(Literal::atom("trigger"));
         let uc = system.add_undercut_rule(target, vec![Literal::atom("trigger")]);
         let uc_rule = system.rules().iter().find(|r| r.id == uc).unwrap();

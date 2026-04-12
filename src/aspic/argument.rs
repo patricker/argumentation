@@ -224,7 +224,10 @@ mod tests {
         )];
         let args = construct_arguments(&kb, &rules).unwrap();
         assert_eq!(args.len(), 2);
-        let q_arg = args.iter().find(|a| a.conclusion == Literal::atom("q")).unwrap();
+        let q_arg = args
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("q"))
+            .unwrap();
         assert!(matches!(q_arg.origin, Origin::RuleApplication(RuleId(0))));
         assert_eq!(q_arg.sub_arguments.len(), 1);
     }

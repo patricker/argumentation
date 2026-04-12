@@ -1,7 +1,7 @@
 //! Abstract argumentation framework: arguments and attack relations.
 
-use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::Direction;
+use petgraph::graph::{DiGraph, NodeIndex};
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -136,7 +136,11 @@ mod tests {
         let err = af.add_attack(&"a", &"missing").unwrap_err();
         // Error message must include the offending argument, not just the type.
         let msg = err.to_string();
-        assert!(msg.contains("missing"), "error should mention the missing argument, got: {}", msg);
+        assert!(
+            msg.contains("missing"),
+            "error should mention the missing argument, got: {}",
+            msg
+        );
     }
 
     #[test]
