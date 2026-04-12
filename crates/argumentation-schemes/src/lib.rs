@@ -14,6 +14,7 @@
 #![warn(clippy::all)]
 
 pub mod aspic;
+pub mod catalog;
 pub mod critical;
 pub mod error;
 pub mod instance;
