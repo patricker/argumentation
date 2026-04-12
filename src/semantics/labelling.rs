@@ -45,10 +45,27 @@ impl<A: Clone + Eq + Hash> Labelling<A> {
     }
 
     /// Get all arguments with the `In` label (= the extension).
+    #[must_use]
     pub fn in_set(&self) -> HashSet<A> {
+        self.collect_with(Label::In)
+    }
+
+    /// Get all arguments with the `Out` label (= rejected).
+    #[must_use]
+    pub fn out_set(&self) -> HashSet<A> {
+        self.collect_with(Label::Out)
+    }
+
+    /// Get all arguments with the `Undec` label (= undecided).
+    #[must_use]
+    pub fn undec_set(&self) -> HashSet<A> {
+        self.collect_with(Label::Undec)
+    }
+
+    fn collect_with(&self, want: Label) -> HashSet<A> {
         self.labels
             .iter()
-            .filter(|(_, l)| **l == Label::In)
+            .filter(|(_, l)| **l == want)
             .map(|(a, _)| a.clone())
             .collect()
     }

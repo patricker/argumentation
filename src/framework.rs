@@ -62,6 +62,21 @@ impl<A: Clone + Eq + Hash> ArgumentationFramework<A> {
         self.graph.node_weights()
     }
 
+    /// Number of arguments currently in the framework.
+    ///
+    /// Constant-time. Useful for size-gating exponential enumerators
+    /// against [`crate::ENUMERATION_LIMIT`] before calling them.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.graph.node_count()
+    }
+
+    /// Whether the framework contains zero arguments.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.graph.node_count() == 0
+    }
+
     /// Return the arguments that attack `a`.
     pub fn attackers(&self, a: &A) -> Vec<&A> {
         let Some(&idx) = self.index.get(a) else {
@@ -90,6 +105,16 @@ impl<A: Clone + Eq + Hash> Default for ArgumentationFramework<A> {
         Self::new()
     }
 }
+
+// Compile-time guarantee: the canonical owned-string framework is
+// thread-safe. Consumers (e.g. encounter's multi-character resolution)
+// rely on being able to ship a framework across threads.
+const _: fn() = || {
+    fn assert_send<T: Send>() {}
+    fn assert_sync<T: Sync>() {}
+    assert_send::<ArgumentationFramework<String>>();
+    assert_sync::<ArgumentationFramework<String>>();
+};
 
 #[cfg(test)]
 mod tests {

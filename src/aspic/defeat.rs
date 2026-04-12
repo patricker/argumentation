@@ -488,6 +488,38 @@ impl StructuredSystem {
             .any(|x| gamma_prime.iter().all(|y| self.is_premise_preferred(y, x)))
     }
 
+    /// Elitist non-strict set comparison `Γ ⊴Eli Γ'` per M&P 2014 Def 3.19.
+    ///
+    /// Returns true iff `∃X ∈ Γ. ∀Y ∈ Γ'. X ≤ Y`. Same edge cases as
+    /// [`Self::rule_set_strict_lt`]: empty `Γ` is never `⊴`; non-empty
+    /// `Γ` is `⊴` empty `Γ'`. The ≤ check uses `!is_preferred(x, y)`,
+    /// i.e. `x` is not strictly more preferred than `y` (ASPIC+ assumes
+    /// a total preorder over rules, so this is equivalent to `x ≤ y`).
+    fn rule_set_lte(&self, gamma: &[RuleId], gamma_prime: &[RuleId]) -> bool {
+        if gamma.is_empty() {
+            return false;
+        }
+        if gamma_prime.is_empty() {
+            return true;
+        }
+        gamma
+            .iter()
+            .any(|x| gamma_prime.iter().all(|y| !self.is_preferred(*x, *y)))
+    }
+
+    /// Same as [`Self::rule_set_lte`] but over ordinary-premise sets.
+    fn premise_set_lte(&self, gamma: &[Literal], gamma_prime: &[Literal]) -> bool {
+        if gamma.is_empty() {
+            return false;
+        }
+        if gamma_prime.is_empty() {
+            return true;
+        }
+        gamma
+            .iter()
+            .any(|x| gamma_prime.iter().all(|y| !self.is_premise_preferred(x, y)))
+    }
+
     /// Last-link strict preference `A ≺ B` per M&P 2014 Def 3.21.
     ///
     /// A ≺ B iff:
@@ -509,42 +541,53 @@ impl StructuredSystem {
 
     /// Weakest-link strict preference `A ≺ B` per M&P 2014 Def 3.23.
     ///
-    /// A ≺ B iff (case 3, the general case used when at least one side
-    /// is plausible and defeasible):
-    /// Premp(A) ⊴s Premp(B) AND DefRules(A) ⊴s DefRules(B),
-    /// with at least one of the two being strict (`◁s`).
+    /// Def 3.23 defines the non-strict ⪯ in three cases. The note after
+    /// 3.23 says one can "in the same way as Def 3.21" directly define
+    /// ≺ "in terms of ◁s." That note is unambiguous for Def 3.21's
+    /// disjunctive form (textual replacement of ⊴s by ◁s coincides with
+    /// the standard derivation `A ⪯ B ∧ B ⋠ A`), but for Def 3.23's
+    /// conjunctive case 3 the two readings diverge: the textual
+    /// replacement requires both dimensions to be strictly less, while
+    /// the standard derivation collapses (under a total preorder) to
+    /// `(Premp_A ⊴ Premp_B) ∧ (DefRules_A ⊴ DefRules_B)` together with
+    /// at least one of the two being strict. We use the standard
+    /// derivation: it allows tied premises with strictly weaker rules
+    /// (or vice versa) to yield `A ≺ B`, which matches the intuition
+    /// behind weakest-link reasoning and the broader ASPIC+ literature.
     ///
-    /// Special cases:
-    /// - Both strict (no defeasible rules on either side): compare only
-    ///   premises.
-    /// - Both firm (no ordinary premises on either side): compare only
-    ///   defeasible rules.
+    /// Special cases (Def 3.23 (1) and (2) directly):
+    /// - Both arguments strict (no defeasible rules either side): compare
+    ///   only ordinary-premise sets.
+    /// - Both arguments firm (no ordinary premises either side): compare
+    ///   only defeasible-rule sets.
     fn weakest_link_prec(&self, a: &Argument, b: &Argument, args: &[Argument]) -> bool {
         let a_rules = self.all_defeasible_rules(a, args);
         let b_rules = self.all_defeasible_rules(b, args);
         let a_prems = self.all_ordinary_premises(a, args);
         let b_prems = self.all_ordinary_premises(b, args);
 
-        let a_strict = a_rules.is_empty() && b_rules.is_empty();
-        let a_firm = a_prems.is_empty() && b_prems.is_empty();
+        let both_strict_arg = a_rules.is_empty() && b_rules.is_empty();
+        let both_firm = a_prems.is_empty() && b_prems.is_empty();
 
-        if a_strict {
+        if both_strict_arg {
             return self.premise_set_strict_lt(&a_prems, &b_prems);
         }
-        if a_firm {
+        if both_firm {
             return self.rule_set_strict_lt(&a_rules, &b_rules);
         }
 
-        // Case 3: both plausible and defeasible. Use the ≺ form: replace
-        // ⊴ with ◁ (strict) in the conjunction per the paper's note.
-        self.premise_set_strict_lt(&a_prems, &b_prems)
-            && self.rule_set_strict_lt(&a_rules, &b_rules)
+        let prems_lte = self.premise_set_lte(&a_prems, &b_prems);
+        let rules_lte = self.rule_set_lte(&a_rules, &b_rules);
+        let prems_lt = self.premise_set_strict_lt(&a_prems, &b_prems);
+        let rules_lt = self.rule_set_strict_lt(&a_rules, &b_rules);
+        prems_lte && rules_lte && (prems_lt || rules_lt)
     }
 
     /// Single-pass construction: build all arguments, compute all attacks,
     /// resolve defeats, and emit a framework. Prefer this over calling
     /// [`Self::to_framework`] and [`Self::arguments`] separately — each of
     /// those does its own forward-chaining pass.
+    #[must_use = "build_framework returns a Result whose Ok carries the constructed framework, attacks, and arguments — discarding it is almost always a bug"]
     pub fn build_framework(&self) -> Result<BuildOutput, crate::Error> {
         let arguments = construct_arguments(&self.kb, &self.rules)?;
         let attacks = compute_attacks(&arguments, &self.rules);
@@ -570,12 +613,14 @@ impl StructuredSystem {
     /// Convenience wrapper over [`Self::build_framework`] that discards the
     /// constructed arguments and attacks. Consumers that need those should
     /// call `build_framework` directly.
+    #[must_use = "to_framework returns the constructed Dung AF — discarding it leaves no observable effect"]
     pub fn to_framework(&self) -> Result<ArgumentationFramework<ArgumentId>, crate::Error> {
         Ok(self.build_framework()?.framework)
     }
 
     /// Expose constructed arguments. Convenience wrapper over
     /// [`Self::build_framework`]; see its docs for performance notes.
+    #[must_use = "arguments() returns the constructed argument list — discarding it leaves no observable effect"]
     pub fn arguments(&self) -> Result<Vec<Argument>, crate::Error> {
         Ok(self.build_framework()?.arguments)
     }
@@ -660,6 +705,62 @@ mod tests {
         let system = StructuredSystem::new();
         let af = system.to_framework().unwrap();
         assert_eq!(af.arguments().count(), 0);
+    }
+
+    #[test]
+    fn weakest_link_case3_succeeds_with_one_strict_dimension() {
+        // Regression test for the Def 3.23 case-(3) reading. Construction:
+        // - Premp: p_lo < p_hi (strict premise preference)
+        // - Rules: r_a: p_lo ⇒ q   and   r_b: p_hi ⇒ ¬q
+        //   No rule preference (r_a and r_b are incomparable / equal).
+        //
+        // For the argument A built from r_a vs B built from r_b under
+        // weakest-link, case 3 applies (both plausible and defeasible):
+        // - Premp(A) = {p_lo} ◁ {p_hi} = Premp(B)              (STRICT)
+        // - DefRules(A) = {r_a}, DefRules(B) = {r_b}, no order  (TIED)
+        //
+        // The pre-fix textual-replacement reading required BOTH dimensions
+        // strictly less, so it concluded A ⊀ B and let A defeat B. The
+        // standard derivation says A ≺ B (one dimension strict, other tied
+        // with ⊴ both ways), so A's attack must be filtered out and B
+        // strictly defeats A. We pin the latter.
+        let mut system = StructuredSystem::with_ordering(DefeatOrdering::WeakestLink);
+        system.kb_mut().add_ordinary(Literal::atom("p_lo"));
+        system.kb_mut().add_ordinary(Literal::atom("p_hi"));
+        system
+            .prefer_premise(Literal::atom("p_hi"), Literal::atom("p_lo"))
+            .unwrap();
+        let _r_a = system.add_defeasible_rule(vec![Literal::atom("p_lo")], Literal::atom("q"));
+        let _r_b = system.add_defeasible_rule(vec![Literal::atom("p_hi")], Literal::neg("q"));
+
+        let built = system.build_framework().unwrap();
+        let q_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::atom("q"))
+            .unwrap();
+        let nq_arg = built
+            .arguments
+            .iter()
+            .find(|a| a.conclusion == Literal::neg("q"))
+            .unwrap();
+
+        // B (¬q) strictly defeats A (q): the only surviving defeat edge is
+        // nq → q, with no q → nq.
+        assert!(
+            built.framework.attackers(&q_arg.id).contains(&&nq_arg.id),
+            "B (built from p_hi) should defeat A (built from p_lo)"
+        );
+        assert!(
+            !built.framework.attackers(&nq_arg.id).contains(&&q_arg.id),
+            "A's attack on B must be filtered out: A ≺ B by Def 3.23 case 3 \
+             (premise strict, rules tied)"
+        );
+
+        let preferred = built.framework.preferred_extensions().unwrap();
+        assert_eq!(preferred.len(), 1);
+        assert!(preferred[0].contains(&nq_arg.id));
+        assert!(!preferred[0].contains(&q_arg.id));
     }
 
     #[test]

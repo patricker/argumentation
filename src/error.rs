@@ -26,7 +26,7 @@ pub enum Error {
     TooLarge {
         /// Number of arguments in the framework.
         arguments: usize,
-        /// Enumeration limit (currently 30).
+        /// Enumeration limit (currently 22, see [`crate::ENUMERATION_LIMIT`]).
         limit: usize,
     },
 }
