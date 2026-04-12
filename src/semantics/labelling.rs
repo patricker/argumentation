@@ -83,6 +83,45 @@ impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
             .map(|ext| self.extension_to_labelling(ext))
             .collect())
     }
+
+    /// Compute the labelling corresponding to the grounded extension.
+    pub fn grounded_labelling(&self) -> Labelling<A> {
+        let ext = self.grounded_extension();
+        self.extension_to_labelling(&ext)
+    }
+
+    /// Compute labellings corresponding to all preferred extensions.
+    pub fn preferred_labellings(&self) -> Result<Vec<Labelling<A>>, crate::Error> {
+        Ok(self
+            .preferred_extensions()?
+            .iter()
+            .map(|ext| self.extension_to_labelling(ext))
+            .collect())
+    }
+
+    /// Compute labellings corresponding to all stable extensions.
+    pub fn stable_labellings(&self) -> Result<Vec<Labelling<A>>, crate::Error> {
+        Ok(self
+            .stable_extensions()?
+            .iter()
+            .map(|ext| self.extension_to_labelling(ext))
+            .collect())
+    }
+
+    /// Compute the labelling corresponding to the ideal extension.
+    pub fn ideal_labelling(&self) -> Result<Labelling<A>, crate::Error> {
+        let ext = self.ideal_extension()?;
+        Ok(self.extension_to_labelling(&ext))
+    }
+
+    /// Compute labellings corresponding to all semi-stable extensions.
+    pub fn semi_stable_labellings(&self) -> Result<Vec<Labelling<A>>, crate::Error> {
+        Ok(self
+            .semi_stable_extensions()?
+            .iter()
+            .map(|ext| self.extension_to_labelling(ext))
+            .collect())
+    }
 }
 
 #[cfg(test)]
@@ -113,6 +152,74 @@ mod tests {
         let ext: HashSet<&str> = ["a"].into_iter().collect();
         let lab = af.extension_to_labelling(&ext);
         assert_eq!(lab.in_set(), ext);
+    }
+
+    #[test]
+    fn grounded_labelling_of_chain_is_alternating() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("b");
+        af.add_argument("c");
+        af.add_attack(&"a", &"b").unwrap();
+        af.add_attack(&"b", &"c").unwrap();
+        let labelling = af.grounded_labelling();
+        assert_eq!(labelling.label_of(&"a"), Some(Label::In));
+        assert_eq!(labelling.label_of(&"b"), Some(Label::Out));
+        assert_eq!(labelling.label_of(&"c"), Some(Label::In));
+    }
+
+    #[test]
+    fn preferred_labellings_of_mutual_attack_has_two() {
+        // Mutual attack a↔b: preferred extensions = [{a}, {b}], so preferred
+        // labellings = [{a=in,b=out}, {a=out,b=in}]. Two, not three.
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("b");
+        af.add_attack(&"a", &"b").unwrap();
+        af.add_attack(&"b", &"a").unwrap();
+        let labellings = af.preferred_labellings().unwrap();
+        assert_eq!(labellings.len(), 2);
+    }
+
+    #[test]
+    fn stable_labellings_match_stable_extensions() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("b");
+        af.add_argument("c");
+        af.add_attack(&"a", &"b").unwrap();
+        af.add_attack(&"b", &"c").unwrap();
+        let extensions = af.stable_extensions().unwrap();
+        let labellings = af.stable_labellings().unwrap();
+        assert_eq!(extensions.len(), labellings.len());
+        for (ext, lab) in extensions.iter().zip(labellings.iter()) {
+            assert_eq!(&lab.in_set(), ext);
+        }
+    }
+
+    #[test]
+    fn ideal_labelling_roundtrip() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("b");
+        af.add_argument("c");
+        af.add_attack(&"a", &"b").unwrap();
+        af.add_attack(&"b", &"c").unwrap();
+        let extension = af.ideal_extension().unwrap();
+        let labelling = af.ideal_labelling().unwrap();
+        assert_eq!(labelling.in_set(), extension);
+    }
+
+    #[test]
+    fn semi_stable_labellings_match_semi_stable_extensions() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("b");
+        af.add_attack(&"a", &"b").unwrap();
+        af.add_attack(&"b", &"a").unwrap();
+        let ext_count = af.semi_stable_extensions().unwrap().len();
+        let lab_count = af.semi_stable_labellings().unwrap().len();
+        assert_eq!(ext_count, lab_count);
     }
 
     #[test]
