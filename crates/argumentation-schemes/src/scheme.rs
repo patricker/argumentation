@@ -123,8 +123,7 @@ impl SchemeSpec {
     pub fn key(&self) -> String {
         self.name
             .to_lowercase()
-            .replace(' ', "_")
-            .replace('-', "_")
+            .replace([' ', '-'], "_")
     }
 }
 

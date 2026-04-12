@@ -15,6 +15,7 @@
 
 pub mod critical;
 pub mod error;
+pub mod instance;
 pub mod scheme;
 pub mod types;
 
