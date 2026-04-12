@@ -78,7 +78,7 @@ impl StructuredSystem {
     ///
     /// This is the safe way to construct an undercut: it encodes the
     /// conclusion as the reserved literal `¬__applicable_<target>`, which
-    /// [`compute_attacks`](super::attacks::compute_attacks) recognises.
+    /// [`super::attacks::compute_attacks`] recognises.
     /// Consumers should never build this literal by hand — the `__applicable_`
     /// prefix is reserved and must not be used in user atom names.
     pub fn add_undercut_rule(&mut self, target: RuleId, premises: Vec<Literal>) -> RuleId {

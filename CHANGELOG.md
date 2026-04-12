@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-04-TBD
+## [0.1.0] - 2026-04-11
 
 ### Added
 - `ArgumentationFramework<A>` with Dung 1995 semantics:

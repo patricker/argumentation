@@ -12,9 +12,9 @@ impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
     /// Enumerate all complete extensions via subset search.
     ///
     /// **Performance:** `O(2^n)` in the number of arguments. Frameworks with
-    /// more than [`super::subset_enum::ENUMERATION_LIMIT`] arguments are
-    /// rejected with [`crate::Error::TooLarge`]; use a SAT-based semantics
-    /// entry point (future work) for larger instances.
+    /// more than the internal enumeration limit are rejected with
+    /// [`crate::Error::TooLarge`]; use a SAT-based semantics entry point
+    /// (future work) for larger instances.
     pub fn complete_extensions(&self) -> Result<Vec<HashSet<A>>, crate::Error> {
         let args = sorted_args_or_too_large(self)?;
         let n = args.len();
