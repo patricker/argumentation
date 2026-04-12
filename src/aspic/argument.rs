@@ -23,6 +23,12 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ArgumentId(pub usize);
 
+impl std::fmt::Display for ArgumentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "A{}", self.0)
+    }
+}
+
 /// An ASPIC+ argument.
 #[derive(Debug, Clone)]
 pub struct Argument {
@@ -269,5 +275,11 @@ mod tests {
         ];
         let result = construct_arguments(&kb, &rules);
         assert!(matches!(result, Err(crate::Error::Aspic(_))));
+    }
+
+    #[test]
+    fn argument_id_displays_as_a_prefix() {
+        assert_eq!(format!("{}", ArgumentId(0)), "A0");
+        assert_eq!(format!("{}", ArgumentId(42)), "A42");
     }
 }

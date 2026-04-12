@@ -19,6 +19,12 @@ pub struct Rule {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RuleId(pub usize);
 
+impl std::fmt::Display for RuleId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "r{}", self.0)
+    }
+}
+
 /// Whether a rule is strict or defeasible.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuleKind {
@@ -69,5 +75,11 @@ mod tests {
     fn defeasible_rule_is_defeasible() {
         let r = Rule::defeasible(RuleId(1), vec![Literal::atom("p")], Literal::atom("q"));
         assert!(r.is_defeasible());
+    }
+
+    #[test]
+    fn rule_id_displays_as_r_prefix() {
+        assert_eq!(format!("{}", RuleId(0)), "r0");
+        assert_eq!(format!("{}", RuleId(17)), "r17");
     }
 }

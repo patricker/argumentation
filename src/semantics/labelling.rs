@@ -22,6 +22,16 @@ pub enum Label {
     Undec,
 }
 
+impl std::fmt::Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Label::In => write!(f, "in"),
+            Label::Out => write!(f, "out"),
+            Label::Undec => write!(f, "undec"),
+        }
+    }
+}
+
 /// A complete three-valued labelling.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Labelling<A: Clone + Eq + Hash> {
@@ -103,5 +113,12 @@ mod tests {
         let ext: HashSet<&str> = ["a"].into_iter().collect();
         let lab = af.extension_to_labelling(&ext);
         assert_eq!(lab.in_set(), ext);
+    }
+
+    #[test]
+    fn label_displays_as_lowercase_word() {
+        assert_eq!(format!("{}", Label::In), "in");
+        assert_eq!(format!("{}", Label::Out), "out");
+        assert_eq!(format!("{}", Label::Undec), "undec");
     }
 }

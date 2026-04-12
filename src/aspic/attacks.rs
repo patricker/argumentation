@@ -44,6 +44,16 @@ pub enum AttackKind {
     Rebut,
 }
 
+impl std::fmt::Display for AttackKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AttackKind::Undermine => write!(f, "undermine"),
+            AttackKind::Undercut => write!(f, "undercut"),
+            AttackKind::Rebut => write!(f, "rebut"),
+        }
+    }
+}
+
 /// An attack between two ASPIC+ arguments.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Attack {
@@ -359,5 +369,12 @@ mod tests {
                 .any(|r| r.attacker == not_married.id && r.target == not_bachelor.id),
             "expected ¬Married rebuts ¬Bachelor via sub-argument A2 (strict wrapper)"
         );
+    }
+
+    #[test]
+    fn attack_kind_displays_as_lowercase_word() {
+        assert_eq!(format!("{}", AttackKind::Undermine), "undermine");
+        assert_eq!(format!("{}", AttackKind::Undercut), "undercut");
+        assert_eq!(format!("{}", AttackKind::Rebut), "rebut");
     }
 }
