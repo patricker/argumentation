@@ -1,0 +1,13 @@
+# Small-result-b41 / semi-stable
+# source: iccma-2019-Small-result-b41.apx-EE-SST.out
+a0_0
+a3_0
+a4_2
+---
+a0_0
+a1_0
+a2_2
+---
+a1_0
+a3_0
+a5_2

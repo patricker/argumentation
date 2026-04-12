@@ -1,0 +1,13 @@
+# Small-result-b35 / preferred
+# source: iccma-2019-Small-result-b35.apx-EE-PR.out
+a1_0
+a4_0
+a6_2
+---
+a0_0
+a2_0
+a3_2
+---
+a0_0
+a4_0
+a5_2

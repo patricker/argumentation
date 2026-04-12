@@ -1,0 +1,14 @@
+# Small-result-b41 / complete
+# source: iccma-2019-Small-result-b41.apx-EE-CO.out
+---
+a0_0
+a1_0
+a2_2
+---
+a0_0
+a3_0
+a4_2
+---
+a1_0
+a3_0
+a5_2

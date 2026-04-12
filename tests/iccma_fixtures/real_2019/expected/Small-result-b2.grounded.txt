@@ -1,0 +1,3 @@
+# Small-result-b2 / grounded
+# source: iccma-2019-Small-result-b2.apx-SE-GR.out
+a2_0

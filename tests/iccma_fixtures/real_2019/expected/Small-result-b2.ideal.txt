@@ -1,0 +1,3 @@
+# Small-result-b2 / ideal
+# source: iccma-2019-Small-result-b2.apx-SE-ID.out
+a2_0
