@@ -35,7 +35,8 @@ impl<A: Clone + Eq + Hash> ArgumentationFramework<A> {
     /// does not model weighted or multi-edge attacks.
     ///
     /// The `Debug` bound on `A` lets the error message name the offending
-    /// argument when one is missing.
+    /// argument when one is missing. Arguments are taken by reference to avoid
+    /// cloning owned types like `String` or `Arc<T>` on every call.
     pub fn add_attack(&mut self, attacker: &A, target: &A) -> Result<(), crate::Error>
     where
         A: std::fmt::Debug,
@@ -136,5 +137,21 @@ mod tests {
         // Error message must include the offending argument, not just the type.
         let msg = err.to_string();
         assert!(msg.contains("missing"), "error should mention the missing argument, got: {}", msg);
+    }
+
+    #[test]
+    fn self_attack_is_allowed() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_attack(&"a", &"a").unwrap();
+        assert_eq!(af.attackers(&"a").len(), 1);
+    }
+
+    #[test]
+    fn add_argument_is_idempotent() {
+        let mut af = ArgumentationFramework::new();
+        af.add_argument("a");
+        af.add_argument("a");
+        assert_eq!(af.arguments().count(), 1);
     }
 }
