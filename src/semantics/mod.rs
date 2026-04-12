@@ -8,5 +8,6 @@ pub mod labelling;
 pub mod preferred;
 pub mod semi_stable;
 pub mod stable;
+pub(crate) mod subset_enum;
 
 pub use labelling::{Label, Labelling};

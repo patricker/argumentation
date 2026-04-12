@@ -1,5 +1,6 @@
 //! Stable extensions: conflict-free sets that attack every argument outside them.
 
+use super::subset_enum::{sorted_args_or_too_large, subset_from_bits};
 use crate::framework::ArgumentationFramework;
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -13,24 +14,11 @@ impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
     ///
     /// Returns [`crate::Error::TooLarge`] for frameworks above the enumeration limit.
     pub fn stable_extensions(&self) -> Result<Vec<HashSet<A>>, crate::Error> {
-        let args: Vec<A> = {
-            let mut v: Vec<A> = self.arguments().cloned().collect();
-            v.sort();
-            v
-        };
+        let args = sorted_args_or_too_large(self)?;
         let n = args.len();
-        if n > super::complete::ENUMERATION_LIMIT {
-            return Err(crate::Error::TooLarge {
-                arguments: n,
-                limit: super::complete::ENUMERATION_LIMIT,
-            });
-        }
         let mut results = Vec::new();
         for bits in 0u64..(1u64 << n) {
-            let s: HashSet<A> = (0..n)
-                .filter(|i| bits & (1u64 << i) != 0)
-                .map(|i| args[i].clone())
-                .collect();
+            let s = subset_from_bits(&args, bits);
             if !self.is_conflict_free(&s) {
                 continue;
             }

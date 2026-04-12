@@ -1,6 +1,7 @@
 //! Ideal extension: the largest admissible set contained in every preferred
 //! extension (Dung, Mancarella, Toni 2007).
 
+use super::subset_enum::subset_from_bits;
 use crate::framework::ArgumentationFramework;
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -22,24 +23,15 @@ impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
         for ext in &preferred[1..] {
             intersection = intersection.intersection(ext).cloned().collect();
         }
-        let args: Vec<A> = {
-            let mut v: Vec<A> = intersection.iter().cloned().collect();
-            v.sort();
-            v
-        };
+        // Power-set over the intersection. Since `preferred_extensions` already
+        // succeeded, we know the framework is within the enumeration limit, so
+        // the intersection is too. Sort for determinism.
+        let mut args: Vec<A> = intersection.into_iter().collect();
+        args.sort();
         let n = args.len();
-        if n > super::complete::ENUMERATION_LIMIT {
-            return Err(crate::Error::TooLarge {
-                arguments: n,
-                limit: super::complete::ENUMERATION_LIMIT,
-            });
-        }
         let mut best: HashSet<A> = HashSet::new();
         for bits in 0u64..(1u64 << n) {
-            let s: HashSet<A> = (0..n)
-                .filter(|i| bits & (1u64 << i) != 0)
-                .map(|i| args[i].clone())
-                .collect();
+            let s = subset_from_bits(&args, bits);
             if s.len() <= best.len() {
                 continue;
             }

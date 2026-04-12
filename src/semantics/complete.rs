@@ -3,43 +3,27 @@
 //! Enumerated by subset iteration. Exponential in the number of arguments;
 //! scales to ~20 arguments before becoming impractical.
 
+use super::subset_enum::{sorted_args_or_too_large, subset_from_bits};
 use crate::framework::ArgumentationFramework;
 use std::collections::HashSet;
 use std::hash::Hash;
-
-/// Upper bound on the number of arguments we enumerate via subset search.
-pub(crate) const ENUMERATION_LIMIT: usize = 30;
 
 impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
     /// Enumerate all complete extensions via subset search.
     ///
     /// **Performance:** `O(2^n)` in the number of arguments. Frameworks with
-    /// more than [`ENUMERATION_LIMIT`] arguments are rejected with
-    /// [`crate::Error::TooLarge`]; use a SAT-based semantics entry point
-    /// (future work) for larger instances.
+    /// more than [`super::subset_enum::ENUMERATION_LIMIT`] arguments are
+    /// rejected with [`crate::Error::TooLarge`]; use a SAT-based semantics
+    /// entry point (future work) for larger instances.
     pub fn complete_extensions(&self) -> Result<Vec<HashSet<A>>, crate::Error> {
-        let args: Vec<A> = {
-            let mut v: Vec<A> = self.arguments().cloned().collect();
-            v.sort();
-            v
-        };
+        let args = sorted_args_or_too_large(self)?;
         let n = args.len();
-        if n > ENUMERATION_LIMIT {
-            return Err(crate::Error::TooLarge {
-                arguments: n,
-                limit: ENUMERATION_LIMIT,
-            });
-        }
         let mut results = Vec::new();
         for bits in 0u64..(1u64 << n) {
-            let s: HashSet<A> = (0..n)
-                .filter(|i| bits & (1u64 << i) != 0)
-                .map(|i| args[i].clone())
-                .collect();
+            let s = subset_from_bits(&args, bits);
             if !self.is_admissible(&s) {
                 continue;
             }
-            // Check that s contains every argument it defends (equal to F(s)).
             let defended: HashSet<A> = self
                 .arguments()
                 .filter(|a| self.defends(&s, *a))
@@ -55,6 +39,7 @@ impl<A: Clone + Eq + Hash + Ord> ArgumentationFramework<A> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::subset_enum::ENUMERATION_LIMIT;
     use super::*;
 
     #[test]
