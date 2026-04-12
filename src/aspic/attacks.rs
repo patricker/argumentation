@@ -127,54 +127,73 @@ fn all_sub_arguments<'a>(arg: &'a Argument, args: &'a [Argument]) -> Vec<&'a Arg
 
 /// Compute all attacks between arguments.
 pub fn compute_attacks(args: &[Argument], rules: &[Rule]) -> Vec<Attack> {
+    // Precompute per-target helper results once. Each is indexed by
+    // ArgumentId so the inner loop is O(1) lookup.
+    let mut premises_by_target: std::collections::HashMap<ArgumentId, Vec<&Premise>> =
+        std::collections::HashMap::with_capacity(args.len());
+    let mut defeasible_rules_by_target: std::collections::HashMap<
+        ArgumentId,
+        Vec<super::rules::RuleId>,
+    > = std::collections::HashMap::with_capacity(args.len());
+    let mut subs_by_target: std::collections::HashMap<ArgumentId, Vec<&Argument>> =
+        std::collections::HashMap::with_capacity(args.len());
+    for target in args {
+        premises_by_target.insert(target.id, ordinary_premises_used(target, args));
+        defeasible_rules_by_target.insert(target.id, defeasible_rules_used(target, args, rules));
+        subs_by_target.insert(target.id, all_sub_arguments(target, args));
+    }
+
     let mut attacks = Vec::new();
     for attacker in args {
         for target in args {
             if attacker.id == target.id {
                 continue;
             }
-            // Rebut: attacker's conclusion is contrary of some defeasible-topped
-            // sub-argument `B'` of target. We iterate over the target's full
-            // sub-argument tree (including itself) because per M&P 2014
-            // Definition 3.10 "A rebuts B on B'" means the edge is (A, B),
-            // regardless of whether the rebut "lands" at the top or deeper in.
-            for sub in all_sub_arguments(target, args) {
-                if attacker.conclusion.is_contrary_of(&sub.conclusion)
+            // Rebut: attacker's conclusion is contrary of some
+            // defeasible-topped sub-argument of target. Per M&P 2014 §3.3.1
+            // Def 3.10, the edge is (attacker, target) regardless of
+            // whether the rebut lands at the top or deeper in the tree.
+            let subs = subs_by_target.get(&target.id).expect("target precomputed");
+            if subs.iter().any(|sub| {
+                attacker.conclusion.is_contrary_of(&sub.conclusion)
                     && sub.top_rule_is_defeasible(rules)
-                {
-                    attacks.push(Attack {
-                        attacker: attacker.id,
-                        target: target.id,
-                        kind: AttackKind::Rebut,
-                    });
-                    break;
-                }
+            }) {
+                attacks.push(Attack {
+                    attacker: attacker.id,
+                    target: target.id,
+                    kind: AttackKind::Rebut,
+                });
             }
-            // Undermine: attacker's conclusion is contrary of an ordinary premise
-            // used by target.
-            for prem in ordinary_premises_used(target, args) {
-                if attacker.conclusion.is_contrary_of(prem.literal()) {
-                    attacks.push(Attack {
-                        attacker: attacker.id,
-                        target: target.id,
-                        kind: AttackKind::Undermine,
-                    });
-                    break;
-                }
+            // Undermine: attacker's conclusion is contrary of an ordinary
+            // premise used anywhere in target's sub-tree.
+            let target_premises = premises_by_target
+                .get(&target.id)
+                .expect("target precomputed");
+            if target_premises
+                .iter()
+                .any(|prem| attacker.conclusion.is_contrary_of(prem.literal()))
+            {
+                attacks.push(Attack {
+                    attacker: attacker.id,
+                    target: target.id,
+                    kind: AttackKind::Undermine,
+                });
             }
-            // Undercut: attacker's conclusion is the reserved literal
-            // `¬__applicable_<rule_id>` for some defeasible rule used by target.
-            // This namespace is reserved; see add_undercut_rule in defeat.rs.
-            for used in defeasible_rules_used(target, args, rules) {
-                let undercut_marker = super::language::Literal::undercut_marker(used.0);
-                if attacker.conclusion == undercut_marker {
-                    attacks.push(Attack {
-                        attacker: attacker.id,
-                        target: target.id,
-                        kind: AttackKind::Undercut,
-                    });
-                    break;
-                }
+            // Undercut: attacker's conclusion is the reserved
+            // `¬__applicable_<rule_id>` marker for some defeasible rule used
+            // in target's sub-tree.
+            let target_rules = defeasible_rules_by_target
+                .get(&target.id)
+                .expect("target precomputed");
+            if target_rules
+                .iter()
+                .any(|rid| attacker.conclusion == super::language::Literal::undercut_marker(rid.0))
+            {
+                attacks.push(Attack {
+                    attacker: attacker.id,
+                    target: target.id,
+                    kind: AttackKind::Undercut,
+                });
             }
         }
     }
@@ -376,5 +395,49 @@ mod tests {
         assert_eq!(format!("{}", AttackKind::Undermine), "undermine");
         assert_eq!(format!("{}", AttackKind::Undercut), "undercut");
         assert_eq!(format!("{}", AttackKind::Rebut), "rebut");
+    }
+
+    #[test]
+    fn compute_attacks_is_stable_across_refactors() {
+        let mut kb = KnowledgeBase::new();
+        kb.add_ordinary(Literal::atom("p"));
+        kb.add_ordinary(Literal::atom("r"));
+        kb.add_ordinary(Literal::atom("trigger"));
+        let rules = vec![
+            Rule::defeasible(RuleId(0), vec![Literal::atom("p")], Literal::atom("q")),
+            Rule::defeasible(RuleId(1), vec![Literal::atom("r")], Literal::neg("q")),
+            Rule::strict(
+                RuleId(2),
+                vec![Literal::atom("q")],
+                Literal::atom("derived"),
+            ),
+            Rule::defeasible(
+                RuleId(3),
+                vec![Literal::atom("trigger")],
+                Literal::undercut_marker(0),
+            ),
+        ];
+        let args = construct_arguments(&kb, &rules).unwrap();
+        let attacks = compute_attacks(&args, &rules);
+
+        let rebuts = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Rebut)
+            .count();
+        let undermines = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Undermine)
+            .count();
+        let undercuts = attacks
+            .iter()
+            .filter(|a| a.kind == AttackKind::Undercut)
+            .count();
+
+        assert!(rebuts >= 3, "expected >= 3 rebuts, got {}", rebuts);
+        assert_eq!(undermines, 0);
+        // Undercut hits both the defeasible-topped argument using rule 0
+        // directly (p ⇒ q) and its strict-wrapped parent (q → derived),
+        // because rule 0 lives in the latter's sub-argument tree too.
+        assert_eq!(undercuts, 2);
     }
 }
