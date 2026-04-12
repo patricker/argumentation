@@ -93,8 +93,10 @@ pub const ENUMERATION_LIMIT: usize = semantics::ENUMERATION_LIMIT;
 
 #[cfg(test)]
 mod tests {
+    const _: () = assert!(crate::ENUMERATION_LIMIT >= 20);
+
     #[test]
-    fn enumeration_limit_is_accessible_and_positive() {
-        assert!(crate::ENUMERATION_LIMIT >= 20);
+    fn enumeration_limit_matches_semantics() {
+        assert_eq!(crate::ENUMERATION_LIMIT, crate::semantics::ENUMERATION_LIMIT);
     }
 }
