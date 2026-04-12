@@ -20,3 +20,5 @@ pub mod framework;
 pub use framework::ArgumentationFramework;
 
 pub mod semantics;
+
+pub mod parsers;
