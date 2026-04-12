@@ -53,10 +53,10 @@ fn defeasible_rules_used(arg: &Argument, args: &[Argument], rules: &[Rule]) -> V
     match &arg.origin {
         Origin::Premise(_) => {}
         Origin::RuleApplication(rid) => {
-            if let Some(r) = rules.iter().find(|r| r.id == *rid) {
-                if r.is_defeasible() {
-                    out.push(*rid);
-                }
+            if let Some(r) = rules.iter().find(|r| r.id == *rid)
+                && r.is_defeasible()
+            {
+                out.push(*rid);
             }
             for sub_id in &arg.sub_arguments {
                 if let Some(sub) = args.iter().find(|a| a.id == *sub_id) {
