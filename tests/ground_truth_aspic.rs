@@ -462,3 +462,61 @@ fn undercut_rule_defeats_wet_argument() {
         "wet should be undercut-defeated"
     );
 }
+
+/// M&P 2014 Example 3.7 + Example 3.22: the "running example" used
+/// throughout §3. Encodes the argumentation theory from §3.2 plus the
+/// last-link preferences from Example 3.22:
+///
+///   Kn = {p}, Kp = {s, u, x}
+///   Rd:  d1: p ⇒ q         d2: s ⇒ t         d3: t ⇒ ¬d1 (undercut)
+///        d4: u ⇒ v         d5: v, x ⇒ ¬t     d6: s ⇒ ¬p
+///   Rs:  s1: p, q → r      s2: v → ¬s
+///
+///   Priorities: d4 < d2, d2 < d5 (rule level)
+///               u <' s, x <' s    (premise level)
+///
+/// Expected outcome (paper Example 3.22): C3 does NOT defeat B1 because
+/// of the premise ordering; D4 strictly defeats B2; the resulting
+/// extension contains A3 (concluding r), so r is skeptically justified.
+fn running_example() -> argumentation::aspic::BuildOutput {
+    let mut sys = StructuredSystem::new();
+    sys.add_necessary(Literal::atom("p"));
+    sys.add_ordinary(Literal::atom("s"));
+    sys.add_ordinary(Literal::atom("u"));
+    sys.add_ordinary(Literal::atom("x"));
+    let d1 = sys.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("q"));
+    let d2 = sys.add_defeasible_rule(vec![Literal::atom("s")], Literal::atom("t"));
+    let _d3 = sys.add_undercut_rule(d1, vec![Literal::atom("t")]);
+    let d4 = sys.add_defeasible_rule(vec![Literal::atom("u")], Literal::atom("v"));
+    let d5 = sys.add_defeasible_rule(
+        vec![Literal::atom("v"), Literal::atom("x")],
+        Literal::neg("t"),
+    );
+    let _d6 = sys.add_defeasible_rule(vec![Literal::atom("s")], Literal::neg("p"));
+    let _s1 = sys.add_strict_rule(
+        vec![Literal::atom("p"), Literal::atom("q")],
+        Literal::atom("r"),
+    );
+    let _s2 = sys.add_strict_rule(vec![Literal::atom("v")], Literal::neg("s"));
+    sys.prefer_rule(d2, d4).unwrap();
+    sys.prefer_rule(d5, d2).unwrap();
+    sys.prefer_premise(Literal::atom("s"), Literal::atom("u"))
+        .unwrap();
+    sys.prefer_premise(Literal::atom("s"), Literal::atom("x"))
+        .unwrap();
+    sys.build_framework().unwrap()
+}
+
+#[test]
+fn running_example_r_is_in_grounded_extension() {
+    let built = running_example();
+    let r_arg = built
+        .argument_by_conclusion(&Literal::atom("r"))
+        .expect("r-argument should be constructed");
+    let grounded = built.framework.grounded_extension();
+    assert!(
+        grounded.contains(&r_arg.id),
+        "expected r-argument in grounded, got {:?}",
+        grounded
+    );
+}

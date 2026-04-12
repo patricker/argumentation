@@ -17,9 +17,14 @@ use std::collections::HashSet;
 pub struct StructuredSystem {
     kb: KnowledgeBase,
     rules: Vec<Rule>,
-    /// `(preferred, less_preferred)` pairs. The public preference ordering is
-    /// the transitive closure of this list, computed on demand in `is_preferred`.
+    /// `(preferred, less_preferred)` pairs over defeasible rules. Effective
+    /// ordering is the transitive closure.
     preferences: Vec<(RuleId, RuleId)>,
+    /// `(preferred, less_preferred)` pairs over ordinary premises. Effective
+    /// ordering is the transitive closure. Compared via last-premise
+    /// frontier when both arguments' last-defeasible-rule frontiers are
+    /// empty (per M&P 2014 Definition 3.21).
+    premise_preferences: Vec<(Literal, Literal)>,
     next_rule_id: usize,
 }
 
@@ -151,6 +156,67 @@ impl StructuredSystem {
         Ok(())
     }
 
+    /// Record that ordinary premise `preferred` is (directly) preferred to
+    /// ordinary premise `less_preferred`.
+    ///
+    /// Per M&P 2014 Definition 3.21, premise preferences are compared
+    /// under the last-link ordering only when both arguments have empty
+    /// last-defeasible-rule frontiers (i.e. they are pure-premise arguments
+    /// or strict-rule chains grounded in premises).
+    ///
+    /// Rejects reflexive `(x, x)` preferences and cyclic preferences
+    /// (where `less_preferred` is already transitively preferred to
+    /// `preferred`).
+    pub fn prefer_premise(
+        &mut self,
+        preferred: Literal,
+        less_preferred: Literal,
+    ) -> Result<(), crate::Error> {
+        if preferred == less_preferred {
+            return Err(crate::Error::Aspic(format!(
+                "reflexive premise preference rejected: {:?} cannot be preferred to itself",
+                preferred
+            )));
+        }
+        if self.is_premise_preferred(&less_preferred, &preferred) {
+            return Err(crate::Error::Aspic(format!(
+                "cyclic premise preference rejected: {:?} is already (transitively) preferred to {:?}",
+                less_preferred, preferred
+            )));
+        }
+        self.premise_preferences.push((preferred, less_preferred));
+        Ok(())
+    }
+
+    /// Whether ordinary premise `a` is strictly preferred to `b` under
+    /// the transitive closure of recorded premise preferences.
+    pub fn is_premise_preferred(&self, a: &Literal, b: &Literal) -> bool {
+        if a == b {
+            return false;
+        }
+        let mut visited: HashSet<&Literal> = HashSet::new();
+        let mut frontier: Vec<&Literal> = vec![a];
+        while let Some(current) = frontier.pop() {
+            if !visited.insert(current) {
+                continue;
+            }
+            for (p, lp) in &self.premise_preferences {
+                if p == current {
+                    if lp == b {
+                        return true;
+                    }
+                    frontier.push(lp);
+                }
+            }
+        }
+        false
+    }
+
+    /// Read-side accessor for the direct premise preference pairs.
+    pub fn premise_preferences(&self) -> &[(Literal, Literal)] {
+        &self.premise_preferences
+    }
+
     /// Read-side accessor for the knowledge base (for debugging/visualization).
     pub fn kb(&self) -> &KnowledgeBase {
         &self.kb
@@ -222,6 +288,35 @@ impl StructuredSystem {
         }
     }
 
+    /// Collect the "last-premise frontier": all ordinary premises that
+    /// lie at the leaves of this argument's derivation tree.
+    ///
+    /// Per M&P 2014 Definition 3.21, this frontier is compared under
+    /// last-link ordering when both arguments have empty last-defeasible-rule
+    /// frontiers. Necessary (indefeasible) premises are excluded because
+    /// they are not subject to preference comparison — they carry the
+    /// full force of the knowledge base.
+    fn last_premise_frontier(&self, arg: &Argument, args: &[Argument]) -> Vec<Literal> {
+        match &arg.origin {
+            Origin::Premise(p) => {
+                if p.is_defeasible() {
+                    vec![p.literal().clone()]
+                } else {
+                    Vec::new()
+                }
+            }
+            Origin::RuleApplication(_) => {
+                let mut out = Vec::new();
+                for sub_id in &arg.sub_arguments {
+                    if let Some(sub) = args.iter().find(|a| a.id == *sub_id) {
+                        out.extend(self.last_premise_frontier(sub, args));
+                    }
+                }
+                out
+            }
+        }
+    }
+
     /// Whether an attack succeeds as a defeat under the last-link principle
     /// with Elitist preference comparison (Modgil & Prakken 2014 §5.2).
     ///
@@ -229,6 +324,8 @@ impl StructuredSystem {
     /// - Rebut and undermine succeed unless the target's last-link frontier
     ///   contains a rule that is strictly preferred to *every* rule in the
     ///   attacker's last-link frontier (Elitist ordering).
+    /// - When both sides have empty defeasible-rule frontiers, fall through
+    ///   to the last-premise frontier per M&P 2014 Def 3.21.
     ///
     /// For single-rule frontiers (the common case) this collapses to a direct
     /// pairwise comparison `target_rule > attacker_rule`.
@@ -246,17 +343,38 @@ impl StructuredSystem {
             .expect("attack references nonexistent target argument");
         let attacker_rules = self.last_defeasible_frontier(attacker, args);
         let target_rules = self.last_defeasible_frontier(target, args);
-        if attacker_rules.is_empty() || target_rules.is_empty() {
-            // If either side has no defeasible rules, preferences can't fire;
-            // the attack succeeds as a defeat.
-            return true;
+
+        if !attacker_rules.is_empty() && !target_rules.is_empty() {
+            // Both sides have defeasible rules: compare at the rule level
+            // (Elitist).
+            let target_beats_attacker = target_rules
+                .iter()
+                .any(|tr| attacker_rules.iter().all(|ar| self.is_preferred(*tr, *ar)));
+            return !target_beats_attacker;
         }
-        // Elitist: target beats attacker iff SOME target rule is strictly
-        // preferred to EVERY attacker rule.
-        let target_beats_attacker = target_rules
-            .iter()
-            .any(|tr| attacker_rules.iter().all(|ar| self.is_preferred(*tr, *ar)));
-        !target_beats_attacker
+
+        // Fall-through: at least one side has an empty defeasible frontier.
+        // Per M&P 2014 Def 3.21, compare premise frontiers when BOTH sides
+        // have empty rule frontiers.
+        if attacker_rules.is_empty() && target_rules.is_empty() {
+            let attacker_prems = self.last_premise_frontier(attacker, args);
+            let target_prems = self.last_premise_frontier(target, args);
+            if attacker_prems.is_empty() || target_prems.is_empty() {
+                return true;
+            }
+            // Elitist on premises: target beats attacker iff some target
+            // premise is strictly preferred to every attacker premise.
+            let target_beats_attacker = target_prems.iter().any(|tp| {
+                attacker_prems
+                    .iter()
+                    .all(|ap| self.is_premise_preferred(tp, ap))
+            });
+            return !target_beats_attacker;
+        }
+
+        // One side has rules, the other doesn't. Attack succeeds by
+        // default — the rule-less side has no preferences to invoke.
+        true
     }
 
     /// Single-pass construction: build all arguments, compute all attacks,
@@ -457,6 +575,68 @@ mod tests {
         assert_eq!(q_arg.unwrap().conclusion, Literal::atom("q"));
         let missing = built.argument_by_conclusion(&Literal::atom("never"));
         assert!(missing.is_none());
+    }
+
+    #[test]
+    fn premise_preferences_support_transitive_closure() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("p"));
+        sys.add_ordinary(Literal::atom("q"));
+        sys.add_ordinary(Literal::atom("r"));
+        sys.prefer_premise(Literal::atom("p"), Literal::atom("q"))
+            .unwrap();
+        sys.prefer_premise(Literal::atom("q"), Literal::atom("r"))
+            .unwrap();
+        assert!(sys.is_premise_preferred(&Literal::atom("p"), &Literal::atom("r")));
+        assert!(!sys.is_premise_preferred(&Literal::atom("r"), &Literal::atom("p")));
+    }
+
+    #[test]
+    fn prefer_premise_rejects_reflexive() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("p"));
+        let result = sys.prefer_premise(Literal::atom("p"), Literal::atom("p"));
+        assert!(matches!(result, Err(crate::Error::Aspic(_))));
+    }
+
+    #[test]
+    fn prefer_premise_rejects_cyclic() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("p"));
+        sys.add_ordinary(Literal::atom("q"));
+        sys.prefer_premise(Literal::atom("p"), Literal::atom("q"))
+            .unwrap();
+        let result = sys.prefer_premise(Literal::atom("q"), Literal::atom("p"));
+        assert!(matches!(result, Err(crate::Error::Aspic(_))));
+    }
+
+    #[test]
+    fn premise_preference_blocks_undermine_when_target_premise_stronger() {
+        // Scenario: KB has s and u (both ordinary). Strict rule u → ¬s.
+        // Argument NS = u → ¬s undermines argument S = s.
+        //
+        // Without preferences: NS defeats S (target frontier {s} vs attacker
+        // frontier {u}, neither has rule frontier).
+        //
+        // With prefer_premise(s, u): NS does NOT defeat S because target's
+        // last-premise frontier {s} is preferred to attacker's {u}.
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("s"));
+        sys.add_ordinary(Literal::atom("u"));
+        sys.add_strict_rule(vec![Literal::atom("u")], Literal::neg("s"));
+        sys.prefer_premise(Literal::atom("s"), Literal::atom("u"))
+            .unwrap();
+
+        let built = sys.build_framework().unwrap();
+        let s_arg = built
+            .argument_by_conclusion(&Literal::atom("s"))
+            .expect("s premise argument");
+        let grounded = built.framework.grounded_extension();
+        assert!(
+            grounded.contains(&s_arg.id),
+            "expected s to survive under premise preference s > u, got {:?}",
+            grounded
+        );
     }
 
     #[test]
