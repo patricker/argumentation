@@ -8,8 +8,9 @@ fn read_expected_set(path: &str) -> HashSet<String> {
     fs::read_to_string(path)
         .unwrap()
         .lines()
+        .map(str::trim)
         .filter(|l| !l.is_empty() && !l.starts_with('#') && *l != "---")
-        .map(|l| l.trim().to_string())
+        .map(str::to_string)
         .collect()
 }
 

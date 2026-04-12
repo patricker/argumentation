@@ -18,7 +18,9 @@ fn arb_framework() -> impl Strategy<Value = ArgumentationFramework<u8>> {
             }
             for (a, t) in edges {
                 if a < n && t < n {
-                    af.add_attack(&a, &t).ok();
+                    // Infallible: both args are in 0..n and were added above; add_attack is
+                    // idempotent and accepts self-loops, so no error mode applies.
+                    let _ = af.add_attack(&a, &t);
                 }
             }
             af
