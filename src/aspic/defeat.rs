@@ -37,6 +37,37 @@ pub struct BuildOutput {
     pub framework: ArgumentationFramework<ArgumentId>,
 }
 
+impl BuildOutput {
+    /// Return the conclusions of every argument in the given extension.
+    ///
+    /// Useful for mapping a `HashSet<ArgumentId>` back to user-visible
+    /// literal content without manually walking `self.arguments`.
+    pub fn conclusions_in(&self, extension: &HashSet<ArgumentId>) -> HashSet<&Literal> {
+        self.arguments
+            .iter()
+            .filter(|a| extension.contains(&a.id))
+            .map(|a| &a.conclusion)
+            .collect()
+    }
+
+    /// Return the first argument whose conclusion equals `literal`, if any.
+    ///
+    /// When multiple arguments share a conclusion (e.g. two rules yielding
+    /// the same literal), this returns the first one in construction order.
+    /// Use [`Self::arguments_with_conclusion`] if you need all of them.
+    pub fn argument_by_conclusion(&self, literal: &Literal) -> Option<&Argument> {
+        self.arguments.iter().find(|a| &a.conclusion == literal)
+    }
+
+    /// Return every argument whose conclusion equals `literal`.
+    pub fn arguments_with_conclusion(&self, literal: &Literal) -> Vec<&Argument> {
+        self.arguments
+            .iter()
+            .filter(|a| &a.conclusion == literal)
+            .collect()
+    }
+}
+
 impl StructuredSystem {
     /// Create a new empty system.
     pub fn new() -> Self {
@@ -400,5 +431,43 @@ mod tests {
         let r1 = system.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("x"));
         let result = system.prefer_rule(r1, r1);
         assert!(matches!(result, Err(crate::Error::Aspic(_))));
+    }
+
+    #[test]
+    fn build_output_conclusions_in_extension_returns_literals() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("p"));
+        let _r = sys.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("q"));
+        let built = sys.build_framework().unwrap();
+        let grounded = built.framework.grounded_extension();
+        let concls = built.conclusions_in(&grounded);
+        assert!(concls.contains(&Literal::atom("p")));
+        assert!(concls.contains(&Literal::atom("q")));
+        assert_eq!(concls.len(), 2);
+    }
+
+    #[test]
+    fn build_output_argument_by_conclusion_finds_unique_matches() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("p"));
+        let _r = sys.add_defeasible_rule(vec![Literal::atom("p")], Literal::atom("q"));
+        let built = sys.build_framework().unwrap();
+        let q_arg = built.argument_by_conclusion(&Literal::atom("q"));
+        assert!(q_arg.is_some());
+        assert_eq!(q_arg.unwrap().conclusion, Literal::atom("q"));
+        let missing = built.argument_by_conclusion(&Literal::atom("never"));
+        assert!(missing.is_none());
+    }
+
+    #[test]
+    fn build_output_arguments_with_conclusion_returns_all_matches() {
+        let mut sys = StructuredSystem::new();
+        sys.add_ordinary(Literal::atom("a"));
+        sys.add_ordinary(Literal::atom("b"));
+        let _r1 = sys.add_defeasible_rule(vec![Literal::atom("a")], Literal::atom("target"));
+        let _r2 = sys.add_defeasible_rule(vec![Literal::atom("b")], Literal::atom("target"));
+        let built = sys.build_framework().unwrap();
+        let matches = built.arguments_with_conclusion(&Literal::atom("target"));
+        assert_eq!(matches.len(), 2);
     }
 }
