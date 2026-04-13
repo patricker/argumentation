@@ -1,0 +1,16 @@
+[package]
+name = "encounter-argumentation"
+version = "0.1.0"
+edition = "2024"
+description = "Bridge between encounter social interactions and argumentation schemes"
+license = "MIT OR Apache-2.0"
+keywords = ["encounter", "argumentation", "schemes", "social-simulation", "narrative"]
+categories = ["algorithms", "game-development"]
+
+[dependencies]
+encounter = { path = "../../../encounter" }
+argumentation = { path = "../.." }
+argumentation-schemes = { path = "../argumentation-schemes" }
+thiserror = "2.0"
+
+[dev-dependencies]
