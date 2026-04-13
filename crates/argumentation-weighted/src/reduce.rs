@@ -48,8 +48,7 @@ where
 
     // Sort a view of attack references by weight ascending so we can
     // walk them in order without modifying the framework.
-    let mut sorted_attacks: Vec<&crate::types::WeightedAttack<A>> =
-        framework.attacks().collect();
+    let mut sorted_attacks: Vec<&crate::types::WeightedAttack<A>> = framework.attacks().collect();
     sorted_attacks.sort_by(|a, b| {
         a.weight
             .value()
