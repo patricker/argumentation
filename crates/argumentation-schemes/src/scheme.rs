@@ -121,9 +121,7 @@ impl SchemeSpec {
     /// The scheme's canonical name as a snake_case identifier suitable
     /// for lookup keys and affordance mapping.
     pub fn key(&self) -> String {
-        self.name
-            .to_lowercase()
-            .replace([' ', '-'], "_")
+        self.name.to_lowercase().replace([' ', '-'], "_")
     }
 }
 

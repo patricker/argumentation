@@ -25,16 +25,32 @@ pub fn argument_from_popular_opinion() -> SchemeSpec {
         category: SchemeCategory::Popular,
         premises: vec![
             PremiseSlot::new("claim", "The claim widely accepted", SlotRole::Proposition),
-            PremiseSlot::new("population", "The group that accepts the claim", SlotRole::Agent),
+            PremiseSlot::new(
+                "population",
+                "The group that accepts the claim",
+                SlotRole::Agent,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?claim is plausible based on popular acceptance by ?population",
             "?claim",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "What evidence supports that ?population actually accepts ?claim?", Challenge::PremiseTruth("population".into())),
-            CriticalQuestion::new(2, "Is ?population's acceptance based on good reasoning?", Challenge::RuleValidity),
-            CriticalQuestion::new(3, "Is ?claim the type of claim that popular acceptance makes more plausible?", Challenge::RuleValidity),
+            CriticalQuestion::new(
+                1,
+                "What evidence supports that ?population actually accepts ?claim?",
+                Challenge::PremiseTruth("population".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Is ?population's acceptance based on good reasoning?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Is ?claim the type of claim that popular acceptance makes more plausible?",
+                Challenge::RuleValidity,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.311".into(),
@@ -53,16 +69,32 @@ pub fn argument_from_tradition() -> SchemeSpec {
         category: SchemeCategory::Popular,
         premises: vec![
             PremiseSlot::new("practice", "The traditional practice", SlotRole::Action),
-            PremiseSlot::new("tradition", "Evidence of longstanding tradition", SlotRole::Property),
+            PremiseSlot::new(
+                "tradition",
+                "Evidence of longstanding tradition",
+                SlotRole::Property,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?practice should be continued based on ?tradition",
             "continue_?practice",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Has ?practice actually been a longstanding tradition?", Challenge::PremiseTruth("tradition".into())),
-            CriticalQuestion::new(2, "Were the circumstances that justified ?practice still applicable?", Challenge::RuleValidity),
-            CriticalQuestion::new(3, "Have conditions changed such that ?practice is no longer appropriate?", Challenge::AlternativeCause),
+            CriticalQuestion::new(
+                1,
+                "Has ?practice actually been a longstanding tradition?",
+                Challenge::PremiseTruth("tradition".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Were the circumstances that justified ?practice still applicable?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Have conditions changed such that ?practice is no longer appropriate?",
+                Challenge::AlternativeCause,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.316".into(),
@@ -82,16 +114,32 @@ pub fn argument_from_precedent() -> SchemeSpec {
         premises: vec![
             PremiseSlot::new("precedent_case", "The precedent case", SlotRole::Property),
             PremiseSlot::new("current_case", "The current situation", SlotRole::Property),
-            PremiseSlot::new("action", "The action taken in the precedent", SlotRole::Action),
+            PremiseSlot::new(
+                "action",
+                "The action taken in the precedent",
+                SlotRole::Action,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?action should be taken in ?current_case as it was in ?precedent_case",
             "do_?action",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Is ?current_case sufficiently similar to ?precedent_case?", Challenge::DisanalogyClaim),
-            CriticalQuestion::new(2, "Was ?action the right decision in ?precedent_case?", Challenge::PremiseTruth("precedent_case".into())),
-            CriticalQuestion::new(3, "Are there relevant differences between ?precedent_case and ?current_case?", Challenge::DisanalogyClaim),
+            CriticalQuestion::new(
+                1,
+                "Is ?current_case sufficiently similar to ?precedent_case?",
+                Challenge::DisanalogyClaim,
+            ),
+            CriticalQuestion::new(
+                2,
+                "Was ?action the right decision in ?precedent_case?",
+                Challenge::PremiseTruth("precedent_case".into()),
+            ),
+            CriticalQuestion::new(
+                3,
+                "Are there relevant differences between ?precedent_case and ?current_case?",
+                Challenge::DisanalogyClaim,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.319".into(),
@@ -117,8 +165,16 @@ pub fn argument_from_established_rule() -> SchemeSpec {
             "rule_applies_?case",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Does ?rule actually apply to ?case?", Challenge::PremiseTruth("case".into())),
-            CriticalQuestion::new(2, "Is ?rule still valid and in force?", Challenge::PremiseTruth("rule".into())),
+            CriticalQuestion::new(
+                1,
+                "Does ?rule actually apply to ?case?",
+                Challenge::PremiseTruth("case".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Is ?rule still valid and in force?",
+                Challenge::PremiseTruth("rule".into()),
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.318".into(),
@@ -140,7 +196,10 @@ mod tests {
 
     #[test]
     fn established_rule_has_strong_strength() {
-        assert_eq!(argument_from_established_rule().metadata.strength, SchemeStrength::Strong);
+        assert_eq!(
+            argument_from_established_rule().metadata.strength,
+            SchemeStrength::Strong
+        );
     }
 
     #[test]

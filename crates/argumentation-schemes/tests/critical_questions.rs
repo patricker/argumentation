@@ -47,7 +47,8 @@ fn every_critical_question_counter_literal_is_negated() {
         assert!(
             matches!(cq.counter_literal, Literal::Neg(_)),
             "CQ{} counter-literal should be negated, got: {:?}",
-            cq.number, cq.counter_literal
+            cq.number,
+            cq.counter_literal
         );
     }
 }

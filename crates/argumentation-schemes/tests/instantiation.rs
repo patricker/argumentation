@@ -22,15 +22,27 @@ fn uc1_expert_opinion_full_pipeline() {
     .into_iter()
     .collect();
 
-    let instance = scheme.instantiate(&bindings).expect("instantiation should succeed");
-    assert_eq!(instance.premises.len(), 3, "expert opinion has 3 premise slots");
+    let instance = scheme
+        .instantiate(&bindings)
+        .expect("instantiation should succeed");
+    assert_eq!(
+        instance.premises.len(),
+        3,
+        "expert opinion has 3 premise slots"
+    );
     assert_eq!(instance.conclusion, Literal::atom("fortify_east"));
-    assert_eq!(instance.critical_questions.len(), 6, "expert opinion has 6 CQs");
+    assert_eq!(
+        instance.critical_questions.len(),
+        6,
+        "expert opinion has 6 CQs"
+    );
 
     // Feed into ASPIC+ and verify the AF contains an argument concluding fortify_east.
     let mut system = StructuredSystem::new();
     add_scheme_to_system(&instance, &mut system);
-    let built = system.build_framework().expect("framework build should succeed");
+    let built = system
+        .build_framework()
+        .expect("framework build should succeed");
     let conclusion_args = built.arguments_with_conclusion(&Literal::atom("fortify_east"));
     assert!(
         !conclusion_args.is_empty(),

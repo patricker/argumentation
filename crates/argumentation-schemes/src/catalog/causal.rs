@@ -32,9 +32,21 @@ pub fn argument_from_cause_to_effect() -> SchemeSpec {
             "?effect",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Is there a strong causal link between ?cause and ?effect?", Challenge::RuleValidity),
-            CriticalQuestion::new(2, "Has ?cause actually occurred or will it occur?", Challenge::PremiseTruth("cause".into())),
-            CriticalQuestion::new(3, "Could something else prevent ?effect despite ?cause?", Challenge::AlternativeCause),
+            CriticalQuestion::new(
+                1,
+                "Is there a strong causal link between ?cause and ?effect?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                2,
+                "Has ?cause actually occurred or will it occur?",
+                Challenge::PremiseTruth("cause".into()),
+            ),
+            CriticalQuestion::new(
+                3,
+                "Could something else prevent ?effect despite ?cause?",
+                Challenge::AlternativeCause,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.327".into(),
@@ -53,16 +65,32 @@ pub fn argument_from_correlation_to_cause() -> SchemeSpec {
         category: SchemeCategory::Causal,
         premises: vec![
             PremiseSlot::new("antecedent", "The first correlated event", SlotRole::Action),
-            PremiseSlot::new("consequent", "The second correlated event", SlotRole::Consequence),
+            PremiseSlot::new(
+                "consequent",
+                "The second correlated event",
+                SlotRole::Consequence,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?antecedent causes ?consequent",
             "causes_?antecedent_to_?consequent",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Is there a genuine correlation between ?antecedent and ?consequent?", Challenge::PremiseTruth("antecedent".into())),
-            CriticalQuestion::new(2, "Could both ?antecedent and ?consequent be caused by a third factor?", Challenge::AlternativeCause),
-            CriticalQuestion::new(3, "Could the causal direction be reversed (?consequent causes ?antecedent)?", Challenge::AlternativeCause),
+            CriticalQuestion::new(
+                1,
+                "Is there a genuine correlation between ?antecedent and ?consequent?",
+                Challenge::PremiseTruth("antecedent".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Could both ?antecedent and ?consequent be caused by a third factor?",
+                Challenge::AlternativeCause,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Could the causal direction be reversed (?consequent causes ?antecedent)?",
+                Challenge::AlternativeCause,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.328".into(),
@@ -81,15 +109,27 @@ pub fn argument_from_sign() -> SchemeSpec {
         category: SchemeCategory::Causal,
         premises: vec![
             PremiseSlot::new("sign", "The observed sign or indicator", SlotRole::Property),
-            PremiseSlot::new("indicated", "What the sign indicates", SlotRole::Proposition),
+            PremiseSlot::new(
+                "indicated",
+                "What the sign indicates",
+                SlotRole::Proposition,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?indicated is plausible based on ?sign",
             "?indicated",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Is ?sign a reliable indicator of ?indicated?", Challenge::RuleValidity),
-            CriticalQuestion::new(2, "Could ?sign indicate something other than ?indicated?", Challenge::AlternativeCause),
+            CriticalQuestion::new(
+                1,
+                "Is ?sign a reliable indicator of ?indicated?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                2,
+                "Could ?sign indicate something other than ?indicated?",
+                Challenge::AlternativeCause,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.329".into(),
@@ -109,17 +149,37 @@ pub fn argument_from_gradual_slippery_slope() -> SchemeSpec {
         name: "Argument from Gradual Slippery Slope".into(),
         category: SchemeCategory::Causal,
         premises: vec![
-            PremiseSlot::new("first_step", "The initial innocuous action", SlotRole::Action),
-            PremiseSlot::new("final_outcome", "The undesirable end state", SlotRole::Consequence),
+            PremiseSlot::new(
+                "first_step",
+                "The initial innocuous action",
+                SlotRole::Action,
+            ),
+            PremiseSlot::new(
+                "final_outcome",
+                "The undesirable end state",
+                SlotRole::Consequence,
+            ),
         ],
         conclusion: ConclusionTemplate::negated(
             "?first_step should not be taken because it leads to ?final_outcome",
             "do_?first_step",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Is there a plausible chain from ?first_step to ?final_outcome?", Challenge::RuleValidity),
-            CriticalQuestion::new(2, "Can the chain be stopped at some intermediate point?", Challenge::AlternativeCause),
-            CriticalQuestion::new(3, "Is ?final_outcome really as bad as claimed?", Challenge::PremiseTruth("final_outcome".into())),
+            CriticalQuestion::new(
+                1,
+                "Is there a plausible chain from ?first_step to ?final_outcome?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                2,
+                "Can the chain be stopped at some intermediate point?",
+                Challenge::AlternativeCause,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Is ?final_outcome really as bad as claimed?",
+                Challenge::PremiseTruth("final_outcome".into()),
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.338".into(),

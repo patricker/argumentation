@@ -24,7 +24,9 @@ fn alice_instance() -> argumentation_schemes::instance::SchemeInstance {
     ]
     .into_iter()
     .collect();
-    argument_from_expert_opinion().instantiate(&bindings).unwrap()
+    argument_from_expert_opinion()
+        .instantiate(&bindings)
+        .unwrap()
 }
 
 fn bob_instance() -> argumentation_schemes::instance::SchemeInstance {
@@ -60,7 +62,10 @@ fn alice_and_bob_rebut_each_other_in_the_af() {
     let built = system.build_framework().unwrap();
     let alice_args = built.arguments_with_conclusion(&Literal::atom("fortify_east"));
     let bob_args = built.arguments_with_conclusion(&Literal::neg("fortify_east"));
-    assert!(!alice_args.is_empty(), "Alice's argument should be constructed");
+    assert!(
+        !alice_args.is_empty(),
+        "Alice's argument should be constructed"
+    );
     assert!(!bob_args.is_empty(), "Bob's argument should be constructed");
 
     // With no preferences set, both should survive in some preferred extension
@@ -72,8 +77,14 @@ fn alice_and_bob_rebut_each_other_in_the_af() {
     let bob_in_some = bob_args
         .iter()
         .any(|a| preferred.iter().any(|ext| ext.contains(&a.id)));
-    assert!(alice_in_some, "Alice's argument must appear in some preferred extension");
-    assert!(bob_in_some, "Bob's argument must appear in some preferred extension");
+    assert!(
+        alice_in_some,
+        "Alice's argument must appear in some preferred extension"
+    );
+    assert!(
+        bob_in_some,
+        "Bob's argument must appear in some preferred extension"
+    );
 }
 
 #[test]
@@ -88,7 +99,11 @@ fn alice_wins_when_her_rule_is_preferred() {
 
     let built = system.build_framework().unwrap();
     let preferred = built.framework.preferred_extensions().unwrap();
-    assert_eq!(preferred.len(), 1, "with strict preference, expect a unique preferred extension");
+    assert_eq!(
+        preferred.len(),
+        1,
+        "with strict preference, expect a unique preferred extension"
+    );
 
     let alice_wins = built
         .arguments_with_conclusion(&Literal::atom("fortify_east"))
@@ -99,7 +114,10 @@ fn alice_wins_when_her_rule_is_preferred() {
         .iter()
         .any(|a| preferred[0].contains(&a.id));
     assert!(alice_wins, "Alice should win when her rule is preferred");
-    assert!(!bob_wins, "Bob should be defeated when Alice's rule is preferred");
+    assert!(
+        !bob_wins,
+        "Bob should be defeated when Alice's rule is preferred"
+    );
 }
 
 #[test]
@@ -124,6 +142,9 @@ fn bob_wins_when_his_rule_is_preferred() {
         .arguments_with_conclusion(&Literal::neg("fortify_east"))
         .iter()
         .any(|a| preferred[0].contains(&a.id));
-    assert!(!alice_wins, "Alice should be defeated when Bob's rule is preferred");
+    assert!(
+        !alice_wins,
+        "Alice should be defeated when Bob's rule is preferred"
+    );
     assert!(bob_wins, "Bob should win when his rule is preferred");
 }

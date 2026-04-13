@@ -28,16 +28,32 @@ pub fn ad_hominem() -> SchemeSpec {
         premises: vec![
             PremiseSlot::new("target", "The person being attacked", SlotRole::Agent),
             PremiseSlot::new("flaw", "The character flaw alleged", SlotRole::Property),
-            PremiseSlot::new("claim", "The claim being challenged via the attack", SlotRole::Proposition),
+            PremiseSlot::new(
+                "claim",
+                "The claim being challenged via the attack",
+                SlotRole::Proposition,
+            ),
         ],
         conclusion: ConclusionTemplate::negated(
             "?claim should be rejected because ?target has ?flaw",
             "?claim",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Does ?target really have ?flaw?", Challenge::PremiseTruth("flaw".into())),
-            CriticalQuestion::new(2, "Does ?flaw actually bear on the credibility of ?claim?", Challenge::Proportionality),
-            CriticalQuestion::new(3, "Is the attack on ?target proportionate to ?flaw?", Challenge::Proportionality),
+            CriticalQuestion::new(
+                1,
+                "Does ?target really have ?flaw?",
+                Challenge::PremiseTruth("flaw".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Does ?flaw actually bear on the credibility of ?claim?",
+                Challenge::Proportionality,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Is the attack on ?target proportionate to ?flaw?",
+                Challenge::Proportionality,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.141".into(),
@@ -57,8 +73,16 @@ pub fn ad_hominem_circumstantial() -> SchemeSpec {
         name: "Ad Hominem Circumstantial".into(),
         category: SchemeCategory::SourceBased,
         premises: vec![
-            PremiseSlot::new("target", "The person whose circumstances are cited", SlotRole::Agent),
-            PremiseSlot::new("inconsistency", "How target's circumstances conflict with the claim", SlotRole::Property),
+            PremiseSlot::new(
+                "target",
+                "The person whose circumstances are cited",
+                SlotRole::Agent,
+            ),
+            PremiseSlot::new(
+                "inconsistency",
+                "How target's circumstances conflict with the claim",
+                SlotRole::Property,
+            ),
             PremiseSlot::new("claim", "The claim being undermined", SlotRole::Proposition),
         ],
         conclusion: ConclusionTemplate::negated(
@@ -66,9 +90,21 @@ pub fn ad_hominem_circumstantial() -> SchemeSpec {
             "?claim",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Does ?target actually have the alleged ?inconsistency?", Challenge::PremiseTruth("inconsistency".into())),
-            CriticalQuestion::new(2, "Is the inconsistency relevant to ?claim?", Challenge::Proportionality),
-            CriticalQuestion::new(3, "Could ?target's ?claim still be valid despite the inconsistency?", Challenge::RuleValidity),
+            CriticalQuestion::new(
+                1,
+                "Does ?target actually have the alleged ?inconsistency?",
+                Challenge::PremiseTruth("inconsistency".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Is the inconsistency relevant to ?claim?",
+                Challenge::Proportionality,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Could ?target's ?claim still be valid despite the inconsistency?",
+                Challenge::RuleValidity,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.143".into(),
@@ -90,16 +126,32 @@ pub fn argument_from_bias() -> SchemeSpec {
         premises: vec![
             PremiseSlot::new("source", "The biased source", SlotRole::Agent),
             PremiseSlot::new("bias", "The alleged bias", SlotRole::Property),
-            PremiseSlot::new("claim", "The claim made by the biased source", SlotRole::Proposition),
+            PremiseSlot::new(
+                "claim",
+                "The claim made by the biased source",
+                SlotRole::Proposition,
+            ),
         ],
         conclusion: ConclusionTemplate::negated(
             "?claim should be treated with suspicion because ?source has ?bias",
             "?claim",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Does ?source actually have the alleged ?bias?", Challenge::PremiseTruth("bias".into())),
-            CriticalQuestion::new(2, "Does ?bias actually affect ?source's assertion of ?claim?", Challenge::RuleValidity),
-            CriticalQuestion::new(3, "Even if ?source is biased, might ?claim still be true?", Challenge::AlternativeCause),
+            CriticalQuestion::new(
+                1,
+                "Does ?source actually have the alleged ?bias?",
+                Challenge::PremiseTruth("bias".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Does ?bias actually affect ?source's assertion of ?claim?",
+                Challenge::RuleValidity,
+            ),
+            CriticalQuestion::new(
+                3,
+                "Even if ?source is biased, might ?claim still be true?",
+                Challenge::AlternativeCause,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.340".into(),
@@ -117,17 +169,37 @@ pub fn ethotic_argument() -> SchemeSpec {
         name: "Ethotic Argument".into(),
         category: SchemeCategory::SourceBased,
         premises: vec![
-            PremiseSlot::new("person", "The person whose character is cited", SlotRole::Agent),
-            PremiseSlot::new("good_character", "The positive character trait", SlotRole::Property),
-            PremiseSlot::new("claim", "The claim bolstered by good character", SlotRole::Proposition),
+            PremiseSlot::new(
+                "person",
+                "The person whose character is cited",
+                SlotRole::Agent,
+            ),
+            PremiseSlot::new(
+                "good_character",
+                "The positive character trait",
+                SlotRole::Property,
+            ),
+            PremiseSlot::new(
+                "claim",
+                "The claim bolstered by good character",
+                SlotRole::Proposition,
+            ),
         ],
         conclusion: ConclusionTemplate::positive(
             "?claim is more plausible because ?person has ?good_character",
             "?claim",
         ),
         critical_questions: vec![
-            CriticalQuestion::new(1, "Does ?person actually have ?good_character?", Challenge::PremiseTruth("good_character".into())),
-            CriticalQuestion::new(2, "Does ?good_character make ?claim more plausible?", Challenge::RuleValidity),
+            CriticalQuestion::new(
+                1,
+                "Does ?person actually have ?good_character?",
+                Challenge::PremiseTruth("good_character".into()),
+            ),
+            CriticalQuestion::new(
+                2,
+                "Does ?good_character make ?claim more plausible?",
+                Challenge::RuleValidity,
+            ),
         ],
         metadata: SchemeMetadata {
             citation: "Walton 2008 p.146".into(),
@@ -149,7 +221,10 @@ mod tests {
 
     #[test]
     fn ad_hominem_has_negated_conclusion() {
-        assert!(ad_hominem().conclusion.is_negated, "ad hominem must conclude ¬claim");
+        assert!(
+            ad_hominem().conclusion.is_negated,
+            "ad hominem must conclude ¬claim"
+        );
     }
 
     #[test]

@@ -16,10 +16,7 @@ use argumentation::aspic::{Literal, RuleId, StructuredSystem};
 /// via [`StructuredSystem::add_ordinary`]. The instance's `conclusion`
 /// (already polarised by the scheme's [`crate::scheme::ConclusionTemplate`])
 /// becomes the rule's conclusion.
-pub fn add_scheme_to_system(
-    instance: &SchemeInstance,
-    system: &mut StructuredSystem,
-) -> RuleId {
+pub fn add_scheme_to_system(instance: &SchemeInstance, system: &mut StructuredSystem) -> RuleId {
     for premise in &instance.premises {
         system.add_ordinary(premise.clone());
     }
@@ -95,8 +92,7 @@ mod tests {
 
         assert!(!system.rules().is_empty());
         let built = system.build_framework().unwrap();
-        let conclusion_args =
-            built.arguments_with_conclusion(&Literal::atom("fortify_east"));
+        let conclusion_args = built.arguments_with_conclusion(&Literal::atom("fortify_east"));
         assert!(
             !conclusion_args.is_empty(),
             "expected at least one argument concluding fortify_east"

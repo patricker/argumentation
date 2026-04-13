@@ -1,8 +1,8 @@
 //! `SchemeInstance`: a scheme instantiated with concrete bindings.
 
+use crate::Error;
 use crate::critical::CriticalQuestion;
 use crate::scheme::SchemeSpec;
-use crate::Error;
 use argumentation::aspic::Literal;
 use std::collections::HashMap;
 
@@ -157,15 +157,11 @@ fn build_counter_literal(
                 .unwrap_or("source");
             Literal::neg(format!("credible_{}", agent))
         }
-        Challenge::RuleValidity => {
-            Literal::neg(format!("valid_rule_{}", scheme.key()))
-        }
+        Challenge::RuleValidity => Literal::neg(format!("valid_rule_{}", scheme.key())),
         Challenge::ConflictingAuthority => {
             Literal::neg(format!("consensus_on_{}", conclusion_name))
         }
-        Challenge::AlternativeCause => {
-            Literal::neg(format!("sole_cause_{}", conclusion_name))
-        }
+        Challenge::AlternativeCause => Literal::neg(format!("sole_cause_{}", conclusion_name)),
         Challenge::UnseenConsequences => {
             Literal::neg(format!("all_consequences_considered_{}", conclusion_name))
         }
@@ -177,9 +173,7 @@ fn build_counter_literal(
                 .unwrap_or("target");
             Literal::neg(format!("proportionate_attack_{}", target))
         }
-        Challenge::DisanalogyClaim => {
-            Literal::neg(format!("analogy_holds_{}", conclusion_name))
-        }
+        Challenge::DisanalogyClaim => Literal::neg(format!("analogy_holds_{}", conclusion_name)),
     }
 }
 
@@ -207,11 +201,7 @@ mod tests {
                     "Is ?expert an expert in ?domain?",
                     Challenge::PremiseTruth("expert".into()),
                 ),
-                CriticalQuestion::new(
-                    2,
-                    "Is ?expert credible?",
-                    Challenge::SourceCredibility,
-                ),
+                CriticalQuestion::new(2, "Is ?expert credible?", Challenge::SourceCredibility),
             ],
             metadata: SchemeMetadata {
                 citation: "Walton 2008 p.14".into(),
