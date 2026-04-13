@@ -21,6 +21,7 @@
 pub mod error;
 pub mod framework;
 pub mod reduce;
+pub mod semantics;
 pub mod types;
 
 pub use error::Error;
