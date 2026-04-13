@@ -107,6 +107,23 @@ where
 /// Return the smallest budget at which `target` is credulously
 /// accepted, or `None` if it is never accepted across the framework's
 /// full budget range.
+///
+/// **⚠ Non-monotonicity caveat.** Under v0.1.0's cumulative-weight
+/// threshold approximation, acceptance is NOT globally monotone in
+/// the budget. This function returns the *first* breakpoint at which
+/// the target becomes credulously accepted, but acceptance may flip
+/// back to rejected at larger budgets when tolerating a cheap attack
+/// disrupts a chained defense. Do NOT read the returned value as a
+/// stable threshold "acceptance holds for all larger budgets."
+///
+/// For the full picture, call [`acceptance_trajectory`] and inspect
+/// every breakpoint. See `tests/uc3_scene_intensity.rs` for the
+/// witness fixture where a chain `a→b→c` flips `c` from accepted to
+/// rejected back to accepted as the budget grows.
+///
+/// The full Dunne 2011 existential-subset semantics would be
+/// monotone and would make this function a stable threshold query.
+/// That variant is a deferred v0.2.0 target.
 pub fn min_budget_for_credulous<A>(
     framework: &WeightedFramework<A>,
     target: &A,
