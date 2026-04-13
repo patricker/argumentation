@@ -147,13 +147,16 @@ fn build_counter_literal(
             Literal::neg(format!("{}_{}", slot_name, val))
         }
         Challenge::SourceCredibility => {
+            // Slot priority: epistemic-source roles first, then generic
+            // agent roles, then adversarial-repurpose roles.
+            // expert > witness > source > agent > person > target > threatener.
             let agent = bindings
                 .get("expert")
                 .or_else(|| bindings.get("witness"))
                 .or_else(|| bindings.get("source"))
+                .or_else(|| bindings.get("agent"))
                 .or_else(|| bindings.get("person"))
                 .or_else(|| bindings.get("target"))
-                .or_else(|| bindings.get("agent"))
                 .or_else(|| bindings.get("threatener"))
                 .map(|s| s.as_str())
                 .unwrap_or("source");
@@ -271,6 +274,124 @@ mod tests {
         let instance = instantiate(&scheme, &full_bindings()).unwrap();
         let cq2 = &instance.critical_questions[1];
         assert_eq!(cq2.counter_literal, Literal::neg("credible_alice"));
+    }
+
+    #[test]
+    fn source_credibility_falls_back_to_agent_slot_when_no_epistemic_role_bound() {
+        // Forward-compat guard for the v0.1.0 fallback-chain fix: if a
+        // future scheme uses SourceCredibility alongside an `agent`-named
+        // slot (as argument_from_values and argument_from_commitment do),
+        // the counter-literal must resolve to credible_<agent_binding>,
+        // not the literal string "credible_source". Regressing this
+        // behaviour was the bug the fallback fix was written to prevent.
+        let scheme = SchemeSpec {
+            id: SchemeId(9999),
+            name: "synthetic agent credibility".into(),
+            category: SchemeCategory::Practical,
+            premises: vec![
+                PremiseSlot::new("agent", "the actor", SlotRole::Agent),
+                PremiseSlot::new("action", "what they did", SlotRole::Action),
+            ],
+            conclusion: ConclusionTemplate::positive("?agent did ?action", "did_?action"),
+            critical_questions: vec![CriticalQuestion::new(
+                1,
+                "Is ?agent credible?",
+                Challenge::SourceCredibility,
+            )],
+            metadata: SchemeMetadata {
+                citation: "synthetic".into(),
+                domain_tags: vec![],
+                presumptive: true,
+                strength: SchemeStrength::Moderate,
+            },
+        };
+        let bindings: HashMap<String, String> = [
+            ("agent".to_string(), "alice".to_string()),
+            ("action".to_string(), "sign_treaty".to_string()),
+        ]
+        .into_iter()
+        .collect();
+        let instance = instantiate(&scheme, &bindings).unwrap();
+        assert_eq!(
+            instance.critical_questions[0].counter_literal,
+            Literal::neg("credible_alice"),
+        );
+    }
+
+    #[test]
+    fn source_credibility_prefers_agent_over_target_when_both_are_bound() {
+        // The fallback chain must put `agent` ahead of `target` so that a
+        // scheme with BOTH slots resolves credibility to the agent (the
+        // person whose epistemic standing matters) rather than the target
+        // (the person being attacked). No current scheme has both slots;
+        // this test pins the ordering for the future case.
+        let scheme = SchemeSpec {
+            id: SchemeId(9998),
+            name: "synthetic agent over target".into(),
+            category: SchemeCategory::Practical,
+            premises: vec![
+                PremiseSlot::new("agent", "the actor", SlotRole::Agent),
+                PremiseSlot::new("target", "the recipient", SlotRole::Agent),
+            ],
+            conclusion: ConclusionTemplate::positive("outcome", "outcome"),
+            critical_questions: vec![CriticalQuestion::new(
+                1,
+                "Is ?agent credible?",
+                Challenge::SourceCredibility,
+            )],
+            metadata: SchemeMetadata {
+                citation: "synthetic".into(),
+                domain_tags: vec![],
+                presumptive: true,
+                strength: SchemeStrength::Moderate,
+            },
+        };
+        let bindings: HashMap<String, String> = [
+            ("agent".to_string(), "alice".to_string()),
+            ("target".to_string(), "bob".to_string()),
+        ]
+        .into_iter()
+        .collect();
+        let instance = instantiate(&scheme, &bindings).unwrap();
+        assert_eq!(
+            instance.critical_questions[0].counter_literal,
+            Literal::neg("credible_alice"),
+            "agent should win over target in the SourceCredibility chain"
+        );
+    }
+
+    #[test]
+    fn proportionality_falls_back_to_agent_slot() {
+        // Forward-compat guard for the Proportionality fallback chain:
+        // chain is target > threatener > agent > person, so a scheme
+        // that uses Proportionality without a `target` or `threatener`
+        // slot must still pick up an `agent` binding.
+        let scheme = SchemeSpec {
+            id: SchemeId(9997),
+            name: "synthetic proportionality".into(),
+            category: SchemeCategory::Practical,
+            premises: vec![PremiseSlot::new("agent", "the actor", SlotRole::Agent)],
+            conclusion: ConclusionTemplate::positive("did_it", "did_it"),
+            critical_questions: vec![CriticalQuestion::new(
+                1,
+                "Is the reaction to ?agent proportionate?",
+                Challenge::Proportionality,
+            )],
+            metadata: SchemeMetadata {
+                citation: "synthetic".into(),
+                domain_tags: vec![],
+                presumptive: true,
+                strength: SchemeStrength::Moderate,
+            },
+        };
+        let bindings: HashMap<String, String> = [("agent".to_string(), "alice".to_string())]
+            .into_iter()
+            .collect();
+        let instance = instantiate(&scheme, &bindings).unwrap();
+        assert_eq!(
+            instance.critical_questions[0].counter_literal,
+            Literal::neg("proportionate_attack_alice"),
+        );
     }
 
     #[test]
