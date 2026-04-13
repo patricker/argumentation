@@ -1,11 +1,15 @@
 //! Threshold-sweep API: compute acceptance trajectories for one
 //! argument across the full budget range.
 //!
-//! Under the cumulative-weight threshold approximation, acceptance is
-//! a monotone step function of the budget β. The flip points are
-//! exactly the cumulative-sum values of the sorted attack weights
-//! (plus β = 0 as the starting point). A sweep requires at most
-//! `|attacks| + 1` evaluations.
+//! Acceptance can only change at cumulative-sum breakpoints, so a full
+//! sweep requires at most `|attacks| + 1` evaluations. Note that
+//! acceptance under the v0.1.0 cumulative-weight threshold
+//! approximation is NOT globally monotone in β — a chained-defense
+//! framework like `a→b→c` can flip `c` from accepted (at β=0, via `a`'s
+//! defense) to rejected (once `a→b` is tolerated) to accepted again
+//! (once `b→c` is also tolerated). The full Dunne 2011 existential
+//! subset semantics would be monotone but is a deferred v0.2.0 target.
+//! See `tests/uc3_scene_intensity.rs` for the witness fixture.
 
 use crate::error::Error;
 use crate::framework::WeightedFramework;
@@ -65,12 +69,8 @@ where
     for bp in breakpoints(framework) {
         let budget = Budget::new(bp)?;
         let accepted = match mode {
-            AcceptanceMode::Credulous => {
-                is_credulously_accepted_at(framework, target, budget)?
-            }
-            AcceptanceMode::Skeptical => {
-                is_skeptically_accepted_at(framework, target, budget)?
-            }
+            AcceptanceMode::Credulous => is_credulously_accepted_at(framework, target, budget)?,
+            AcceptanceMode::Skeptical => is_skeptically_accepted_at(framework, target, budget)?,
         };
         out.push(SweepPoint {
             budget: bp,
@@ -183,13 +183,18 @@ mod tests {
     }
 
     #[test]
-    fn trajectory_is_monotone_nondecreasing() {
-        // Acceptance is monotone in β — once accepted, stays accepted.
+    fn trajectory_for_independent_attackers_is_monotone() {
+        // For a framework with no chained defense (target attacked by
+        // two independent arguments), acceptance IS monotone in β. This
+        // is NOT a general property — see the
+        // `uc3_chained_defense_produces_non_monotone_trajectory`
+        // integration test for a counter-example fixture. We keep this
+        // test to pin the common-case behavior; don't generalize its
+        // assertion.
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a1", "target", 0.3).unwrap();
         wf.add_weighted_attack("a2", "target", 0.5).unwrap();
-        let trajectory =
-            acceptance_trajectory(&wf, &"target", AcceptanceMode::Credulous).unwrap();
+        let trajectory = acceptance_trajectory(&wf, &"target", AcceptanceMode::Credulous).unwrap();
         let mut seen_accepted = false;
         for p in trajectory {
             if p.accepted {
