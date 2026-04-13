@@ -17,9 +17,15 @@ fn uc1_bob_is_in_every_preferred_extension() {
     // Bob's claim is unattacked; his argument should be in every preferred extension.
 
     let prefs = bipolar_preferred_extensions(&bf).unwrap();
-    assert!(!prefs.is_empty(), "should have at least one preferred extension");
+    assert!(
+        !prefs.is_empty(),
+        "should have at least one preferred extension"
+    );
     for ext in &prefs {
-        assert!(ext.contains(&"bob"), "bob should be accepted in every preferred extension");
+        assert!(
+            ext.contains(&"bob"),
+            "bob should be accepted in every preferred extension"
+        );
     }
 }
 
@@ -33,7 +39,10 @@ fn uc1_charlie_and_alice_never_coexist() {
     for ext in &prefs {
         let has_alice = ext.contains(&"alice");
         let has_charlie = ext.contains(&"charlie");
-        assert!(!(has_alice && has_charlie), "alice and charlie are in conflict");
+        assert!(
+            !(has_alice && has_charlie),
+            "alice and charlie are in conflict"
+        );
     }
 }
 

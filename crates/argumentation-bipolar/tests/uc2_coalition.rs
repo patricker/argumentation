@@ -35,7 +35,11 @@ fn uc2_coalition_detection_returns_alice_bob_together() {
         .iter()
         .find(|c| c.members.contains(&"charlie"))
         .unwrap();
-    assert_eq!(charlie_coalition.members.len(), 1, "charlie is a singleton coalition");
+    assert_eq!(
+        charlie_coalition.members.len(),
+        1,
+        "charlie is a singleton coalition"
+    );
 }
 
 #[test]
@@ -56,7 +60,10 @@ fn uc2_alice_and_bob_in_every_preferred_extension() {
     let bf = build_coalition_framework();
     let prefs = bipolar_preferred_extensions(&bf).unwrap();
 
-    assert!(!prefs.is_empty(), "expected at least one preferred extension");
+    assert!(
+        !prefs.is_empty(),
+        "expected at least one preferred extension"
+    );
     for ext in &prefs {
         assert!(ext.contains(&"alice"), "alice should be accepted");
         assert!(ext.contains(&"bob"), "bob should be accepted");

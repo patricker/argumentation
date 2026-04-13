@@ -4,8 +4,8 @@
 //! unit tests in `derived.rs` stay focused on individual rule firings.
 
 use argumentation_bipolar::derived::closed_attacks;
-use argumentation_bipolar::framework::BipolarFramework;
 use argumentation_bipolar::flatten::flatten;
+use argumentation_bipolar::framework::BipolarFramework;
 
 #[test]
 fn parallel_support_branches_both_propagate_attacks() {
