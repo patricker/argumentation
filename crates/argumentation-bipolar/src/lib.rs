@@ -29,6 +29,7 @@ pub mod derived;
 pub mod error;
 pub mod flatten;
 pub mod framework;
+pub mod queries;
 pub mod semantics;
 pub mod types;
 
