@@ -153,6 +153,8 @@ fn build_counter_literal(
                 .or_else(|| bindings.get("source"))
                 .or_else(|| bindings.get("person"))
                 .or_else(|| bindings.get("target"))
+                .or_else(|| bindings.get("agent"))
+                .or_else(|| bindings.get("threatener"))
                 .map(|s| s.as_str())
                 .unwrap_or("source");
             Literal::neg(format!("credible_{}", agent))
@@ -169,6 +171,8 @@ fn build_counter_literal(
             let target = bindings
                 .get("target")
                 .or_else(|| bindings.get("threatener"))
+                .or_else(|| bindings.get("agent"))
+                .or_else(|| bindings.get("person"))
                 .map(|s| s.as_str())
                 .unwrap_or("target");
             Literal::neg(format!("proportionate_attack_{}", target))
