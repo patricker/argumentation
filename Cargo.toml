@@ -1,5 +1,11 @@
 [workspace]
-members = [".", "crates/argumentation-schemes", "crates/encounter-argumentation"]
+members = [
+    ".",
+    "crates/argumentation-schemes",
+    "crates/argumentation-bipolar",
+    "crates/argumentation-weighted",
+    "crates/encounter-argumentation",
+]
 resolver = "2"
 
 [package]

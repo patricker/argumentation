@@ -1,0 +1,14 @@
+[package]
+name = "argumentation-bipolar"
+version = "0.1.0"
+edition = "2024"
+description = "Bipolar argumentation frameworks (attacks + supports) built on the argumentation crate"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["argumentation", "bipolar", "coalition", "support", "cayrol"]
+categories = ["algorithms"]
+
+[dependencies]
+argumentation = { path = "../.." }
+petgraph = "0.6"
+thiserror = "2.0"
