@@ -24,6 +24,7 @@ pub mod reduce;
 pub mod semantics;
 pub mod sweep;
 pub mod types;
+pub mod weight_source;
 
 pub use error::Error;
 pub use framework::WeightedFramework;
