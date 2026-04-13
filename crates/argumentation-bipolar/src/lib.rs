@@ -25,6 +25,8 @@
 #![warn(clippy::all)]
 
 pub mod error;
+pub mod framework;
 pub mod types;
 
 pub use error::Error;
+pub use framework::BipolarFramework;
