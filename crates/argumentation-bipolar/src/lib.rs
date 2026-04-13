@@ -24,6 +24,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod coalition;
 pub mod derived;
 pub mod error;
 pub mod flatten;
