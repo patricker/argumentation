@@ -11,21 +11,6 @@ pub enum EdgeKind {
     Support,
 }
 
-/// Which support semantics the framework uses. Only [`Self::Necessary`]
-/// is implemented in v0.1.0; [`Self::Deductive`] and [`Self::Evidential`]
-/// are reserved for v0.2.0 and return [`crate::Error::UnimplementedSemantics`]
-/// if requested.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SupportSemantics {
-    /// Necessary support (Nouioua & Risch 2011): `A` supports `B` means
-    /// `A` must be in any extension containing `B`.
-    Necessary,
-    /// Deductive support (Boella et al. 2010). NOT IMPLEMENTED in v0.1.0.
-    Deductive,
-    /// Evidential support (Oren & Norman 2008). NOT IMPLEMENTED in v0.1.0.
-    Evidential,
-}
-
 /// Identifier for a coalition detected via strongly-connected components
 /// of the support graph. Coalition ids are assigned at detection time by
 /// [`crate::coalition::detect_coalitions`] and are only stable within a
@@ -40,15 +25,6 @@ mod tests {
     #[test]
     fn edge_kind_distinguishes_attack_from_support() {
         assert_ne!(EdgeKind::Attack, EdgeKind::Support);
-    }
-
-    #[test]
-    fn support_semantics_necessary_is_default_implementation() {
-        // v0.1.0 only supports Necessary. The other two exist for API
-        // stability but route to UnimplementedSemantics.
-        assert_eq!(SupportSemantics::Necessary, SupportSemantics::Necessary);
-        assert_ne!(SupportSemantics::Necessary, SupportSemantics::Deductive);
-        assert_ne!(SupportSemantics::Necessary, SupportSemantics::Evidential);
     }
 
     #[test]

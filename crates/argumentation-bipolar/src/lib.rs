@@ -78,4 +78,4 @@ pub use semantics::{
     bipolar_complete_extensions, bipolar_grounded_extension, bipolar_preferred_extensions,
     bipolar_stable_extensions, is_support_closed,
 };
-pub use types::{CoalitionId, EdgeKind, SupportSemantics};
+pub use types::{CoalitionId, EdgeKind};

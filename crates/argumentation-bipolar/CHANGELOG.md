@@ -20,8 +20,8 @@
   UC2 (coalition), UC3 (betrayal), UC4 (mediated attack).
 
 ### Known limitations
-- Only `SupportSemantics::Necessary` is implemented. `Deductive` and
-  `Evidential` are pre-declared for API stability but return
-  `Error::UnimplementedSemantics`.
+- Only necessary support (Nouioua & Risch 2011) is implemented.
+  Deductive (Boella et al. 2010) and evidential (Oren & Norman 2008)
+  support semantics are not in scope for v0.1.0.
 - No weighted-bipolar composition with `argumentation-weighted` yet;
   the natural composition point is a v0.2.0 follow-up.
