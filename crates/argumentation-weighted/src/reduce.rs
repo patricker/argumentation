@@ -1,22 +1,27 @@
-//! β-reduction: convert a [`WeightedFramework`] at a given budget into
-//! an equivalent unweighted [`argumentation::ArgumentationFramework`].
+//! Dunne 2011 β-inconsistent residual enumeration.
 //!
-//! v0.1.0 ships the **cumulative-weight threshold** approximation of
-//! Dunne et al. 2011's inconsistency-budget semantics:
+//! Given a weighted framework `WF` and budget `β`, [`dunne_residuals`]
+//! returns the plain Dung framework obtained by dropping attacks in
+//! each subset `S ⊆ attacks(WF)` whose cumulative weight is at most
+//! `β`. The acceptance predicates in [`crate::semantics`] iterate these
+//! residuals to compute β-credulous and β-skeptical acceptance.
 //!
-//! 1. Sort all attacks by weight ascending.
-//! 2. Walk the sorted list, maintaining a running `cumulative` total.
-//!    While `cumulative + next_weight ≤ β`, include the next attack in
-//!    the "tolerated" set `R` and advance `cumulative`.
-//! 3. The residual framework contains all arguments plus every attack
-//!    NOT in `R`.
+//! ## Complexity
 //!
-//! This matches the formal definition for the common case (smaller
-//! attacks are strictly more expendable). It can under-tolerate in
-//! pathological cases where skipping a cheap attack to afford a
-//! strategically-important expensive one would yield a larger
-//! extension set; the full exponential enumeration is deferred to
-//! v0.2.0.
+//! Enumeration is O(2^m · f(n)) where `m = |attacks(WF)|`, `n =
+//! |arguments(WF)|`, and `f(n)` is the Dung semantics cost on the
+//! residual. [`ATTACK_ENUMERATION_LIMIT`] caps `m` at 24 to keep the
+//! factor manageable; larger frameworks return
+//! [`crate::Error::TooManyAttacks`].
+//!
+//! ## v0.1.0 → v0.2.0 migration note
+//!
+//! v0.1.0 exposed `reduce_at_budget(wf, β) -> ArgumentationFramework`,
+//! a cumulative-threshold *approximation* that returned a single
+//! residual. That function is removed in v0.2.0: there is no canonical
+//! "the" residual under Dunne 2011, so the semantics layer iterates
+//! all residuals internally and callers should use
+//! [`crate::semantics`] acceptance predicates instead.
 
 use crate::error::Error;
 use crate::framework::WeightedFramework;
@@ -37,57 +42,68 @@ use std::hash::Hash;
 /// the two limits are independent because they count different things.
 pub const ATTACK_ENUMERATION_LIMIT: usize = 24;
 
-/// Reduce a weighted framework at budget `β` to an unweighted Dung
-/// framework by tolerating the cheapest attacks first until the
-/// cumulative tolerated weight would exceed `β`.
+/// Enumerate the Dung residuals of `framework` at budget `β`.
 ///
-/// Returns a plain [`argumentation::ArgumentationFramework`] whose
-/// attack edges are the **surviving** attacks (those NOT tolerated).
-/// Any existing Dung semantics call on the result corresponds to the
-/// weighted semantics at that budget under the cumulative-threshold
-/// approximation.
-pub fn reduce_at_budget<A>(
+/// A residual is `WF \ S` for some β-inconsistent `S` — i.e., the
+/// plain Dung framework with the attacks in `S` omitted. Every argument
+/// is preserved in every residual; only attack edges differ.
+///
+/// Returns one [`ArgumentationFramework`] per β-inconsistent subset.
+/// With `m` attacks, the maximum residual count is `2^m`; the budget
+/// typically prunes this substantially. Residuals are returned in bit-
+/// mask order (subset 0 = no attacks dropped; subset `2^m - 1` = all
+/// attacks dropped).
+///
+/// Fails with [`Error::TooManyAttacks`] if the framework has more
+/// than [`ATTACK_ENUMERATION_LIMIT`] attacks.
+pub fn dunne_residuals<A>(
     framework: &WeightedFramework<A>,
     budget: Budget,
-) -> Result<ArgumentationFramework<A>, Error>
+) -> Result<Vec<ArgumentationFramework<A>>, Error>
 where
     A: Clone + Eq + Hash + Debug,
 {
-    let mut af = ArgumentationFramework::new();
-    for arg in framework.arguments() {
-        af.add_argument(arg.clone());
+    let attacks: Vec<&crate::types::WeightedAttack<A>> = framework.attacks().collect();
+    let m = attacks.len();
+
+    if m > ATTACK_ENUMERATION_LIMIT {
+        return Err(Error::TooManyAttacks {
+            attacks: m,
+            limit: ATTACK_ENUMERATION_LIMIT,
+        });
     }
 
-    // Sort a view of attack references by weight ascending so we can
-    // walk them in order without modifying the framework.
-    let mut sorted_attacks: Vec<&crate::types::WeightedAttack<A>> = framework.attacks().collect();
-    sorted_attacks.sort_by(|a, b| {
-        a.weight
-            .value()
-            .partial_cmp(&b.weight.value())
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let args: Vec<A> = framework.arguments().cloned().collect();
+    let total = 1u64 << m;
+    let mut residuals = Vec::new();
 
-    // Tolerate the cheapest attacks first.
-    let mut cumulative: f64 = 0.0;
-    let mut first_surviving = 0;
-    for (i, atk) in sorted_attacks.iter().enumerate() {
-        if cumulative + atk.weight.value() <= budget.value() {
-            cumulative += atk.weight.value();
-        } else {
-            first_surviving = i;
-            break;
+    for bits in 0..total {
+        // Compute the cumulative weight of the dropped set S (bits
+        // where the corresponding attack is tolerated, i.e., removed).
+        let mut cost = 0.0_f64;
+        for i in 0..m {
+            if bits & (1u64 << i) != 0 {
+                cost += attacks[i].weight.value();
+            }
         }
-        first_surviving = i + 1;
+        if cost > budget.value() {
+            continue;
+        }
+
+        // Build the residual: all arguments, and all attacks NOT in S.
+        let mut af: ArgumentationFramework<A> = ArgumentationFramework::new();
+        for a in &args {
+            af.add_argument(a.clone());
+        }
+        for i in 0..m {
+            if bits & (1u64 << i) == 0 {
+                af.add_attack(&attacks[i].attacker, &attacks[i].target)?;
+            }
+        }
+        residuals.push(af);
     }
 
-    // Everything from `first_surviving` onward survives — add those
-    // attacks to the residual framework.
-    for atk in &sorted_attacks[first_surviving..] {
-        af.add_attack(&atk.attacker, &atk.target)?;
-    }
-
-    Ok(af)
+    Ok(residuals)
 }
 
 #[cfg(test)]
@@ -95,75 +111,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn zero_budget_keeps_all_attacks() {
+    fn attack_enumeration_limit_is_24() {
+        assert_eq!(super::ATTACK_ENUMERATION_LIMIT, 24);
+    }
+
+    #[test]
+    fn dunne_residuals_zero_budget_yields_single_residual_with_all_attacks() {
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
         wf.add_weighted_attack("c", "d", 0.8).unwrap();
-        let af = reduce_at_budget(&wf, Budget::zero()).unwrap();
-        assert_eq!(af.len(), 4);
-        assert_eq!(af.attackers(&"b").len(), 1);
-        assert_eq!(af.attackers(&"d").len(), 1);
+        let residuals = dunne_residuals(&wf, Budget::zero()).unwrap();
+        assert_eq!(residuals.len(), 1);
+        assert_eq!(residuals[0].attackers(&"b").len(), 1);
+        assert_eq!(residuals[0].attackers(&"d").len(), 1);
     }
 
     #[test]
-    fn large_budget_tolerates_all_attacks() {
+    fn dunne_residuals_budget_covers_cheapest_attack_yields_two_residuals() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.3).unwrap();
+        wf.add_weighted_attack("c", "d", 0.9).unwrap();
+        let residuals = dunne_residuals(&wf, Budget::new(0.3).unwrap()).unwrap();
+        assert_eq!(residuals.len(), 2);
+    }
+
+    #[test]
+    fn dunne_residuals_large_budget_yields_full_power_set() {
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
-        wf.add_weighted_attack("c", "d", 0.8).unwrap();
-        let af = reduce_at_budget(&wf, Budget::new(10.0).unwrap()).unwrap();
-        assert_eq!(af.len(), 4);
-        assert!(af.attackers(&"b").is_empty());
-        assert!(af.attackers(&"d").is_empty());
+        wf.add_weighted_attack("c", "d", 0.5).unwrap();
+        let residuals = dunne_residuals(&wf, Budget::new(10.0).unwrap()).unwrap();
+        assert_eq!(residuals.len(), 4);
     }
 
     #[test]
-    fn budget_tolerates_cheapest_attacks_first() {
-        // Weights: 0.2, 0.3, 0.5. Budget 0.5 tolerates the 0.2 and
-        // 0.3 (cumulative 0.5) but not the 0.5 (would exceed).
-        let mut wf = WeightedFramework::new();
-        wf.add_weighted_attack("a1", "target", 0.2).unwrap();
-        wf.add_weighted_attack("a2", "target", 0.3).unwrap();
-        wf.add_weighted_attack("a3", "target", 0.5).unwrap();
-        let af = reduce_at_budget(&wf, Budget::new(0.5).unwrap()).unwrap();
-        // Only a3 should still attack target.
-        let attackers: Vec<&&str> = af.attackers(&"target").into_iter().collect();
-        assert_eq!(attackers.len(), 1);
-        assert_eq!(*attackers[0], "a3");
+    fn dunne_residuals_rejects_oversized_framework() {
+        let mut wf: WeightedFramework<u32> = WeightedFramework::new();
+        for i in 0..(ATTACK_ENUMERATION_LIMIT as u32 + 1) {
+            wf.add_weighted_attack(2 * i, 2 * i + 1, 0.1).unwrap();
+        }
+        let err = dunne_residuals(&wf, Budget::new(1.0).unwrap()).unwrap_err();
+        assert!(matches!(err, Error::TooManyAttacks { .. }));
     }
 
     #[test]
-    fn budget_exactly_at_cumulative_tolerates_that_attack() {
-        let mut wf = WeightedFramework::new();
-        wf.add_weighted_attack("a1", "target", 0.2).unwrap();
-        wf.add_weighted_attack("a2", "target", 0.3).unwrap();
-        // Budget exactly 0.5 — the boundary case. Both should fit.
-        let af = reduce_at_budget(&wf, Budget::new(0.5).unwrap()).unwrap();
-        assert!(af.attackers(&"target").is_empty());
-    }
-
-    #[test]
-    fn budget_one_below_cumulative_does_not_tolerate() {
-        let mut wf = WeightedFramework::new();
-        wf.add_weighted_attack("a1", "target", 0.2).unwrap();
-        wf.add_weighted_attack("a2", "target", 0.3).unwrap();
-        let af = reduce_at_budget(&wf, Budget::new(0.499).unwrap()).unwrap();
-        // 0.499 < 0.2 + 0.3 = 0.5, so a2 cannot be tolerated; only a1.
-        let attackers: Vec<&&str> = af.attackers(&"target").into_iter().collect();
-        assert_eq!(attackers.len(), 1);
-        assert_eq!(*attackers[0], "a2");
-    }
-
-    #[test]
-    fn isolated_arguments_preserved_through_reduction() {
+    fn dunne_residuals_preserves_all_arguments_in_every_residual() {
         let mut wf = WeightedFramework::new();
         wf.add_argument("isolated");
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
-        let af = reduce_at_budget(&wf, Budget::zero()).unwrap();
-        assert_eq!(af.len(), 3);
-    }
-
-    #[test]
-    fn attack_enumeration_limit_is_24() {
-        assert_eq!(super::ATTACK_ENUMERATION_LIMIT, 24);
+        let residuals = dunne_residuals(&wf, Budget::new(1.0).unwrap()).unwrap();
+        for r in &residuals {
+            assert_eq!(r.len(), 3);
+        }
     }
 }
