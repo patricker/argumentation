@@ -20,6 +20,17 @@ pub enum Error {
         budget: f64,
     },
 
+    /// A weighted framework exceeded the Dunne 2011 subset-enumeration
+    /// attack-count limit. The exact semantics enumerate the power set
+    /// of attacks, so the limit caps memory+time at 2^limit subsets.
+    #[error("too many attacks for exact Dunne 2011 enumeration: {attacks} attacks exceed the limit of {limit}")]
+    TooManyAttacks {
+        /// The number of attacks in the offending framework.
+        attacks: usize,
+        /// The current enumeration limit.
+        limit: usize,
+    },
+
     /// An operation referenced an argument that is not in the framework.
     #[error("argument not found: {0}")]
     ArgumentNotFound(String),
@@ -28,4 +39,17 @@ pub enum Error {
     /// large for subset enumeration).
     #[error("dung error: {0}")]
     Dung(#[from] argumentation::Error),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn too_many_attacks_error_carries_count_and_limit() {
+        let err = Error::TooManyAttacks { attacks: 30, limit: 24 };
+        let msg = format!("{}", err);
+        assert!(msg.contains("30"));
+        assert!(msg.contains("24"));
+    }
 }
