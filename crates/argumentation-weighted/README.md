@@ -23,11 +23,23 @@ let min = min_budget_for_credulous(&wf, &"target").unwrap();
 assert_eq!(min, Some(0.6));
 ```
 
-## Known limitation — non-monotonicity
+## Semantics
 
-v0.1.0 ships a practical approximation of Dunne 2011's inconsistency-budget semantics: the cheapest attacks are tolerated first, in ascending weight order, until the budget would be exceeded. This approximation is **not globally monotone** in β. A chained-defense framework like `a→b (0.4), b→c (0.6)` flips `c`'s acceptance from true (at β=0, defended by `a`) to false (once `a→b` is tolerated and `b` starts attacking `c` unopposed) to true again (once `b→c` is also tolerated). The witness fixture lives at `tests/uc3_scene_intensity.rs`.
+Implements Dunne et al. 2011 inconsistency-budget semantics via exact
+subset enumeration. For a budget `β`, a set `S` of attacks is
+**β-inconsistent** iff `Σ w(a) ≤ β for a ∈ S`. An argument is
+β-credulously accepted iff it belongs to some preferred extension of
+`(AF \ S)` for some β-inconsistent `S`; β-skeptically accepted iff it
+belongs to every preferred extension of every β-inconsistent `S`.
 
-`min_budget_for_credulous` returns the *first* budget at which the target is accepted — not a stable threshold. Use `acceptance_trajectory` if you need the full picture. The full Dunne 2011 existential-subset semantics would be monotone but requires enumeration over 2^|attacks| subsets; that's a deferred v0.2.0 target.
+Monotonicity: credulous acceptance is monotone non-decreasing in β.
+
+## Complexity
+
+Exact enumeration is `O(2^m · f(n))` where `m` is the number of attacks
+and `f(n)` is the Dung enumeration cost on the residual. The
+`ATTACK_ENUMERATION_LIMIT` constant caps `m` at 24 (~16.8M subsets).
+Larger frameworks return `Error::TooManyAttacks`.
 
 ## License
 

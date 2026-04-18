@@ -42,6 +42,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod aif;
 pub mod aspic;
 pub mod catalog;
 pub mod critical;
@@ -51,6 +52,7 @@ pub mod registry;
 pub mod scheme;
 pub mod types;
 
+pub use aif::{AifDocument, AifEdge, AifNode, aif_to_instance, instance_to_aif};
 pub use error::Error;
 pub use instance::{CriticalQuestionInstance, SchemeInstance, instantiate};
 pub use registry::CatalogRegistry;

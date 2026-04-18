@@ -66,6 +66,21 @@ impl CatalogRegistry {
     pub fn is_empty(&self) -> bool {
         self.schemes.is_empty()
     }
+
+    /// Build a registry pre-loaded with the default Walton catalog.
+    #[must_use]
+    pub fn with_default() -> Self {
+        crate::catalog::default_catalog()
+    }
+
+    /// Look up a scheme by its canonical (human-readable) name.
+    ///
+    /// Names are matched exactly (case-sensitive). Use [`Self::by_key`] to
+    /// look up by the derived snake_case key instead.
+    #[must_use]
+    pub fn by_name(&self, name: &str) -> Option<&SchemeSpec> {
+        self.schemes.iter().find(|s| s.name == name)
+    }
 }
 
 impl Default for CatalogRegistry {

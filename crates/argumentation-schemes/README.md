@@ -34,6 +34,38 @@ let instance = scheme.instantiate(&bindings).unwrap();
 assert_eq!(instance.critical_questions.len(), 6);
 ```
 
+## AIF round-trip (v0.2.0)
+
+Schemes round-trip through [AIFdb](http://corpora.aifdb.org) JSON:
+
+```rust
+use argumentation_schemes::catalog::default_catalog;
+use argumentation_schemes::registry::CatalogRegistry;
+use argumentation_schemes::{aif_to_instance, instance_to_aif};
+use std::collections::HashMap;
+
+let catalog = default_catalog();
+let scheme = catalog.by_key("argument_from_expert_opinion").unwrap();
+let bindings: HashMap<String, String> = [
+    ("expert".into(), "alice".into()),
+    ("domain".into(), "military".into()),
+    ("claim".into(), "fortify_east".into()),
+].into_iter().collect();
+
+let instance = scheme.instantiate(&bindings).unwrap();
+let aif = instance_to_aif(&instance);
+let json = aif.to_json().unwrap();
+
+// ... consume with external tooling or round-trip back:
+let registry = CatalogRegistry::with_default();
+let recovered = aif_to_instance(&aif, &registry).unwrap();
+assert_eq!(recovered.premises, instance.premises);
+```
+
+**Not preserved through AIF.** Critical-question counter-literals and
+`Challenge` tags are not part of the AIF format; on import they are
+re-derived by number-matching against the catalog's scheme definition.
+
 ## License
 
 Dual-licensed under MIT or Apache-2.0 at your option.

@@ -1,0 +1,15 @@
+[package]
+name = "argumentation-weighted-bipolar"
+version = "0.1.0"
+edition = "2021"
+description = "Weighted bipolar argumentation: Amgoud et al. 2008 composition of argumentation-weighted and argumentation-bipolar with Dunne 2011 budget"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["argumentation", "weighted", "bipolar", "amgoud", "dunne"]
+categories = ["algorithms"]
+
+[dependencies]
+argumentation = { path = "../.." }
+argumentation-bipolar = { path = "../argumentation-bipolar" }
+argumentation-weighted = { path = "../argumentation-weighted" }
+thiserror = "2.0"

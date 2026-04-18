@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.0] - 2026-04-17
+
+### Changed (breaking)
+- `reduce_at_budget` removed. The v0.1.0 cumulative-threshold
+  approximation is no longer part of the API. Callers should use the
+  acceptance predicates in `semantics` (they internally enumerate all
+  β-inconsistent residuals) or the new `dunne_residuals` function for
+  direct access to the residual set.
+- Acceptance predicates (`is_credulously_accepted_at`,
+  `is_skeptically_accepted_at`, `preferred_at_budget` etc.) now return
+  exact Dunne 2011 results. Per-argument trajectories are monotone in
+  β under credulous acceptance.
+- `acceptance_trajectory`, `flip_points`, `min_budget_for_credulous`
+  retain their signatures but operate under the new semantics.
+- **Acceptance-predicate return values can differ from v0.1.0** on the
+  same framework + budget. The canonical example is the chained
+  defense `a→b(0.4), b→c(0.6)` at `β=0.4`: v0.1.0 returned `false` for
+  `c`, v0.2.0 returns `true`. Consumers with pinned acceptance-test
+  snapshots from v0.1.0 need to regenerate them.
+
+### Added
+- `dunne_residuals(framework, budget)` — enumerate all β-inconsistent
+  residual Dung frameworks.
+- `ATTACK_ENUMERATION_LIMIT = 24` constant + `Error::TooManyAttacks`
+  guard for the exponential enumeration.
+
+### Removed
+- `reduce_at_budget` (see above).
+- The v0.1.0 "documented non-monotonicity" witness fixture
+  `uc3_chained_defense_produces_non_monotone_trajectory`. Replaced by
+  `uc3_chained_defense_is_monotone_under_dunne_semantics`.
+
 ## [0.1.0] - 2026-04-13
 
 ### Added

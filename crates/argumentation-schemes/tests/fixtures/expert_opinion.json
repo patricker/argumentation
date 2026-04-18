@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    {"nodeID": "1", "text": "expert_alice", "type": "I"},
+    {"nodeID": "2", "text": "domain_military", "type": "I"},
+    {"nodeID": "3", "text": "claim_fortify_east", "type": "I"},
+    {"nodeID": "4", "text": "fortify_east", "type": "I"},
+    {"nodeID": "5", "text": "Argument from Expert Opinion", "type": "RA", "scheme": "Argument from Expert Opinion"}
+  ],
+  "edges": [
+    {"edgeID": "0", "fromID": "1", "toID": "5"},
+    {"edgeID": "1", "fromID": "2", "toID": "5"},
+    {"edgeID": "2", "fromID": "3", "toID": "5"},
+    {"edgeID": "3", "fromID": "5", "toID": "4"}
+  ],
+  "locutions": [],
+  "participants": []
+}

@@ -26,16 +26,16 @@
 //! assert_eq!(min, Some(0.6));
 //! ```
 //!
-//! ## Semantics notes
+//! ## Semantics
 //!
-//! v0.1.0 implements the **cumulative-weight threshold** approximation
-//! of Dunne 2011's inconsistency-budget semantics: the cheapest
-//! attacks are tolerated first until the cumulative weight would
-//! exceed `β`. This is equivalent to the formal definition when
-//! smaller attacks are strictly more expendable than larger ones
-//! (which is the common case for relationship-modulated attack
-//! strength). The full exponential enumeration over subsets of attacks
-//! is a deferred v0.2.0 target.
+//! Implements the **inconsistency-budget** semantics of Dunne et al.
+//! 2011 via exact subset enumeration: a budget `β` permits any subset
+//! `S` of attacks whose cumulative weight is at most `β` to be
+//! tolerated, and an argument is accepted at β iff it is accepted in
+//! the Dung sense on *some* (credulous) or *all* (skeptical) of the
+//! resulting residual frameworks. Enumeration is O(2^m) in the number
+//! of attacks `m`; see [`reduce::ATTACK_ENUMERATION_LIMIT`] for the
+//! guard.
 //!
 //! ## References
 //!
@@ -62,7 +62,7 @@ pub mod weight_source;
 
 pub use error::Error;
 pub use framework::WeightedFramework;
-pub use reduce::reduce_at_budget;
+pub use reduce::{ATTACK_ENUMERATION_LIMIT, dunne_residuals};
 pub use semantics::{
     complete_at_budget, grounded_at_budget, is_credulously_accepted_at, is_skeptically_accepted_at,
     preferred_at_budget, stable_at_budget,
