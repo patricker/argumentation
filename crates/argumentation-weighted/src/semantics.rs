@@ -1,20 +1,21 @@
-//! Weighted extensions at a fixed budget.
+//! β-acceptance under Dunne 2011 inconsistency-budget semantics.
 //!
-//! These are thin wrappers that reduce the framework at the given
-//! budget and delegate to the core crate's Dung semantics on the
-//! residual framework. Every Dung semantics variant
-//! (grounded/complete/preferred/stable/semi-stable/ideal) gets a
-//! corresponding `*_at_budget` entry point here.
+//! All entry points iterate every β-inconsistent residual produced by
+//! [`crate::reduce::dunne_residuals`] and aggregate across them:
+//! **credulous** queries take an OR (exists-residual), **skeptical**
+//! queries take an AND (forall-residual), and extension queries return
+//! the set-union of all per-residual extensions.
 
 use crate::error::Error;
 use crate::framework::WeightedFramework;
-use crate::reduce::reduce_at_budget;
+use crate::reduce::dunne_residuals;
 use crate::types::Budget;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-/// The grounded extension at the given budget.
+/// Union of grounded extensions across all β-inconsistent residuals.
+/// Matches Dunne 2011's credulous reading for the grounded semantics.
 pub fn grounded_at_budget<A>(
     framework: &WeightedFramework<A>,
     budget: Budget,
@@ -22,11 +23,14 @@ pub fn grounded_at_budget<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let af = reduce_at_budget(framework, budget)?;
-    Ok(af.grounded_extension())
+    let mut union: HashSet<A> = HashSet::new();
+    for af in dunne_residuals(framework, budget)? {
+        union.extend(af.grounded_extension());
+    }
+    Ok(union)
 }
 
-/// All complete extensions at the given budget.
+/// Union of complete extensions across all β-inconsistent residuals.
 pub fn complete_at_budget<A>(
     framework: &WeightedFramework<A>,
     budget: Budget,
@@ -34,11 +38,18 @@ pub fn complete_at_budget<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let af = reduce_at_budget(framework, budget)?;
-    Ok(af.complete_extensions()?)
+    let mut out: Vec<HashSet<A>> = Vec::new();
+    for af in dunne_residuals(framework, budget)? {
+        for ext in af.complete_extensions()? {
+            if !out.contains(&ext) {
+                out.push(ext);
+            }
+        }
+    }
+    Ok(out)
 }
 
-/// All preferred extensions at the given budget.
+/// Union of preferred extensions across all β-inconsistent residuals.
 pub fn preferred_at_budget<A>(
     framework: &WeightedFramework<A>,
     budget: Budget,
@@ -46,11 +57,19 @@ pub fn preferred_at_budget<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let af = reduce_at_budget(framework, budget)?;
-    Ok(af.preferred_extensions()?)
+    let mut out: Vec<HashSet<A>> = Vec::new();
+    for af in dunne_residuals(framework, budget)? {
+        for ext in af.preferred_extensions()? {
+            if !out.contains(&ext) {
+                out.push(ext);
+            }
+        }
+    }
+    Ok(out)
 }
 
-/// All stable extensions at the given budget.
+/// Union of stable extensions across all β-inconsistent residuals. A
+/// residual may have no stable extensions; those contribute nothing.
 pub fn stable_at_budget<A>(
     framework: &WeightedFramework<A>,
     budget: Budget,
@@ -58,13 +77,19 @@ pub fn stable_at_budget<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let af = reduce_at_budget(framework, budget)?;
-    Ok(af.stable_extensions()?)
+    let mut out: Vec<HashSet<A>> = Vec::new();
+    for af in dunne_residuals(framework, budget)? {
+        for ext in af.stable_extensions()? {
+            if !out.contains(&ext) {
+                out.push(ext);
+            }
+        }
+    }
+    Ok(out)
 }
 
-/// Whether `target` is **credulously accepted** at the given budget:
-/// does it appear in at least one preferred extension of the residual
-/// framework?
+/// β-credulous acceptance: `target` appears in some preferred extension
+/// of some β-inconsistent residual.
 pub fn is_credulously_accepted_at<A>(
     framework: &WeightedFramework<A>,
     target: &A,
@@ -73,13 +98,17 @@ pub fn is_credulously_accepted_at<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let prefs = preferred_at_budget(framework, budget)?;
-    Ok(prefs.iter().any(|ext| ext.contains(target)))
+    for af in dunne_residuals(framework, budget)? {
+        if af.preferred_extensions()?.iter().any(|e| e.contains(target)) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
-/// Whether `target` is **skeptically accepted** at the given budget:
-/// does it appear in every preferred extension of the residual
-/// framework?
+/// β-skeptical acceptance: `target` appears in every preferred
+/// extension of every β-inconsistent residual. Returns `false` for
+/// frameworks with no preferred extensions in any residual.
 pub fn is_skeptically_accepted_at<A>(
     framework: &WeightedFramework<A>,
     target: &A,
@@ -88,11 +117,22 @@ pub fn is_skeptically_accepted_at<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let prefs = preferred_at_budget(framework, budget)?;
-    if prefs.is_empty() {
+    let residuals = dunne_residuals(framework, budget)?;
+    if residuals.is_empty() {
         return Ok(false);
     }
-    Ok(prefs.iter().all(|ext| ext.contains(target)))
+    let mut saw_any_extension = false;
+    for af in residuals {
+        let exts = af.preferred_extensions()?;
+        if exts.is_empty() {
+            return Ok(false);
+        }
+        saw_any_extension = true;
+        if !exts.iter().all(|e| e.contains(target)) {
+            return Ok(false);
+        }
+    }
+    Ok(saw_any_extension)
 }
 
 #[cfg(test)]
@@ -104,8 +144,6 @@ mod tests {
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
         wf.add_weighted_attack("b", "c", 0.5).unwrap();
-        // Dung: grounded = {a, c} because a is unattacked and c is
-        // attacked by b, which is attacked by a.
         let grounded = grounded_at_budget(&wf, Budget::zero()).unwrap();
         assert!(grounded.contains(&"a"));
         assert!(grounded.contains(&"c"));
@@ -113,25 +151,64 @@ mod tests {
     }
 
     #[test]
-    fn large_budget_grounds_every_argument() {
+    fn grounded_union_widens_as_budget_grows() {
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
-        let grounded = grounded_at_budget(&wf, Budget::new(10.0).unwrap()).unwrap();
-        // All attacks tolerated; both a and b unattacked.
-        assert!(grounded.contains(&"a"));
-        assert!(grounded.contains(&"b"));
+        let g0 = grounded_at_budget(&wf, Budget::zero()).unwrap();
+        let g1 = grounded_at_budget(&wf, Budget::new(1.0).unwrap()).unwrap();
+        // At β=0: grounded = {a}. At β=1 (both residuals {} and {a→b}):
+        // union = {a, b}.
+        assert!(g0.is_subset(&g1));
+        assert!(g1.contains(&"b"));
     }
 
     #[test]
-    fn credulous_and_skeptical_agree_on_grounded_case() {
+    fn credulous_acceptance_monotone_in_budget() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.3).unwrap();
+        wf.add_weighted_attack("b", "c", 0.7).unwrap();
+        // c should flip from true (at β=0, defended by a) to stay true
+        // (at β=0.3, still defended), and b should flip from false to
+        // true at β=0.3 (a→b can be tolerated).
+        let at0 = is_credulously_accepted_at(&wf, &"b", Budget::zero()).unwrap();
+        let at03 = is_credulously_accepted_at(&wf, &"b", Budget::new(0.3).unwrap()).unwrap();
+        assert!(!at0);
+        assert!(at03);
+    }
+
+    #[test]
+    fn skeptical_true_for_grounded_singleton() {
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
-        // Unique preferred extension = {a}. Both credulous and skeptical
-        // acceptance of `a` should be true.
-        let budget = Budget::zero();
-        assert!(is_credulously_accepted_at(&wf, &"a", budget).unwrap());
-        assert!(is_skeptically_accepted_at(&wf, &"a", budget).unwrap());
-        assert!(!is_credulously_accepted_at(&wf, &"b", budget).unwrap());
-        assert!(!is_skeptically_accepted_at(&wf, &"b", budget).unwrap());
+        // β = 0: unique preferred extension = {a}. Skeptical: a ∈ every
+        // extension of every residual (only residual is {a→b}).
+        assert!(is_skeptically_accepted_at(&wf, &"a", Budget::zero()).unwrap());
+        assert!(!is_skeptically_accepted_at(&wf, &"b", Budget::zero()).unwrap());
+    }
+
+    #[test]
+    fn preferred_at_budget_is_union_across_residuals() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.2).unwrap();
+        wf.add_weighted_attack("b", "c", 0.4).unwrap();
+        let at0 = preferred_at_budget(&wf, Budget::zero()).unwrap();
+        assert!(at0.iter().any(|e| e.contains("a") && e.contains("c")));
+
+        let at02 = preferred_at_budget(&wf, Budget::new(0.2).unwrap()).unwrap();
+        let union: std::collections::HashSet<&str> =
+            at02.iter().flat_map(|e| e.iter().copied()).collect();
+        assert!(union.contains("b"), "b should be reachable at β=0.2");
+        assert!(union.contains("c"));
+    }
+
+    #[test]
+    fn preferred_at_budget_large_enough_accepts_all() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.5).unwrap();
+        let at_big = preferred_at_budget(&wf, Budget::new(10.0).unwrap()).unwrap();
+        let union: std::collections::HashSet<&str> =
+            at_big.iter().flat_map(|e| e.iter().copied()).collect();
+        assert!(union.contains("a"));
+        assert!(union.contains("b"));
     }
 }
