@@ -4,6 +4,7 @@ members = [
     "crates/argumentation-schemes",
     "crates/argumentation-bipolar",
     "crates/argumentation-weighted",
+    "crates/argumentation-weighted-bipolar",
     "crates/encounter-argumentation",
 ]
 resolver = "2"
