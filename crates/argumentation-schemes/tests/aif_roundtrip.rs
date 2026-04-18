@@ -26,6 +26,16 @@ fn expert_opinion_round_trip_preserves_shape() {
     assert_eq!(recovered.scheme_name, original.scheme_name);
     assert_eq!(recovered.premises, original.premises);
     assert_eq!(recovered.conclusion, original.conclusion);
+
+    // AIF does NOT preserve counter_literal values (not part of the
+    // format). Import writes a synthetic placeholder. Pin this
+    // non-preservation so a future change that implements proper
+    // preservation can't silently regress the docstring contract.
+    assert_ne!(
+        recovered.critical_questions[0].counter_literal,
+        original.critical_questions[0].counter_literal,
+        "counter_literal is expected to NOT round-trip through AIF",
+    );
 }
 
 #[test]

@@ -169,30 +169,47 @@ pub fn instance_to_aif(instance: &crate::instance::SchemeInstance) -> AifDocumen
 
 /// Import an AIF document back into a [`crate::instance::SchemeInstance`].
 ///
-/// Looks up the scheme by name in the provided [`crate::registry::CatalogRegistry`],
-/// re-parses each I-node as a [`argumentation::aspic::Literal`] (leading `¬` marks
-/// negation), and re-derives critical-question counter-literals via
-/// the catalog's `build_counter_literal` logic since AIF does not
-/// preserve them directly.
+/// Looks up the scheme by name in the provided [`crate::registry::CatalogRegistry`]
+/// and re-parses each I-node's text as a [`argumentation::aspic::Literal`] (leading `¬`
+/// marks negation). Premises come from I-nodes pointing at the
+/// RA-node; the conclusion comes from the I-node the RA-node points
+/// at; CA-nodes pointing at the RA contribute critical-question text.
+///
+/// **Not preserved through AIF.** Critical-question [`crate::types::Challenge`] tags
+/// and `counter_literal` values are not part of the AIF format. On
+/// import, `Challenge` is re-derived by positional matching against
+/// the catalog's scheme definition (with [`crate::types::Challenge::RuleValidity`]
+/// as fallback if the catalog has fewer CQs than the document); the
+/// `counter_literal` is a synthetic placeholder `¬aif_cq_<idx>`.
+/// Callers who need a faithful `counter_literal` should drop the
+/// import route and re-instantiate the scheme from the catalog with
+/// the original bindings.
 ///
 /// Expects exactly one RA-node per document. Documents with multiple
-/// RA-nodes represent conjoined arguments and are not supported in
-/// v0.2.0.
+/// RA-nodes represent conjoined arguments and are rejected with
+/// [`Error::AifParse`] — this is not a silent truncation.
 pub fn aif_to_instance(
     doc: &AifDocument,
     registry: &crate::registry::CatalogRegistry,
 ) -> Result<crate::instance::SchemeInstance, Error> {
-    let ra = doc
-        .nodes
-        .iter()
-        .find(|n| n.node_type == "RA")
-        .ok_or_else(|| Error::AifParse("no RA-node in document".into()))?;
+    let ra_nodes: Vec<&AifNode> =
+        doc.nodes.iter().filter(|n| n.node_type == "RA").collect();
+    let ra = match ra_nodes.as_slice() {
+        [] => return Err(Error::AifParse("no RA-node in document".into())),
+        [single] => *single,
+        _ => {
+            return Err(Error::AifParse(format!(
+                "multiple RA-nodes not supported in v0.2.0 (found {})",
+                ra_nodes.len()
+            )));
+        }
+    };
     let scheme_name = ra
         .scheme
         .as_ref()
         .ok_or_else(|| Error::AifParse("RA-node missing 'scheme' field".into()))?;
 
-    let _scheme = registry
+    let scheme = registry
         .by_name(scheme_name)
         .ok_or_else(|| Error::AifUnknownScheme(scheme_name.clone()))?;
 
@@ -244,9 +261,6 @@ pub fn aif_to_instance(
     // Re-derive CriticalQuestionInstance list. AIF doesn't carry the
     // Challenge or counter_literal; re-instantiate by number-matching
     // from the catalog scheme, using the text as a tiebreaker.
-    let scheme = registry
-        .by_name(scheme_name)
-        .expect("registry lookup succeeded earlier");
     let critical_questions: Vec<crate::instance::CriticalQuestionInstance> = cq_texts
         .iter()
         .enumerate()
@@ -416,6 +430,16 @@ mod tests {
         {
             assert_eq!(r.text, o.text);
         }
+
+        // AIF does NOT preserve counter_literal values (not part of the
+        // format). Import writes a synthetic placeholder. Pin this
+        // non-preservation so a future change that implements proper
+        // preservation can't silently regress the docstring contract.
+        assert_ne!(
+            recovered.critical_questions[0].counter_literal,
+            original.critical_questions[0].counter_literal,
+            "counter_literal is expected to NOT round-trip through AIF",
+        );
     }
 
     #[test]
@@ -466,5 +490,41 @@ mod tests {
         let registry = CatalogRegistry::with_default();
         let err = aif_to_instance(&doc, &registry).unwrap_err();
         assert!(matches!(err, Error::AifParse(_)));
+    }
+
+    #[test]
+    fn aif_to_instance_errors_on_multiple_ra_nodes() {
+        use crate::registry::CatalogRegistry;
+        let doc = AifDocument {
+            nodes: vec![
+                AifNode {
+                    node_id: "1".into(),
+                    text: "claim".into(),
+                    node_type: "I".into(),
+                    scheme: None,
+                },
+                AifNode {
+                    node_id: "2".into(),
+                    text: "Argument from Expert Opinion".into(),
+                    node_type: "RA".into(),
+                    scheme: Some("Argument from Expert Opinion".into()),
+                },
+                AifNode {
+                    node_id: "3".into(),
+                    text: "Argument from Expert Opinion".into(),
+                    node_type: "RA".into(),
+                    scheme: Some("Argument from Expert Opinion".into()),
+                },
+            ],
+            edges: vec![],
+            locutions: vec![],
+            participants: vec![],
+        };
+        let registry = CatalogRegistry::with_default();
+        let err = aif_to_instance(&doc, &registry).unwrap_err();
+        match err {
+            Error::AifParse(msg) => assert!(msg.contains("multiple RA-nodes")),
+            other => panic!("expected AifParse, got {:?}", other),
+        }
     }
 }
