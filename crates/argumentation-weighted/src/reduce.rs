@@ -81,9 +81,9 @@ where
         // Compute the cumulative weight of the dropped set S (bits
         // where the corresponding attack is tolerated, i.e., removed).
         let mut cost = 0.0_f64;
-        for i in 0..m {
+        for (i, atk) in attacks.iter().enumerate() {
             if bits & (1u64 << i) != 0 {
-                cost += attacks[i].weight.value();
+                cost += atk.weight.value();
             }
         }
         if cost > budget.value() {
@@ -95,9 +95,9 @@ where
         for a in &args {
             af.add_argument(a.clone());
         }
-        for i in 0..m {
+        for (i, atk) in attacks.iter().enumerate() {
             if bits & (1u64 << i) == 0 {
-                af.add_attack(&attacks[i].attacker, &attacks[i].target)?;
+                af.add_attack(&atk.attacker, &atk.target)?;
             }
         }
         residuals.push(af);

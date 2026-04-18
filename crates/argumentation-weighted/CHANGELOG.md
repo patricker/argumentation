@@ -14,6 +14,11 @@
   β under credulous acceptance.
 - `acceptance_trajectory`, `flip_points`, `min_budget_for_credulous`
   retain their signatures but operate under the new semantics.
+- **Acceptance-predicate return values can differ from v0.1.0** on the
+  same framework + budget. The canonical example is the chained
+  defense `a→b(0.4), b→c(0.6)` at `β=0.4`: v0.1.0 returned `false` for
+  `c`, v0.2.0 returns `true`. Consumers with pinned acceptance-test
+  snapshots from v0.1.0 need to regenerate them.
 
 ### Added
 - `dunne_residuals(framework, budget)` — enumerate all β-inconsistent

@@ -50,8 +50,13 @@ fn uc2_dawn_min_budget_is_exactly_one() {
 fn uc2_dawn_trajectory_has_single_flip() {
     let wf = dawn_framework();
     let trajectory = acceptance_trajectory(&wf, &"dawn", AcceptanceMode::Credulous).unwrap();
-    // Breakpoints: [0.0, 0.2, 0.5, 1.0]. Acceptance should be
-    // [false, false, false, true].
+    // Under Dunne 2011, breakpoints are all distinct subset sums of
+    // {0.2, 0.3, 0.5}: [0.0, 0.2, 0.3, 0.5, 0.7, 0.8, 1.0] — 7 values.
+    // Dawn requires ALL three attacks tolerated (β ≥ 1.0), so acceptance
+    // flips exactly once: false at β < 1.0, true at β = 1.0.
     let accepted: Vec<bool> = trajectory.iter().map(|p| p.accepted).collect();
-    assert_eq!(accepted, vec![false, false, false, true]);
+    assert_eq!(accepted, vec![false, false, false, false, false, false, true]);
+    // Verify exactly one flip in the trajectory (monotone, single transition).
+    let flips = trajectory.windows(2).filter(|w| w[0].accepted != w[1].accepted).count();
+    assert_eq!(flips, 1, "expected exactly one flip in trajectory");
 }

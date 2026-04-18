@@ -1,8 +1,9 @@
 //! Threshold-sweep API: compute acceptance trajectories for one
 //! argument across the full budget range.
 //!
-//! Acceptance can only change at cumulative-sum breakpoints, so a full
-//! sweep requires at most `|attacks| + 1` evaluations.
+//! Under Dunne 2011 semantics, acceptance can change at any distinct
+//! subset-sum of attack weights (up to `2^|attacks|` values). The
+//! sweep probes all such breakpoints to guarantee no flip is missed.
 //!
 //! ## Monotonicity
 //!
@@ -37,17 +38,41 @@ pub enum AcceptanceMode {
     Skeptical,
 }
 
-/// Compute the sorted list of budget breakpoints at which the
-/// cumulative-weight threshold transitions — exactly `|attacks|+1`
-/// values: `[0, w_1, w_1+w_2, ..., sum]`.
+/// Compute the sorted list of budget breakpoints at which acceptance
+/// can change under Dunne 2011 semantics.
+///
+/// Under exact subset-enumeration semantics, acceptance can flip at
+/// any distinct subset sum of attack weights — up to `2^|attacks|`
+/// distinct values. The v0.1.0 approximation only probed cumulative
+/// sums (`m+1` values); that under-samples β and causes
+/// `min_budget_for_credulous` / `flip_points` to miss flip points that
+/// fall at non-cumulative subset sums.
+///
+/// If the framework has more than 24 attacks the enumeration is
+/// impractical; in that case we fall back to `[0.0]` so callers get a
+/// `TooManyAttacks` error from the underlying semantics call rather
+/// than a silent wrong answer.
 fn breakpoints<A: Clone + Eq + Hash>(framework: &WeightedFramework<A>) -> Vec<f64> {
-    let mut out = vec![0.0];
-    let mut cumulative = 0.0;
-    for w in framework.sorted_weights() {
-        cumulative += w;
-        out.push(cumulative);
+    let weights: Vec<f64> = framework.attacks().map(|a| a.weight.value()).collect();
+    let m = weights.len();
+    if m > 24 {
+        // Fallback: only probe β=0; caller will get TooManyAttacks from semantics fn.
+        return vec![0.0];
     }
-    out
+    let total = 1u64 << m;
+    let mut sums: Vec<f64> = Vec::with_capacity(total as usize);
+    for bits in 0..total {
+        let mut s = 0.0_f64;
+        for (i, w) in weights.iter().enumerate() {
+            if bits & (1u64 << i) != 0 {
+                s += *w;
+            }
+        }
+        sums.push(s);
+    }
+    sums.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    sums.dedup_by(|a, b| (*a - *b).abs() < 1e-12);
+    sums
 }
 
 /// Compute the full acceptance trajectory for `target` across the
@@ -130,18 +155,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn breakpoints_at_zero_and_cumulative_sums() {
+    fn breakpoints_enumerates_all_distinct_subset_sums() {
+        // Three attacks with weights 0.2, 0.3, 0.5.
+        // All subset sums: {0.0, 0.2, 0.3, 0.5, 0.5, 0.7, 0.8, 1.0}
+        // After dedup (0.5 appears twice): [0.0, 0.2, 0.3, 0.5, 0.7, 0.8, 1.0] — 7 values.
+        // Old cumulative approach only produced [0.0, 0.2, 0.5, 1.0] — 4 values.
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a", "b", 0.2).unwrap();
         wf.add_weighted_attack("c", "d", 0.3).unwrap();
         wf.add_weighted_attack("e", "f", 0.5).unwrap();
         let bps = breakpoints(&wf);
-        // Expected: [0.0, 0.2, 0.5, 1.0]
-        assert_eq!(bps.len(), 4);
+        // Must include the non-cumulative subset sums 0.3, 0.7, 0.8 that
+        // the v0.1.0 cumulative approach missed.
+        assert_eq!(bps.len(), 7);
         assert!((bps[0] - 0.0).abs() < 1e-9);
         assert!((bps[1] - 0.2).abs() < 1e-9);
-        assert!((bps[2] - 0.5).abs() < 1e-9);
-        assert!((bps[3] - 1.0).abs() < 1e-9);
+        assert!((bps[2] - 0.3).abs() < 1e-9);
+        assert!((bps[3] - 0.5).abs() < 1e-9);
+        assert!((bps[4] - 0.7).abs() < 1e-9);
+        assert!((bps[5] - 0.8).abs() < 1e-9);
+        assert!((bps[6] - 1.0).abs() < 1e-9);
     }
 
     #[test]
@@ -188,13 +221,10 @@ mod tests {
 
     #[test]
     fn trajectory_for_independent_attackers_is_monotone() {
-        // For a framework with no chained defense (target attacked by
-        // two independent arguments), acceptance IS monotone in β. This
-        // is NOT a general property — see the
-        // `uc3_chained_defense_produces_non_monotone_trajectory`
-        // integration test for a counter-example fixture. We keep this
-        // test to pin the common-case behavior; don't generalize its
-        // assertion.
+        // Sanity check: with two independent attackers, acceptance is
+        // monotone in β. Under Dunne 2011 this holds in general (see
+        // uc3_chained_defense_is_monotone_under_dunne_semantics for the
+        // chained case); this test pins the simplest instance.
         let mut wf = WeightedFramework::new();
         wf.add_weighted_attack("a1", "target", 0.3).unwrap();
         wf.add_weighted_attack("a2", "target", 0.5).unwrap();
@@ -236,5 +266,23 @@ mod tests {
                 assert!(p.accepted, "credulous trajectory regressed at β={}", p.budget);
             }
         }
+    }
+
+    #[test]
+    fn min_budget_captures_non_cumulative_subset_sum_flip() {
+        // Witness: a↔x mutual attack + y attacking a.
+        // Dropping only y→a (β=0.5) leaves a↔x and makes a credulous.
+        // Under v0.1.0 cumulative-threshold: breakpoints only probe
+        // cumulative sums {0, 0.3, 0.6, 1.1}, so the flip at 0.5 is
+        // missed and min_budget returns 0.6.
+        // Under v0.2.0 Dunne: breakpoints enumerate all subset sums
+        // including 0.5, so min_budget correctly returns 0.5.
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "x", 0.3).unwrap();
+        wf.add_weighted_attack("x", "a", 0.3).unwrap();
+        wf.add_weighted_attack("y", "a", 0.5).unwrap();
+        let min = min_budget_for_credulous(&wf, &"a").unwrap();
+        assert!(min.is_some(), "a should be credulously accepted at some finite budget");
+        assert!((min.unwrap() - 0.5).abs() < 1e-9, "flip should occur at β=0.5, got {:?}", min);
     }
 }
