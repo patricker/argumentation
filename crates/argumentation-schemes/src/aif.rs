@@ -167,6 +167,121 @@ pub fn instance_to_aif(instance: &crate::instance::SchemeInstance) -> AifDocumen
     }
 }
 
+/// Import an AIF document back into a [`crate::instance::SchemeInstance`].
+///
+/// Looks up the scheme by name in the provided [`crate::registry::CatalogRegistry`],
+/// re-parses each I-node as a [`argumentation::aspic::Literal`] (leading `¬` marks
+/// negation), and re-derives critical-question counter-literals via
+/// the catalog's `build_counter_literal` logic since AIF does not
+/// preserve them directly.
+///
+/// Expects exactly one RA-node per document. Documents with multiple
+/// RA-nodes represent conjoined arguments and are not supported in
+/// v0.2.0.
+pub fn aif_to_instance(
+    doc: &AifDocument,
+    registry: &crate::registry::CatalogRegistry,
+) -> Result<crate::instance::SchemeInstance, Error> {
+    let ra = doc
+        .nodes
+        .iter()
+        .find(|n| n.node_type == "RA")
+        .ok_or_else(|| Error::AifParse("no RA-node in document".into()))?;
+    let scheme_name = ra
+        .scheme
+        .as_ref()
+        .ok_or_else(|| Error::AifParse("RA-node missing 'scheme' field".into()))?;
+
+    let _scheme = registry
+        .by_name(scheme_name)
+        .ok_or_else(|| Error::AifUnknownScheme(scheme_name.clone()))?;
+
+    // Find edges: premise I-nodes point at RA; RA points at conclusion
+    // I-node; CA-nodes point at RA.
+    let in_edges: Vec<&AifEdge> = doc.edges.iter().filter(|e| e.to_id == ra.node_id).collect();
+    let out_edges: Vec<&AifEdge> =
+        doc.edges.iter().filter(|e| e.from_id == ra.node_id).collect();
+
+    let conclusion_id = out_edges
+        .first()
+        .ok_or_else(|| Error::AifParse("RA has no outgoing edge to conclusion".into()))?
+        .to_id
+        .clone();
+
+    let conclusion_node = doc
+        .nodes
+        .iter()
+        .find(|n| n.node_id == conclusion_id && n.node_type == "I")
+        .ok_or_else(|| {
+            Error::AifParse(format!("conclusion node '{}' not found", conclusion_id))
+        })?;
+    let conclusion = literal_from_text(&conclusion_node.text);
+
+    // Partition incoming edges: premises (I-nodes) vs. critical
+    // questions (CA-nodes).
+    let mut premises = Vec::new();
+    let mut cq_texts = Vec::new();
+    for edge in in_edges {
+        let src = doc
+            .nodes
+            .iter()
+            .find(|n| n.node_id == edge.from_id)
+            .ok_or_else(|| {
+                Error::AifParse(format!("edge references unknown node '{}'", edge.from_id))
+            })?;
+        match src.node_type.as_str() {
+            "I" => premises.push(literal_from_text(&src.text)),
+            "CA" => cq_texts.push(src.text.clone()),
+            other => {
+                return Err(Error::AifParse(format!(
+                    "unexpected incoming node type '{}' on RA-node",
+                    other
+                )));
+            }
+        }
+    }
+
+    // Re-derive CriticalQuestionInstance list. AIF doesn't carry the
+    // Challenge or counter_literal; re-instantiate by number-matching
+    // from the catalog scheme, using the text as a tiebreaker.
+    let scheme = registry
+        .by_name(scheme_name)
+        .expect("registry lookup succeeded earlier");
+    let critical_questions: Vec<crate::instance::CriticalQuestionInstance> = cq_texts
+        .iter()
+        .enumerate()
+        .map(|(idx, text)| crate::instance::CriticalQuestionInstance {
+            number: (idx + 1) as u32,
+            text: text.clone(),
+            challenge: scheme
+                .critical_questions
+                .get(idx)
+                .map(|cq| cq.challenge.clone())
+                .unwrap_or(crate::types::Challenge::RuleValidity),
+            counter_literal: argumentation::aspic::Literal::neg(format!("aif_cq_{}", idx)),
+        })
+        .collect();
+
+    Ok(crate::instance::SchemeInstance {
+        scheme_name: scheme_name.clone(),
+        premises,
+        conclusion,
+        critical_questions,
+    })
+}
+
+/// Parse a [`argumentation::aspic::Literal`] from its `to_string()` rendering.
+///
+/// Our `Literal::neg` renders with a leading `¬` (U+00AC); `Literal::atom`
+/// renders plain.
+fn literal_from_text(text: &str) -> argumentation::aspic::Literal {
+    if let Some(stripped) = text.strip_prefix('¬') {
+        argumentation::aspic::Literal::neg(stripped.trim())
+    } else {
+        argumentation::aspic::Literal::atom(text.trim())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,5 +379,92 @@ mod tests {
         let aif = instance_to_aif(&instance);
         let ra = aif.nodes.iter().find(|n| n.node_type == "RA").unwrap();
         assert_eq!(ra.scheme.as_deref(), Some(instance.scheme_name.as_str()));
+    }
+
+    #[test]
+    fn aif_round_trip_preserves_instance_shape() {
+        use crate::catalog::default_catalog;
+        use crate::registry::CatalogRegistry;
+        use std::collections::HashMap;
+
+        let catalog = default_catalog();
+        let scheme = catalog.by_key("argument_from_expert_opinion").unwrap();
+        let bindings: HashMap<String, String> = [
+            ("expert".to_string(), "alice".to_string()),
+            ("domain".to_string(), "military".to_string()),
+            ("claim".to_string(), "fortify_east".to_string()),
+        ]
+        .into_iter()
+        .collect();
+        let original = scheme.instantiate(&bindings).unwrap();
+
+        let aif = instance_to_aif(&original);
+        let registry = CatalogRegistry::with_default();
+        let recovered = aif_to_instance(&aif, &registry).unwrap();
+
+        assert_eq!(recovered.scheme_name, original.scheme_name);
+        assert_eq!(recovered.premises, original.premises);
+        assert_eq!(recovered.conclusion, original.conclusion);
+        assert_eq!(
+            recovered.critical_questions.len(),
+            original.critical_questions.len()
+        );
+        for (r, o) in recovered
+            .critical_questions
+            .iter()
+            .zip(original.critical_questions.iter())
+        {
+            assert_eq!(r.text, o.text);
+        }
+    }
+
+    #[test]
+    fn aif_to_instance_errors_on_unknown_scheme() {
+        use crate::registry::CatalogRegistry;
+        let doc = AifDocument {
+            nodes: vec![
+                AifNode {
+                    node_id: "1".into(),
+                    text: "some claim".into(),
+                    node_type: "I".into(),
+                    scheme: None,
+                },
+                AifNode {
+                    node_id: "2".into(),
+                    text: "Argument from Flapdoodle".into(),
+                    node_type: "RA".into(),
+                    scheme: Some("Argument from Flapdoodle".into()),
+                },
+            ],
+            edges: vec![AifEdge {
+                edge_id: "1".into(),
+                from_id: "2".into(),
+                to_id: "1".into(),
+            }],
+            locutions: vec![],
+            participants: vec![],
+        };
+        let registry = CatalogRegistry::with_default();
+        let err = aif_to_instance(&doc, &registry).unwrap_err();
+        assert!(matches!(err, Error::AifUnknownScheme(_)));
+    }
+
+    #[test]
+    fn aif_to_instance_errors_on_missing_ra() {
+        use crate::registry::CatalogRegistry;
+        let doc = AifDocument {
+            nodes: vec![AifNode {
+                node_id: "1".into(),
+                text: "claim".into(),
+                node_type: "I".into(),
+                scheme: None,
+            }],
+            edges: vec![],
+            locutions: vec![],
+            participants: vec![],
+        };
+        let registry = CatalogRegistry::with_default();
+        let err = aif_to_instance(&doc, &registry).unwrap_err();
+        assert!(matches!(err, Error::AifParse(_)));
     }
 }
