@@ -42,6 +42,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod aif;
 pub mod aspic;
 pub mod catalog;
 pub mod critical;
