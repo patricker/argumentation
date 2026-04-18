@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0] - 2026-04-17
+
+### Added
+- `aif` module providing AIF (AIFdb JSON) round-trip:
+  - `AifDocument`, `AifNode`, `AifEdge` serde data model.
+  - `instance_to_aif(&SchemeInstance) -> AifDocument` export.
+  - `aif_to_instance(&AifDocument, &CatalogRegistry) -> SchemeInstance`
+    import.
+  - `AifDocument::from_json` / `to_json` string helpers.
+- `CatalogRegistry::with_default()` and `CatalogRegistry::by_name()`
+  convenience methods for AIF import use.
+- `Error::AifParse` and `Error::AifUnknownScheme` variants.
+
+### Dependencies
+- `serde` 1.0 (with derive) — new.
+- `serde_json` 1.0 — new.
+
+### Notes
+- Critical-question `Challenge` tags and `counter_literal` values are
+  not part of the AIF format and are re-derived on import from the
+  catalog's scheme definition.
+
 ## [0.1.0] - 2026-04-12
 
 ### Added
