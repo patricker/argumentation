@@ -2,14 +2,14 @@
 //! argument across the full budget range.
 //!
 //! Acceptance can only change at cumulative-sum breakpoints, so a full
-//! sweep requires at most `|attacks| + 1` evaluations. Note that
-//! acceptance under the v0.1.0 cumulative-weight threshold
-//! approximation is NOT globally monotone in β — a chained-defense
-//! framework like `a→b→c` can flip `c` from accepted (at β=0, via `a`'s
-//! defense) to rejected (once `a→b` is tolerated) to accepted again
-//! (once `b→c` is also tolerated). The full Dunne 2011 existential
-//! subset semantics would be monotone but is a deferred v0.2.0 target.
-//! See `tests/uc3_scene_intensity.rs` for the witness fixture.
+//! sweep requires at most `|attacks| + 1` evaluations.
+//!
+//! ## Monotonicity
+//!
+//! Under Dunne 2011 semantics, credulous acceptance is monotone
+//! non-decreasing in β: if `x` is credulously accepted at some `β`, it
+//! is credulously accepted at every larger budget. [`min_budget_for_credulous`]
+//! is therefore well-defined and returns the infimum.
 
 use crate::error::Error;
 use crate::framework::WeightedFramework;
@@ -108,22 +108,9 @@ where
 /// accepted, or `None` if it is never accepted across the framework's
 /// full budget range.
 ///
-/// **⚠ Non-monotonicity caveat.** Under v0.1.0's cumulative-weight
-/// threshold approximation, acceptance is NOT globally monotone in
-/// the budget. This function returns the *first* breakpoint at which
-/// the target becomes credulously accepted, but acceptance may flip
-/// back to rejected at larger budgets when tolerating a cheap attack
-/// disrupts a chained defense. Do NOT read the returned value as a
-/// stable threshold "acceptance holds for all larger budgets."
-///
-/// For the full picture, call [`acceptance_trajectory`] and inspect
-/// every breakpoint. See `tests/uc3_scene_intensity.rs` for the
-/// witness fixture where a chain `a→b→c` flips `c` from accepted to
-/// rejected back to accepted as the budget grows.
-///
-/// The full Dunne 2011 existential-subset semantics would be
-/// monotone and would make this function a stable threshold query.
-/// That variant is a deferred v0.2.0 target.
+/// Under Dunne 2011 semantics, credulous acceptance is monotone in β,
+/// so the returned value is a stable threshold: once the target is
+/// accepted, it remains accepted for all larger budgets.
 pub fn min_budget_for_credulous<A>(
     framework: &WeightedFramework<A>,
     target: &A,
@@ -221,6 +208,32 @@ mod tests {
                     !seen_accepted,
                     "acceptance should be monotone non-decreasing in budget"
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn credulous_trajectory_is_monotone_in_budget() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.4).unwrap();
+        wf.add_weighted_attack("b", "c", 0.6).unwrap();
+        let budgets: Vec<Budget> = [0.0, 0.4, 1.0, 1.5]
+            .into_iter()
+            .map(|b| Budget::new(b).unwrap())
+            .collect();
+        let mut traj = Vec::new();
+        for budget in &budgets {
+            let accepted = is_credulously_accepted_at(&wf, &"c", *budget).unwrap();
+            traj.push(SweepPoint {
+                budget: budget.value(),
+                accepted,
+            });
+        }
+        // Monotone: once true at some β, remains true for all β' > β.
+        let first_true = traj.iter().position(|p| p.accepted);
+        if let Some(i) = first_true {
+            for p in &traj[i..] {
+                assert!(p.accepted, "credulous trajectory regressed at β={}", p.budget);
             }
         }
     }
