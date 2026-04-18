@@ -25,6 +25,18 @@ use argumentation::ArgumentationFramework;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+/// Upper bound on attack count for exact Dunne 2011 subset enumeration.
+///
+/// At `n = 24` the power-set iteration visits `~16.8M` subsets; in
+/// release builds with the straight-line Dung enumerator on the
+/// residual this stays under ~2 seconds on commodity hardware. Larger
+/// frameworks hit [`crate::Error::TooManyAttacks`].
+///
+/// The core crate enforces a separate limit on arguments for its own
+/// subset enumerators (22, see `argumentation::semantics::subset_enum`);
+/// the two limits are independent because they count different things.
+pub const ATTACK_ENUMERATION_LIMIT: usize = 24;
+
 /// Reduce a weighted framework at budget `β` to an unweighted Dung
 /// framework by tolerating the cheapest attacks first until the
 /// cumulative tolerated weight would exceed `β`.
@@ -148,5 +160,10 @@ mod tests {
         wf.add_weighted_attack("a", "b", 0.5).unwrap();
         let af = reduce_at_budget(&wf, Budget::zero()).unwrap();
         assert_eq!(af.len(), 3);
+    }
+
+    #[test]
+    fn attack_enumeration_limit_is_24() {
+        assert_eq!(super::ATTACK_ENUMERATION_LIMIT, 24);
     }
 }
