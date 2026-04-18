@@ -45,4 +45,4 @@ pub use error::Error;
 pub use framework::WeightedBipolarFramework;
 pub use reduce::{wbipolar_residuals, EDGE_ENUMERATION_LIMIT};
 pub use semantics::{is_credulously_accepted_at, is_skeptically_accepted_at};
-pub use types::WeightedSupport;
+pub use types::{AttackWeight, Budget, WeightedAttack, WeightedSupport};

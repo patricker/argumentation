@@ -28,8 +28,7 @@ semantics instead of plain Dung.
 ## Example
 
 ```rust
-use argumentation_weighted_bipolar::{WeightedBipolarFramework, is_credulously_accepted_at};
-use argumentation_weighted::types::Budget;
+use argumentation_weighted_bipolar::{WeightedBipolarFramework, is_credulously_accepted_at, Budget};
 
 let mut wbf = WeightedBipolarFramework::new();
 wbf.add_weighted_support("alice", "bob", 0.4).unwrap();
