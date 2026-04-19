@@ -43,7 +43,7 @@ pub use arg_id::ArgumentId;
 pub use critical_moves::{cq_to_beat, critical_question_beats};
 pub use error::Error;
 pub use knowledge::{ArgumentKnowledge, ArgumentPosition, StaticKnowledge};
-pub use relationship::{RelationshipDims, RelationshipSnapshot};
+pub use relationship::{RelationshipDims, RelationshipSnapshot, RelationshipWeightSource};
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
 pub use state::EncounterArgumentationState;

@@ -75,6 +75,55 @@ impl RelationshipSnapshot {
     }
 }
 
+use crate::arg_id::ArgumentId;
+use argumentation_weighted::WeightSource;
+
+/// A `WeightSource` that derives attack weights from
+/// `RelationshipSnapshot` dimensions.
+///
+/// The mapping (Phase A stub, tune in Phase C):
+/// - baseline weight = 0.5
+/// - trust reduces weight (a trusted speaker's attacks land softly)
+/// - fear raises weight (a feared speaker's attacks bind harder)
+/// - respect reduces weight slightly
+/// - attraction reduces weight slightly
+/// - friendship reduces weight
+///
+/// Weights are clamped to `[0.0, 1.0]`. Arguments whose attacker/target
+/// `ArgumentId` strings are not registered in the snapshot receive the
+/// neutral baseline.
+///
+/// **Phase C replaces this** with a societas-backed scorer whose
+/// coefficients are calibrated against real gameplay telemetry.
+pub struct RelationshipWeightSource {
+    snapshot: RelationshipSnapshot,
+}
+
+impl RelationshipWeightSource {
+    /// Create a new source wrapping the given snapshot.
+    #[must_use]
+    pub fn new(snapshot: RelationshipSnapshot) -> Self {
+        Self { snapshot }
+    }
+}
+
+impl WeightSource<ArgumentId> for RelationshipWeightSource {
+    fn weight_for(&self, attacker: &ArgumentId, target: &ArgumentId) -> Option<f64> {
+        // Phase-A convention: ArgumentId strings are taken as-is as
+        // character names. Phase-C replaces this with proper
+        // character-ids extracted from scheme instances.
+        let dims = self.snapshot.get(attacker.as_str(), target.as_str());
+        let baseline = 0.5;
+        let adjustment = -0.15 * dims.trust
+            + 0.25 * dims.fear
+            - 0.05 * dims.respect
+            - 0.05 * dims.attraction
+            - 0.10 * dims.friendship;
+        let w = (baseline + adjustment).clamp(0.0, 1.0);
+        Some(w)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,5 +156,55 @@ mod tests {
         assert_eq!(s.get("alice", "bob"), d);
         // Directional: (bob, alice) was never set.
         assert_eq!(s.get("bob", "alice"), RelationshipDims::neutral());
+    }
+
+    #[test]
+    fn neutral_relationship_yields_midrange_weight() {
+        let snapshot = RelationshipSnapshot::new();
+        let source = RelationshipWeightSource::new(snapshot);
+        let w = source.weight_for(&ArgumentId::new("a"), &ArgumentId::new("b"));
+        assert_eq!(w, Some(0.5));
+    }
+
+    #[test]
+    fn high_trust_lowers_attack_weight() {
+        let mut snapshot = RelationshipSnapshot::new();
+        snapshot.set(
+            "alice",
+            "bob",
+            RelationshipDims {
+                trust: 1.0,
+                fear: 0.0,
+                respect: 0.0,
+                attraction: 0.0,
+                friendship: 0.0,
+            },
+        );
+        let source = RelationshipWeightSource::new(snapshot);
+        let w = source
+            .weight_for(&ArgumentId::new("alice"), &ArgumentId::new("bob"))
+            .unwrap();
+        assert!(w < 0.5, "high trust should reduce attack weight below neutral, got {}", w);
+    }
+
+    #[test]
+    fn high_fear_raises_attack_weight() {
+        let mut snapshot = RelationshipSnapshot::new();
+        snapshot.set(
+            "alice",
+            "bob",
+            RelationshipDims {
+                trust: 0.0,
+                fear: 1.0,
+                respect: 0.0,
+                attraction: 0.0,
+                friendship: 0.0,
+            },
+        );
+        let source = RelationshipWeightSource::new(snapshot);
+        let w = source
+            .weight_for(&ArgumentId::new("alice"), &ArgumentId::new("bob"))
+            .unwrap();
+        assert!(w > 0.5, "high fear should raise attack weight above neutral, got {}", w);
     }
 }
