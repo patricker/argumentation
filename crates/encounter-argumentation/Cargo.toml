@@ -11,6 +11,9 @@ categories = ["algorithms", "game-development"]
 encounter = { path = "../../../encounter" }
 argumentation = { path = "../.." }
 argumentation-schemes = { path = "../argumentation-schemes" }
+argumentation-bipolar = { path = "../argumentation-bipolar" }
+argumentation-weighted = { path = "../argumentation-weighted" }
+argumentation-weighted-bipolar = { path = "../argumentation-weighted-bipolar" }
 thiserror = "2.0"
 
 [dev-dependencies]
