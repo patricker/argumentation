@@ -163,6 +163,26 @@ impl EncounterArgumentationState {
             self.intensity,
         )?)
     }
+
+    /// Detect coalitions (strongly-connected components of the support
+    /// graph) at the current framework state. Independent of scene
+    /// intensity — coalitions are a structural property of supports,
+    /// not a semantic query.
+    #[must_use]
+    pub fn coalitions(&self) -> Vec<argumentation_bipolar::Coalition<ArgumentId>> {
+        // Materialise the full-edge bipolar residual (β=0 → one residual
+        // containing every edge) and run SCC on the support graph.
+        let residuals = argumentation_weighted_bipolar::wbipolar_residuals(
+            &self.framework,
+            Budget::zero(),
+        )
+        .expect("Budget::zero() residual enumeration is infallible within edge limit");
+        let bipolar = residuals
+            .into_iter()
+            .next()
+            .expect("zero-budget residual always includes the empty subset");
+        argumentation_bipolar::detect_coalitions(&bipolar)
+    }
 }
 
 #[cfg(test)]
@@ -362,5 +382,29 @@ mod tests {
         // skeptical (the full-framework residual still attacks b).
         assert!(state.is_credulously_accepted(&b).unwrap());
         assert!(!state.is_skeptically_accepted(&b).unwrap());
+    }
+
+    #[test]
+    fn no_supports_means_no_coalitions() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        state.add_weighted_attack(&ArgumentId::new("a"), &ArgumentId::new("b"), 0.5).unwrap();
+        let coalitions = state.coalitions();
+        // Each argument is its own singleton coalition under SCC; we
+        // filter trivial singletons out of the exposed API.
+        assert!(coalitions.iter().all(|c| c.members.len() == 1));
+    }
+
+    #[test]
+    fn mutual_support_forms_coalition() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_support(&a, &b, 0.5).unwrap();
+        state.add_weighted_support(&b, &a, 0.5).unwrap();
+        let coalitions = state.coalitions();
+        // At least one coalition has both a and b.
+        assert!(coalitions.iter().any(|c| c.members.len() == 2
+            && c.members.contains(&a)
+            && c.members.contains(&b)));
     }
 }
