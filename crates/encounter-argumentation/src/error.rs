@@ -21,4 +21,42 @@ pub enum Error {
     /// An error propagated from the argumentation-schemes layer.
     #[error("scheme error: {0}")]
     Scheme(#[from] argumentation_schemes::Error),
+
+    /// An error propagated from the argumentation-bipolar layer.
+    #[error("bipolar error: {0}")]
+    Bipolar(#[from] argumentation_bipolar::Error),
+
+    /// An error propagated from the argumentation-weighted layer.
+    #[error("weighted error: {0}")]
+    Weighted(#[from] argumentation_weighted::Error),
+
+    /// An error propagated from the argumentation-weighted-bipolar layer.
+    #[error("weighted-bipolar error: {0}")]
+    WeightedBipolar(#[from] argumentation_weighted_bipolar::Error),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_from_bipolar_propagates() {
+        let bipolar_err = argumentation_bipolar::Error::IllegalSelfSupport("x".into());
+        let err: Error = bipolar_err.into();
+        assert!(matches!(err, Error::Bipolar(_)));
+    }
+
+    #[test]
+    fn error_from_weighted_propagates() {
+        let weighted_err = argumentation_weighted::Error::InvalidWeight { weight: -1.0 };
+        let err: Error = weighted_err.into();
+        assert!(matches!(err, Error::Weighted(_)));
+    }
+
+    #[test]
+    fn error_from_wbipolar_propagates() {
+        let wbp_err = argumentation_weighted_bipolar::Error::IllegalSelfSupport;
+        let err: Error = wbp_err.into();
+        assert!(matches!(err, Error::WeightedBipolar(_)));
+    }
 }
