@@ -6,6 +6,7 @@
 //! instances and raw edges, then query acceptance and coalitions.
 
 use crate::arg_id::ArgumentId;
+use crate::error::Error;
 use argumentation_schemes::instance::SchemeInstance;
 use argumentation_schemes::registry::CatalogRegistry;
 use argumentation_weighted::types::Budget;
@@ -103,6 +104,34 @@ impl EncounterArgumentationState {
             .get(id)
             .map(Vec::as_slice)
             .unwrap_or(&[])
+    }
+
+    /// Add a weighted attack edge. Both endpoints are implicitly added
+    /// to the framework if not already present. Returns
+    /// `Error::WeightedBipolar` for invalid weights.
+    pub fn add_weighted_attack(
+        &mut self,
+        attacker: &ArgumentId,
+        target: &ArgumentId,
+        weight: f64,
+    ) -> Result<(), Error> {
+        self.framework
+            .add_weighted_attack(attacker.clone(), target.clone(), weight)?;
+        Ok(())
+    }
+
+    /// Add a weighted support edge. Both endpoints are implicitly
+    /// added. Returns `Error::WeightedBipolar` for invalid weights or
+    /// self-support.
+    pub fn add_weighted_support(
+        &mut self,
+        supporter: &ArgumentId,
+        supported: &ArgumentId,
+        weight: f64,
+    ) -> Result<(), Error> {
+        self.framework
+            .add_weighted_support(supporter.clone(), supported.clone(), weight)?;
+        Ok(())
     }
 }
 
@@ -206,5 +235,40 @@ mod tests {
             &["alice".to_string(), "bob".to_string()]
         );
         assert_eq!(state.instances_for(&id1).len(), 2);
+    }
+
+    #[test]
+    fn add_weighted_attack_propagates_to_framework() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_attack(&a, &b, 0.5).unwrap();
+        assert_eq!(state.edge_count(), 1);
+    }
+
+    #[test]
+    fn add_weighted_support_propagates_to_framework() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_support(&a, &b, 0.5).unwrap();
+        assert_eq!(state.edge_count(), 1);
+    }
+
+    #[test]
+    fn add_weighted_support_rejects_self_support() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let err = state.add_weighted_support(&a, &a, 0.5).unwrap_err();
+        assert!(matches!(err, Error::WeightedBipolar(_)));
+    }
+
+    #[test]
+    fn add_weighted_attack_rejects_invalid_weight() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        let err = state.add_weighted_attack(&a, &b, -0.1).unwrap_err();
+        assert!(matches!(err, Error::WeightedBipolar(_)));
     }
 }
