@@ -27,6 +27,7 @@
 //! ```
 
 pub mod acceptance;
+pub mod arg_id;
 pub mod critical_moves;
 /// Error types for encounter-argumentation operations.
 pub mod error;
@@ -36,6 +37,7 @@ pub mod scoring;
 pub mod value_argument;
 
 pub use acceptance::ArgumentAcceptanceEval;
+pub use arg_id::ArgumentId;
 pub use critical_moves::{cq_to_beat, critical_question_beats};
 pub use error::Error;
 pub use knowledge::{ArgumentKnowledge, ArgumentPosition, StaticKnowledge};
