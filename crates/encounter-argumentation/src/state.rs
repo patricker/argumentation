@@ -141,6 +141,28 @@ impl EncounterArgumentationState {
         self.intensity = intensity;
         self
     }
+
+    /// Whether the argument is credulously accepted under the current
+    /// scene intensity (at least one preferred extension of at least
+    /// one β-inconsistent residual contains it).
+    pub fn is_credulously_accepted(&self, arg: &ArgumentId) -> Result<bool, Error> {
+        Ok(argumentation_weighted_bipolar::is_credulously_accepted_at(
+            &self.framework,
+            arg,
+            self.intensity,
+        )?)
+    }
+
+    /// Whether the argument is skeptically accepted under the current
+    /// scene intensity (every preferred extension of every
+    /// β-inconsistent residual contains it).
+    pub fn is_skeptically_accepted(&self, arg: &ArgumentId) -> Result<bool, Error> {
+        Ok(argumentation_weighted_bipolar::is_skeptically_accepted_at(
+            &self.framework,
+            arg,
+            self.intensity,
+        )?)
+    }
 }
 
 #[cfg(test)]
@@ -296,5 +318,49 @@ mod tests {
             .unwrap();
         assert_eq!(state.intensity().value(), 0.25);
         assert_eq!(state.edge_count(), 1);
+    }
+
+    #[test]
+    fn unattacked_argument_is_credulously_accepted() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        state.add_weighted_attack(&a, &ArgumentId::new("unused"), 0.0).unwrap();
+        // `a` is unattacked: it appears only as attacker.
+        assert!(state.is_credulously_accepted(&a).unwrap());
+    }
+
+    #[test]
+    fn attacked_argument_is_not_credulously_accepted_at_zero_intensity() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_attack(&a, &b, 0.5).unwrap();
+        // `b` is attacked by `a` (unattacked); at β=0 the attack binds.
+        assert!(!state.is_credulously_accepted(&b).unwrap());
+    }
+
+    #[test]
+    fn raising_intensity_flips_acceptance_when_budget_covers_attack() {
+        let mut state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.5).unwrap());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_attack(&a, &b, 0.4).unwrap();
+        // At β=0.5 >= 0.4, the residual dropping a→b exists, so b is
+        // credulously accepted in that residual.
+        assert!(state.is_credulously_accepted(&b).unwrap());
+    }
+
+    #[test]
+    fn skeptical_is_stricter_than_credulous() {
+        let mut state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.5).unwrap());
+        let a = ArgumentId::new("a");
+        let b = ArgumentId::new("b");
+        state.add_weighted_attack(&a, &b, 0.4).unwrap();
+        // At β=0.5, b is credulous (residual drops the attack) but NOT
+        // skeptical (the full-framework residual still attacks b).
+        assert!(state.is_credulously_accepted(&b).unwrap());
+        assert!(!state.is_skeptically_accepted(&b).unwrap());
     }
 }
