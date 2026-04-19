@@ -7,7 +7,7 @@
 //! engine, using Walton argumentation schemes evaluated via ASPIC+ and
 //! Dung extension semantics.
 //!
-//! # Quick example
+//! # Quick example — pairwise resolver (v0.1.x; still supported)
 //!
 //! ```
 //! use argumentation_schemes::catalog::default_catalog;
@@ -24,6 +24,36 @@
 //!
 //! let outcome = resolve_argument(&[instance], &[], &registry);
 //! assert!(matches!(outcome, ArgumentOutcome::ProposerWins { .. }));
+//! ```
+//!
+//! # Quick example — state API (v0.2.0)
+//!
+//! The new `EncounterArgumentationState` unifies scheme reasoning,
+//! bipolar graph structure, weighted attack strengths, and a tunable
+//! scene-intensity budget:
+//!
+//! ```
+//! use argumentation_schemes::catalog::default_catalog;
+//! use argumentation_weighted::types::Budget;
+//! use encounter_argumentation::{ArgumentId, EncounterArgumentationState};
+//!
+//! let registry = default_catalog();
+//! let expert = registry.by_key("argument_from_expert_opinion").unwrap();
+//! let instance = expert.instantiate(&[
+//!     ("expert".into(), "alice".into()),
+//!     ("domain".into(), "military".into()),
+//!     ("claim".into(), "fortify_east".into()),
+//! ].into_iter().collect()).unwrap();
+//!
+//! let mut state = EncounterArgumentationState::new(registry)
+//!     .at_intensity(Budget::new(0.4).unwrap());
+//! let alice_arg = state.add_scheme_instance("alice", instance);
+//! state
+//!     .add_weighted_attack(&ArgumentId::new("bob_counter"), &alice_arg, 0.3)
+//!     .unwrap();
+//!
+//! // At β=0.4 > 0.3 the attack is tolerated: alice's claim is accepted.
+//! assert!(state.is_credulously_accepted(&alice_arg).unwrap());
 //! ```
 
 pub mod acceptance;
