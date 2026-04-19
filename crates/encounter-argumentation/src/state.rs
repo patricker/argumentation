@@ -133,6 +133,14 @@ impl EncounterArgumentationState {
             .add_weighted_support(supporter.clone(), supported.clone(), weight)?;
         Ok(())
     }
+
+    /// Builder method setting the scene-intensity budget. Returns
+    /// `self` by value to allow chaining.
+    #[must_use]
+    pub fn at_intensity(mut self, intensity: Budget) -> Self {
+        self.intensity = intensity;
+        self
+    }
 }
 
 #[cfg(test)]
@@ -270,5 +278,23 @@ mod tests {
         let b = ArgumentId::new("b");
         let err = state.add_weighted_attack(&a, &b, -0.1).unwrap_err();
         assert!(matches!(err, Error::WeightedBipolar(_)));
+    }
+
+    #[test]
+    fn at_intensity_sets_budget() {
+        let state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.5).unwrap());
+        assert_eq!(state.intensity().value(), 0.5);
+    }
+
+    #[test]
+    fn at_intensity_is_chainable_with_add() {
+        let mut state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.25).unwrap());
+        state
+            .add_weighted_attack(&ArgumentId::new("a"), &ArgumentId::new("b"), 0.3)
+            .unwrap();
+        assert_eq!(state.intensity().value(), 0.25);
+        assert_eq!(state.edge_count(), 1);
     }
 }
