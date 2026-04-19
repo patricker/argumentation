@@ -23,10 +23,8 @@ pub struct EncounterArgumentationState {
     framework: WeightedBipolarFramework<ArgumentId>,
     /// Which actor asserted each argument. Multiple actors may share
     /// an `ArgumentId` (the same conclusion), so stored as a vec.
-    #[allow(dead_code)]
     actors_by_argument: HashMap<ArgumentId, Vec<String>>,
     /// Scheme instances backing each argument.
-    #[allow(dead_code)]
     instances_by_argument: HashMap<ArgumentId, Vec<SchemeInstance>>,
     /// Current scene intensity. Defaults to zero.
     intensity: Budget,
@@ -63,6 +61,49 @@ impl EncounterArgumentationState {
     pub fn edge_count(&self) -> usize {
         self.framework.edge_count()
     }
+
+    /// Add a scheme instance asserted by `actor`. The instance's
+    /// conclusion literal becomes an argument node in the framework
+    /// (if not already present). The actor and instance are recorded
+    /// against that node for later lookup via `actors_for` /
+    /// `instances_for`. Returns the argument's identifier.
+    pub fn add_scheme_instance(
+        &mut self,
+        actor: &str,
+        instance: SchemeInstance,
+    ) -> ArgumentId {
+        let id: ArgumentId = (&instance.conclusion).into();
+        self.framework.add_argument(id.clone());
+        self.actors_by_argument
+            .entry(id.clone())
+            .or_default()
+            .push(actor.to_string());
+        self.instances_by_argument
+            .entry(id.clone())
+            .or_default()
+            .push(instance);
+        id
+    }
+
+    /// Return the list of actors who have asserted the given argument.
+    /// Empty slice if the argument is not associated with any actor.
+    #[must_use]
+    pub fn actors_for(&self, id: &ArgumentId) -> &[String] {
+        self.actors_by_argument
+            .get(id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    /// Return the list of scheme instances backing the given argument.
+    /// Empty slice if the argument is not scheme-backed.
+    #[must_use]
+    pub fn instances_for(&self, id: &ArgumentId) -> &[SchemeInstance] {
+        self.instances_by_argument
+            .get(id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
 }
 
 #[cfg(test)]
@@ -81,5 +122,89 @@ mod tests {
     fn new_state_has_zero_intensity() {
         let state = EncounterArgumentationState::new(default_catalog());
         assert_eq!(state.intensity().value(), 0.0);
+    }
+
+    #[test]
+    fn add_scheme_instance_creates_argument_node() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let instance = scheme
+            .instantiate(
+                &[
+                    ("expert".to_string(), "alice".to_string()),
+                    ("domain".to_string(), "military".to_string()),
+                    ("claim".to_string(), "fortify_east".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance("alice", instance);
+
+        assert_eq!(id.as_str(), "fortify_east");
+        assert_eq!(state.argument_count(), 1);
+    }
+
+    #[test]
+    fn add_scheme_instance_associates_actor_and_instance() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let instance = scheme
+            .instantiate(
+                &[
+                    ("expert".to_string(), "alice".to_string()),
+                    ("domain".to_string(), "military".to_string()),
+                    ("claim".to_string(), "fortify_east".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap();
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance("alice", instance);
+        assert_eq!(state.actors_for(&id), &["alice".to_string()]);
+        assert_eq!(state.instances_for(&id).len(), 1);
+    }
+
+    #[test]
+    fn add_two_instances_with_same_conclusion_share_node() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+
+        let inst1 = scheme
+            .instantiate(
+                &[
+                    ("expert".to_string(), "alice".to_string()),
+                    ("domain".to_string(), "military".to_string()),
+                    ("claim".to_string(), "fortify_east".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap();
+        let inst2 = scheme
+            .instantiate(
+                &[
+                    ("expert".to_string(), "bob".to_string()),
+                    ("domain".to_string(), "logistics".to_string()),
+                    ("claim".to_string(), "fortify_east".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let id1 = state.add_scheme_instance("alice", inst1);
+        let id2 = state.add_scheme_instance("bob", inst2);
+        assert_eq!(id1, id2);
+        assert_eq!(state.argument_count(), 1);
+        assert_eq!(
+            state.actors_for(&id1),
+            &["alice".to_string(), "bob".to_string()]
+        );
+        assert_eq!(state.instances_for(&id1).len(), 2);
     }
 }
