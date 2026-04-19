@@ -391,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn no_supports_means_no_coalitions() {
+    fn no_supports_means_all_coalitions_are_singletons() {
         let mut state = EncounterArgumentationState::new(default_catalog());
         state.add_weighted_attack(&ArgumentId::new("a"), &ArgumentId::new("b"), 0.5).unwrap();
         let coalitions = state.coalitions().unwrap();

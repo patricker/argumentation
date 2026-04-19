@@ -108,10 +108,17 @@ impl RelationshipWeightSource {
 }
 
 impl WeightSource<ArgumentId> for RelationshipWeightSource {
+    /// **Phase A soundness warning.** This impl uses
+    /// `ArgumentId::as_str()` directly as the character name when
+    /// looking up relationship dimensions. `ArgumentId` is a literal
+    /// conclusion (e.g. `"fortify_east"`), *not* an actor, so
+    /// scheme-derived `ArgumentId`s will never match the character
+    /// names in the snapshot — every attack will fall back to the
+    /// neutral baseline (`Some(0.5)`). Use this `WeightSource` only
+    /// with synthetic character-named `ArgumentId`s (as the Phase A
+    /// integration tests do) until Phase C wires real character
+    /// resolution via societas.
     fn weight_for(&self, attacker: &ArgumentId, target: &ArgumentId) -> Option<f64> {
-        // Phase-A convention: ArgumentId strings are taken as-is as
-        // character names. Phase-C replaces this with proper
-        // character-ids extracted from scheme instances.
         let dims = self.snapshot.get(attacker.as_str(), target.as_str());
         let baseline = 0.5;
         let adjustment = -0.15 * dims.trust
