@@ -34,6 +34,7 @@ pub mod error;
 pub mod knowledge;
 pub mod resolver;
 pub mod scoring;
+pub mod state;
 pub mod value_argument;
 
 pub use acceptance::ArgumentAcceptanceEval;
@@ -43,6 +44,7 @@ pub use error::Error;
 pub use knowledge::{ArgumentKnowledge, ArgumentPosition, StaticKnowledge};
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
+pub use state::EncounterArgumentationState;
 pub use value_argument::scheme_value_argument;
 
 /// Numeric rank for a scheme strength (higher = stronger).
