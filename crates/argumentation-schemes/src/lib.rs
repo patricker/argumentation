@@ -53,6 +53,7 @@ pub mod scheme;
 pub mod types;
 
 pub use aif::{AifDocument, AifEdge, AifNode, aif_to_instance, instance_to_aif};
+pub use aspic::{add_counter_argument, add_scheme_to_system};
 pub use error::Error;
 pub use instance::{CriticalQuestionInstance, SchemeInstance, instantiate};
 pub use registry::CatalogRegistry;

@@ -72,7 +72,7 @@ impl AifDocument {
     }
 }
 
-/// Export a [`SchemeInstance`] to an AIF document.
+/// Export a [`crate::instance::SchemeInstance`] to an AIF document.
 ///
 /// Mapping:
 /// - each premise literal → one I-node
@@ -219,11 +219,16 @@ pub fn aif_to_instance(
     let out_edges: Vec<&AifEdge> =
         doc.edges.iter().filter(|e| e.from_id == ra.node_id).collect();
 
-    let conclusion_id = out_edges
-        .first()
-        .ok_or_else(|| Error::AifParse("RA has no outgoing edge to conclusion".into()))?
-        .to_id
-        .clone();
+    let conclusion_id = match out_edges.as_slice() {
+        [] => return Err(Error::AifParse("RA has no outgoing edge to conclusion".into())),
+        [single] => single.to_id.clone(),
+        multiple => {
+            return Err(Error::AifParse(format!(
+                "RA has multiple outgoing edges ({}); AIFdb convention expects exactly one to the conclusion I-node",
+                multiple.len()
+            )));
+        }
+    };
 
     let conclusion_node = doc
         .nodes
@@ -284,10 +289,17 @@ pub fn aif_to_instance(
     })
 }
 
-/// Parse a [`argumentation::aspic::Literal`] from its `to_string()` rendering.
+/// Parse a Literal from its `to_string()` rendering. Our `Literal::neg`
+/// renders with a leading `¬` (U+00AC); `Literal::atom` renders plain.
 ///
-/// Our `Literal::neg` renders with a leading `¬` (U+00AC); `Literal::atom`
-/// renders plain.
+/// **Known limitation.** An atom whose name begins with `¬` (U+00AC) —
+/// e.g. `Literal::atom("¬foo")` — will be misclassified on import as
+/// `Literal::neg("foo")`. This is a fundamental round-trip ambiguity
+/// of the textual representation; no scheme in the default Walton
+/// catalog produces such atoms, but consumers who construct literals
+/// with free-text names should avoid leading `¬`. Similarly, the
+/// function `.trim()`s the remainder, so whitespace around atom names
+/// is not preserved.
 fn literal_from_text(text: &str) -> argumentation::aspic::Literal {
     if let Some(stripped) = text.strip_prefix('¬') {
         argumentation::aspic::Literal::neg(stripped.trim())
@@ -413,7 +425,7 @@ mod tests {
         let original = scheme.instantiate(&bindings).unwrap();
 
         let aif = instance_to_aif(&original);
-        let registry = CatalogRegistry::with_default();
+        let registry = CatalogRegistry::with_walton_catalog();
         let recovered = aif_to_instance(&aif, &registry).unwrap();
 
         assert_eq!(recovered.scheme_name, original.scheme_name);
@@ -468,7 +480,7 @@ mod tests {
             locutions: vec![],
             participants: vec![],
         };
-        let registry = CatalogRegistry::with_default();
+        let registry = CatalogRegistry::with_walton_catalog();
         let err = aif_to_instance(&doc, &registry).unwrap_err();
         assert!(matches!(err, Error::AifUnknownScheme(_)));
     }
@@ -487,9 +499,55 @@ mod tests {
             locutions: vec![],
             participants: vec![],
         };
-        let registry = CatalogRegistry::with_default();
+        let registry = CatalogRegistry::with_walton_catalog();
         let err = aif_to_instance(&doc, &registry).unwrap_err();
         assert!(matches!(err, Error::AifParse(_)));
+    }
+
+    #[test]
+    fn aif_to_instance_errors_on_multiple_ra_out_edges() {
+        use crate::registry::CatalogRegistry;
+        let doc = AifDocument {
+            nodes: vec![
+                AifNode {
+                    node_id: "1".into(),
+                    text: "expert_alice".into(),
+                    node_type: "I".into(),
+                    scheme: None,
+                },
+                AifNode {
+                    node_id: "2".into(),
+                    text: "conclusion_a".into(),
+                    node_type: "I".into(),
+                    scheme: None,
+                },
+                AifNode {
+                    node_id: "3".into(),
+                    text: "conclusion_b".into(),
+                    node_type: "I".into(),
+                    scheme: None,
+                },
+                AifNode {
+                    node_id: "4".into(),
+                    text: "Argument from Expert Opinion".into(),
+                    node_type: "RA".into(),
+                    scheme: Some("Argument from Expert Opinion".into()),
+                },
+            ],
+            edges: vec![
+                AifEdge { edge_id: "0".into(), from_id: "1".into(), to_id: "4".into() },
+                AifEdge { edge_id: "1".into(), from_id: "4".into(), to_id: "2".into() },
+                AifEdge { edge_id: "2".into(), from_id: "4".into(), to_id: "3".into() },
+            ],
+            locutions: vec![],
+            participants: vec![],
+        };
+        let registry = CatalogRegistry::with_walton_catalog();
+        let err = aif_to_instance(&doc, &registry).unwrap_err();
+        match err {
+            Error::AifParse(msg) => assert!(msg.contains("multiple outgoing edges")),
+            other => panic!("expected AifParse, got {:?}", other),
+        }
     }
 
     #[test]
@@ -520,7 +578,7 @@ mod tests {
             locutions: vec![],
             participants: vec![],
         };
-        let registry = CatalogRegistry::with_default();
+        let registry = CatalogRegistry::with_walton_catalog();
         let err = aif_to_instance(&doc, &registry).unwrap_err();
         match err {
             Error::AifParse(msg) => assert!(msg.contains("multiple RA-nodes")),

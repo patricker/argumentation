@@ -57,7 +57,7 @@ let aif = instance_to_aif(&instance);
 let json = aif.to_json().unwrap();
 
 // ... consume with external tooling or round-trip back:
-let registry = CatalogRegistry::with_default();
+let registry = CatalogRegistry::with_walton_catalog();
 let recovered = aif_to_instance(&aif, &registry).unwrap();
 assert_eq!(recovered.premises, instance.premises);
 ```

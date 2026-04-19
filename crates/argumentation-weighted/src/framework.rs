@@ -63,22 +63,23 @@ impl<A: Clone + Eq + Hash> WeightedFramework<A> {
     /// Dunne 2011 does not prescribe one. Consumers who want a
     /// different aggregation (max, min, mean) should implement it
     /// externally.
-    pub fn collapse_duplicate_attacks(&mut self) {
+    ///
+    /// Returns [`Error::InvalidWeight`] if the summed weight overflows
+    /// to infinity (e.g., two edges each with weight `f64::MAX`).
+    pub fn collapse_duplicate_attacks(&mut self) -> Result<(), Error> {
         use std::collections::HashMap;
         let mut map: HashMap<(A, A), f64> = HashMap::new();
         for atk in self.attacks.drain(..) {
             let key = (atk.attacker, atk.target);
             *map.entry(key).or_insert(0.0) += atk.weight.value();
         }
-        self.attacks = map
-            .into_iter()
-            .map(|((attacker, target), weight)| WeightedAttack {
-                attacker,
-                target,
-                weight: AttackWeight::new(weight)
-                    .expect("sum of non-negative weights is non-negative"),
-            })
-            .collect();
+        let mut new_attacks = Vec::with_capacity(map.len());
+        for ((attacker, target), weight) in map {
+            let w = AttackWeight::new(weight)?;
+            new_attacks.push(WeightedAttack { attacker, target, weight: w });
+        }
+        self.attacks = new_attacks;
+        Ok(())
     }
 
     /// Iterate over all arguments.
@@ -175,7 +176,7 @@ mod tests {
         wf.add_weighted_attack("a", "b", 0.3).unwrap();
         wf.add_weighted_attack("a", "b", 0.4).unwrap();
         wf.add_weighted_attack("a", "c", 0.5).unwrap();
-        wf.collapse_duplicate_attacks();
+        wf.collapse_duplicate_attacks().unwrap();
         assert_eq!(wf.attack_count(), 2);
         // Find the (a, b) edge and verify its weight is 0.7.
         let ab = wf
@@ -183,6 +184,15 @@ mod tests {
             .find(|a| a.attacker == "a" && a.target == "b")
             .unwrap();
         assert!((ab.weight.value() - 0.7).abs() < 1e-9);
+    }
+
+    #[test]
+    fn collapse_duplicate_attacks_returns_err_on_weight_overflow() {
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", f64::MAX).unwrap();
+        wf.add_weighted_attack("a", "b", f64::MAX).unwrap();
+        let err = wf.collapse_duplicate_attacks().unwrap_err();
+        assert!(matches!(err, Error::InvalidWeight { .. }));
     }
 
     #[test]

@@ -5,7 +5,7 @@ Weighted argumentation frameworks with Dunne et al. 2011 inconsistency-budget se
 ## What's in the box
 
 - `WeightedFramework<A>` with validated non-negative f64 attack weights.
-- β-reduction: produce an unweighted Dung framework at a given budget.
+- Exact Dunne 2011 β-inconsistent subset enumeration via `dunne_residuals`.
 - Weighted extensions: grounded, complete, preferred, stable at any budget.
 - Threshold-sweep API: acceptance trajectory, flip points, min-budget inverse query.
 - `WeightSource` trait for pulling weights from external state.

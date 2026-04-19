@@ -20,7 +20,7 @@ fn expert_opinion_round_trip_preserves_shape() {
     let original = scheme.instantiate(&bindings).unwrap();
 
     let doc = instance_to_aif(&original);
-    let registry = CatalogRegistry::with_default();
+    let registry = CatalogRegistry::with_walton_catalog();
     let recovered = aif_to_instance(&doc, &registry).unwrap();
 
     assert_eq!(recovered.scheme_name, original.scheme_name);
@@ -43,7 +43,7 @@ fn minimal_expert_opinion_fixture_imports() {
     let json = std::fs::read_to_string("tests/fixtures/expert_opinion.json")
         .expect("fixture file must be readable from crate root");
     let doc = AifDocument::from_json(&json).unwrap();
-    let registry = CatalogRegistry::with_default();
+    let registry = CatalogRegistry::with_walton_catalog();
     let instance = aif_to_instance(&doc, &registry).unwrap();
     assert_eq!(instance.scheme_name, "Argument from Expert Opinion");
     assert_eq!(instance.premises.len(), 3);

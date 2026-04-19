@@ -8,6 +8,10 @@ pub use argumentation_weighted::types::{AttackWeight, Budget, WeightedAttack};
 
 /// A weighted directed support edge: `supporter` supports `supported`
 /// with the given weight under necessary-support semantics.
+// Eq is not derived because AttackWeight wraps f64, which violates
+// Eq's reflexivity requirement (NaN ≠ NaN). All constructed weights
+// are finite non-NaN by AttackWeight::new validation, but the trait
+// bound is unavailable.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WeightedSupport<A: Clone + Eq> {
     /// The supporter argument.

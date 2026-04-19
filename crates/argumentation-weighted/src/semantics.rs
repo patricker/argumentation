@@ -117,22 +117,21 @@ pub fn is_skeptically_accepted_at<A>(
 where
     A: Clone + Eq + Hash + Debug + Ord,
 {
-    let residuals = dunne_residuals(framework, budget)?;
-    if residuals.is_empty() {
-        return Ok(false);
-    }
-    let mut saw_any_extension = false;
-    for af in residuals {
+    // dunne_residuals always yields at least the empty-subset
+    // residual (cost 0 ≤ any non-negative β), so the list is never
+    // empty in practice. We still guard against `exts.is_empty()`
+    // per residual because a Dung framework with certain cyclic
+    // attacks can have no preferred extensions.
+    for af in dunne_residuals(framework, budget)? {
         let exts = af.preferred_extensions()?;
         if exts.is_empty() {
             return Ok(false);
         }
-        saw_any_extension = true;
         if !exts.iter().all(|e| e.contains(target)) {
             return Ok(false);
         }
     }
-    Ok(saw_any_extension)
+    Ok(true)
 }
 
 #[cfg(test)]

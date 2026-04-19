@@ -65,6 +65,10 @@ impl Budget {
 /// the given `weight`.
 ///
 /// Generic over argument type `A` to match the core crate's convention.
+// Eq is not derived because AttackWeight wraps f64, which violates
+// Eq's reflexivity requirement (NaN ≠ NaN). All constructed weights
+// are finite non-NaN by AttackWeight::new validation, but the trait
+// bound is unavailable.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WeightedAttack<A: Clone + Eq> {
     /// The attacking argument.

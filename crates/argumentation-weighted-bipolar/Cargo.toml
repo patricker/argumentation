@@ -1,7 +1,7 @@
 [package]
 name = "argumentation-weighted-bipolar"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Weighted bipolar argumentation: Amgoud et al. 2008 composition of argumentation-weighted and argumentation-bipolar with Dunne 2011 budget"
 license = "MIT OR Apache-2.0"
 readme = "README.md"

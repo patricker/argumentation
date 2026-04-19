@@ -13,5 +13,6 @@
 - `is_credulously_accepted_at` and `is_skeptically_accepted_at` —
   acceptance queries that aggregate bipolar-preferred extensions across
   residuals (OR for credulous, AND for skeptical).
+- `Error::IllegalSelfSupport` for self-supporting edges (A supports A).
 - `EDGE_ENUMERATION_LIMIT = 24` guard + `Error::TooManyEdges`.
 - Integration tests for UC1 (corroboration) and UC2 (betrayal).

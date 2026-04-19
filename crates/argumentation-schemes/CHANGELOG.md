@@ -9,7 +9,7 @@
   - `aif_to_instance(&AifDocument, &CatalogRegistry) -> SchemeInstance`
     import.
   - `AifDocument::from_json` / `to_json` string helpers.
-- `CatalogRegistry::with_default()` and `CatalogRegistry::by_name()`
+- `CatalogRegistry::with_walton_catalog()` and `CatalogRegistry::by_name()`
   convenience methods for AIF import use.
 - `Error::AifParse` and `Error::AifUnknownScheme` variants.
 
@@ -21,6 +21,10 @@
 - Critical-question `Challenge` tags and `counter_literal` values are
   not part of the AIF format and are re-derived on import from the
   catalog's scheme definition.
+- AIF textual representation of literals has a round-trip ambiguity:
+  atom names beginning with `¬` (U+00AC) are not supported and will be
+  misclassified as negated literals on import. Default-catalog schemes
+  do not produce such atoms.
 
 ## [0.1.0] - 2026-04-12
 

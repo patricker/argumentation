@@ -48,14 +48,14 @@ pub enum AcceptanceMode {
 /// `min_budget_for_credulous` / `flip_points` to miss flip points that
 /// fall at non-cumulative subset sums.
 ///
-/// If the framework has more than 24 attacks the enumeration is
-/// impractical; in that case we fall back to `[0.0]` so callers get a
-/// `TooManyAttacks` error from the underlying semantics call rather
-/// than a silent wrong answer.
+/// If the framework has more than [`crate::reduce::ATTACK_ENUMERATION_LIMIT`]
+/// attacks the enumeration is impractical; in that case we fall back to
+/// `[0.0]` so callers get a `TooManyAttacks` error from the underlying
+/// semantics call rather than a silent wrong answer.
 fn breakpoints<A: Clone + Eq + Hash>(framework: &WeightedFramework<A>) -> Vec<f64> {
     let weights: Vec<f64> = framework.attacks().map(|a| a.weight.value()).collect();
     let m = weights.len();
-    if m > 24 {
+    if m > crate::reduce::ATTACK_ENUMERATION_LIMIT {
         // Fallback: only probe β=0; caller will get TooManyAttacks from semantics fn.
         return vec![0.0];
     }
@@ -71,7 +71,20 @@ fn breakpoints<A: Clone + Eq + Hash>(framework: &WeightedFramework<A>) -> Vec<f6
         sums.push(s);
     }
     sums.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    sums.dedup_by(|a, b| (*a - *b).abs() < 1e-12);
+    sums.dedup_by(|a, b| {
+        let diff = (*a - *b).abs();
+        let scale = a.abs().max(b.abs());
+        // Use a relative epsilon when values are non-negligible; fall back
+        // to an absolute epsilon only for values that are both effectively
+        // zero. This prevents collapsing tiny-but-distinct sub-picosecond
+        // weights (e.g. 0.0 vs 1e-13) while still deduplicating
+        // floating-point rounding noise at larger magnitudes.
+        if scale > 1e-100 {
+            diff < 1e-9 * scale
+        } else {
+            diff < 1e-100
+        }
+    });
     sums
 }
 
@@ -266,6 +279,16 @@ mod tests {
                 assert!(p.accepted, "credulous trajectory regressed at β={}", p.budget);
             }
         }
+    }
+
+    #[test]
+    fn min_budget_for_credulous_handles_sub_picosecond_weights() {
+        // Witness: weights far below 1e-12 must not be silently
+        // merged into the 0.0 breakpoint.
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 1e-13).unwrap();
+        let min = min_budget_for_credulous(&wf, &"b").unwrap();
+        assert_eq!(min, Some(1e-13));
     }
 
     #[test]

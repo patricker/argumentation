@@ -67,9 +67,15 @@ impl CatalogRegistry {
         self.schemes.is_empty()
     }
 
-    /// Build a registry pre-loaded with the default Walton catalog.
+    /// Build a registry preloaded with the canonical Walton (2008)
+    /// argumentation-scheme catalog.
+    ///
+    /// Distinct from `Default::default()`, which returns an empty
+    /// registry. Reach for this when you want the full scheme library;
+    /// reach for `Default::default()` or `new()` when you want an
+    /// empty registry to populate yourself.
     #[must_use]
-    pub fn with_default() -> Self {
+    pub fn with_walton_catalog() -> Self {
         crate::catalog::default_catalog()
     }
 
