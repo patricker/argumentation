@@ -32,8 +32,12 @@ pub struct EncounterArgumentationState {
 }
 
 impl EncounterArgumentationState {
-    /// Create a new state with the given scheme registry, no weight
-    /// source, and zero scene intensity.
+    /// Create a new state with the given scheme registry and zero
+    /// scene intensity. Consumers that want relationship-modulated
+    /// attack weights should construct a `RelationshipWeightSource`
+    /// separately and pass its computed weights into
+    /// [`add_weighted_attack`](Self::add_weighted_attack); Phase A
+    /// does not auto-wire the source into the state.
     #[must_use]
     pub fn new(registry: CatalogRegistry) -> Self {
         Self {
@@ -168,20 +172,22 @@ impl EncounterArgumentationState {
     /// graph) at the current framework state. Independent of scene
     /// intensity — coalitions are a structural property of supports,
     /// not a semantic query.
-    #[must_use]
-    pub fn coalitions(&self) -> Vec<argumentation_bipolar::Coalition<ArgumentId>> {
+    ///
+    /// Returns `Err(Error::WeightedBipolar)` if the framework exceeds
+    /// the underlying edge-enumeration limit (currently 24 attacks +
+    /// supports combined).
+    pub fn coalitions(&self) -> Result<Vec<argumentation_bipolar::Coalition<ArgumentId>>, Error> {
         // Materialise the full-edge bipolar residual (β=0 → one residual
         // containing every edge) and run SCC on the support graph.
         let residuals = argumentation_weighted_bipolar::wbipolar_residuals(
             &self.framework,
             Budget::zero(),
-        )
-        .expect("Budget::zero() residual enumeration is infallible within edge limit");
+        )?;
         let bipolar = residuals
             .into_iter()
             .next()
             .expect("zero-budget residual always includes the empty subset");
-        argumentation_bipolar::detect_coalitions(&bipolar)
+        Ok(argumentation_bipolar::detect_coalitions(&bipolar))
     }
 }
 
@@ -388,9 +394,10 @@ mod tests {
     fn no_supports_means_no_coalitions() {
         let mut state = EncounterArgumentationState::new(default_catalog());
         state.add_weighted_attack(&ArgumentId::new("a"), &ArgumentId::new("b"), 0.5).unwrap();
-        let coalitions = state.coalitions();
-        // Each argument is its own singleton coalition under SCC; we
-        // filter trivial singletons out of the exposed API.
+        let coalitions = state.coalitions().unwrap();
+        // Each argument is its own singleton SCC; `detect_coalitions`
+        // returns singletons too, so the invariant is that every
+        // coalition has exactly one member when there are no supports.
         assert!(coalitions.iter().all(|c| c.members.len() == 1));
     }
 
@@ -401,7 +408,7 @@ mod tests {
         let b = ArgumentId::new("b");
         state.add_weighted_support(&a, &b, 0.5).unwrap();
         state.add_weighted_support(&b, &a, 0.5).unwrap();
-        let coalitions = state.coalitions();
+        let coalitions = state.coalitions().unwrap();
         // At least one coalition has both a and b.
         assert!(coalitions.iter().any(|c| c.members.len() == 2
             && c.members.contains(&a)

@@ -30,6 +30,12 @@ impl ArgumentId {
 }
 
 impl From<&Literal> for ArgumentId {
+    /// **Ambiguity warning.** `Literal::Atom("¬foo")` and
+    /// `Literal::Neg("foo")` both render to `"¬foo"` and will
+    /// therefore collide on the same `ArgumentId`. Phase A accepts
+    /// this because the default scheme catalog never mints atoms whose
+    /// names begin with `¬`; consumers minting literals dynamically
+    /// should avoid leading `¬` in atom names.
     fn from(lit: &Literal) -> Self {
         Self(lit.to_string())
     }

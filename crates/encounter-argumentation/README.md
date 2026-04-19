@@ -45,7 +45,7 @@ state.add_weighted_attack(&ArgumentId::new("bob_counter"), &alice_arg, 0.3).unwr
 
 assert!(state.is_credulously_accepted(&alice_arg).unwrap());
 
-for coalition in state.coalitions() {
+for coalition in state.coalitions().unwrap() {
     println!("coalition size {} members {:?}", coalition.members.len(), coalition.members);
 }
 ```
