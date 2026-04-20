@@ -165,4 +165,45 @@ mod tests {
             scored[0].score
         );
     }
+
+    #[test]
+    fn not_boosted_when_argument_is_attacked_above_budget() {
+        // Seed an argument, attach an attacker heavier than the current
+        // budget, and verify: (a) the argument is NOT credulously
+        // accepted, so (b) the scorer does not apply the boost.
+        use crate::arg_id::ArgumentId;
+
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut b = HashMap::new();
+        b.insert("expert".to_string(), "alice".to_string());
+        b.insert("domain".to_string(), "military".to_string());
+        b.insert("claim".to_string(), "fortify_east".to_string());
+        let instance = scheme.instantiate(&b).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let mut affordance_b = b.clone();
+        affordance_b.insert("self".to_string(), "alice".to_string());
+        let alice_id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &affordance_b,
+            instance,
+        );
+        // Attacker weight 0.8 > default β=0 → attack binds, argument not credulous.
+        state
+            .add_weighted_attack(&ArgumentId::new("attacker"), &alice_id, 0.8)
+            .unwrap();
+
+        let scorer = StateActionScorer::new(&state, FlatInner, 0.5);
+        let catalog_vec = catalog();
+        let scored = scorer.score_actions("alice", &catalog_vec, &["alice".to_string()]);
+        assert_eq!(scored.len(), 1);
+        // Attack binds at β=0 → argument NOT credulously accepted → score stays at 1.0.
+        assert!(
+            (scored[0].score - 1.0).abs() < 1e-9,
+            "expected 1.0 (no boost), got {}",
+            scored[0].score
+        );
+    }
 }
