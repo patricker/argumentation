@@ -22,6 +22,10 @@ pub enum Error {
     #[error("scheme error: {0}")]
     Scheme(#[from] argumentation_schemes::Error),
 
+    /// An error propagated directly from the core Dung/ASPIC+ layer.
+    #[error("core argumentation error: {0}")]
+    Dung(#[from] argumentation::Error),
+
     /// An error propagated from the argumentation-bipolar layer.
     #[error("bipolar error: {0}")]
     Bipolar(#[from] argumentation_bipolar::Error),
@@ -58,5 +62,13 @@ mod tests {
         let wbp_err = argumentation_weighted_bipolar::Error::IllegalSelfSupport;
         let err: Error = wbp_err.into();
         assert!(matches!(err, Error::WeightedBipolar(_)));
+    }
+
+    #[test]
+    fn error_from_dung_propagates() {
+        // TooLarge is the simplest constructible argumentation::Error variant.
+        let core_err = argumentation::Error::TooLarge { arguments: 100, limit: 22 };
+        let err: Error = core_err.into();
+        assert!(matches!(err, Error::Dung(_)));
     }
 }
