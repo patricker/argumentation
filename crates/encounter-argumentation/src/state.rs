@@ -12,7 +12,7 @@ use argumentation_schemes::instance::SchemeInstance;
 use argumentation_schemes::registry::CatalogRegistry;
 use argumentation_weighted::types::Budget;
 use argumentation_weighted_bipolar::WeightedBipolarFramework;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 /// Encounter-level argumentation state composing schemes (premises +
@@ -41,6 +41,11 @@ pub struct EncounterArgumentationState {
     /// bridge consumers that hold `&State` during encounter's
     /// `resolve` loops.
     intensity: Cell<Budget>,
+    /// Error latch: last error observed by a bridge impl whose trait
+    /// signature can't propagate `Result` (e.g.,
+    /// `AcceptanceEval::evaluate`). Consumers drain via
+    /// [`Self::take_latest_error`] after encounter's resolve returns.
+    latest_error: RefCell<Option<Error>>,
 }
 
 impl EncounterArgumentationState {
@@ -59,6 +64,7 @@ impl EncounterArgumentationState {
             instances_by_argument: HashMap::new(),
             argument_id_by_affordance: HashMap::new(),
             intensity: Cell::new(Budget::zero()),
+            latest_error: RefCell::new(None),
         }
     }
 
@@ -310,6 +316,28 @@ impl EncounterArgumentationState {
             .next()
             .expect("zero-budget residual always includes the empty subset");
         Ok(argumentation_bipolar::detect_coalitions(&bipolar))
+    }
+
+    /// Drain the last error observed by a bridge impl. Clears the
+    /// latch. Returns `None` if no error has been stashed since the
+    /// last drain.
+    #[must_use]
+    pub fn take_latest_error(&self) -> Option<Error> {
+        self.latest_error.borrow_mut().take()
+    }
+
+    /// Record an error into the latch. Called by bridge impls whose
+    /// trait signature can't propagate `Result`.
+    ///
+    /// **Overwrites any prior unread error** — callers must assume only
+    /// one error survives per drain window. Consumers should call
+    /// [`Self::take_latest_error`] after each `resolve` invocation if
+    /// they need per-resolve error fidelity.
+    // TODO(Task 7): remove #[allow(dead_code)] once StateAcceptanceEval
+    // consumes this method.
+    #[allow(dead_code)]
+    pub(crate) fn record_error(&self, err: Error) {
+        *self.latest_error.borrow_mut() = Some(err);
     }
 }
 
@@ -714,5 +742,18 @@ mod tests {
         // has_accepted_counter_by(alice, target)=false.
         assert!(state.has_accepted_counter_by("bob", &target_id).unwrap());
         assert!(!state.has_accepted_counter_by("alice", &target_id).unwrap());
+    }
+
+    #[test]
+    fn take_latest_error_round_trips_a_stashed_error() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        // No error yet.
+        assert!(state.take_latest_error().is_none());
+        // Stash an error manually (internal helper).
+        state.record_error(Error::SchemeNotFound("x".into()));
+        let err = state.take_latest_error();
+        assert!(matches!(err, Some(Error::SchemeNotFound(_))));
+        // Second call: drained.
+        assert!(state.take_latest_error().is_none());
     }
 }
