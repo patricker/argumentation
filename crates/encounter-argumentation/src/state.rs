@@ -185,6 +185,42 @@ impl EncounterArgumentationState {
             .collect()
     }
 
+    /// Return `true` iff `responder` has put forward (via
+    /// [`Self::add_scheme_instance`] or
+    /// [`Self::add_scheme_instance_for_affordance`]) some argument that
+    /// (1) directly attacks `target`, AND
+    /// (2) is credulously accepted at the current scene intensity.
+    ///
+    /// This is the per-responder counter-argument query used by the
+    /// bridge's [`crate::state_acceptance::StateAcceptanceEval`] to
+    /// decide whether a responder rejects a proposed action. It differs
+    /// from [`Self::is_credulously_accepted`] (which is a global β
+    /// acceptance check regardless of who asserted the argument).
+    ///
+    /// Returns `Err` if the framework exceeds the weighted-bipolar
+    /// residual enumeration limit. The bridge wraps this error into
+    /// its error latch; consumers should rarely see `Err` surface
+    /// directly.
+    pub fn has_accepted_counter_by(
+        &self,
+        responder: &str,
+        target: &ArgumentId,
+    ) -> Result<bool, Error> {
+        for attacker in self.attackers_of(target) {
+            let asserted_by_responder = self
+                .actors_for(&attacker)
+                .iter()
+                .any(|a| a == responder);
+            if !asserted_by_responder {
+                continue;
+            }
+            if self.is_credulously_accepted(&attacker)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// Add a weighted attack edge. Both endpoints are implicitly added
     /// to the framework if not already present. Returns
     /// `Error::WeightedBipolar` for invalid weights.
@@ -651,5 +687,32 @@ mod tests {
         state.add_weighted_attack(&a1, &target, 0.5).unwrap();
         state.add_weighted_attack(&a1, &target, 0.7).unwrap();
         assert_eq!(state.attackers_of(&target).len(), 2);
+    }
+
+    #[test]
+    fn has_accepted_counter_by_detects_responder_attacker_at_beta() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut target_bindings = std::collections::HashMap::new();
+        target_bindings.insert("expert".to_string(), "alice".to_string());
+        target_bindings.insert("domain".to_string(), "military".to_string());
+        target_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let target_instance = scheme.instantiate(&target_bindings).unwrap();
+        let mut counter_bindings = std::collections::HashMap::new();
+        counter_bindings.insert("expert".to_string(), "bob".to_string());
+        counter_bindings.insert("domain".to_string(), "logistics".to_string());
+        counter_bindings.insert("claim".to_string(), "abandon_east".to_string());
+        let counter_instance = scheme.instantiate(&counter_bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let target_id = state.add_scheme_instance("alice", target_instance);
+        let counter_id = state.add_scheme_instance("bob", counter_instance);
+        state.add_weighted_attack(&counter_id, &target_id, 0.5).unwrap();
+
+        // At β=0 bob's counter is credulously accepted (unattacked) and
+        // attacks alice's target → has_accepted_counter_by(bob, target)=true,
+        // has_accepted_counter_by(alice, target)=false.
+        assert!(state.has_accepted_counter_by("bob", &target_id).unwrap());
+        assert!(!state.has_accepted_counter_by("alice", &target_id).unwrap());
     }
 }
