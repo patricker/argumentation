@@ -31,10 +31,6 @@ pub enum Error {
         limit: usize,
     },
 
-    /// An operation referenced an argument that is not in the framework.
-    #[error("argument not found: {0}")]
-    ArgumentNotFound(String),
-
     /// An error from the underlying Dung layer (e.g., framework too
     /// large for subset enumeration).
     #[error("dung error: {0}")]
