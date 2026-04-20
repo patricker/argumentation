@@ -8,6 +8,27 @@ use argumentation_bipolar::BipolarFramework;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+/// Test `cost ≤ budget` with a relative epsilon that matches
+/// `sweep.rs` breakpoint dedup, so that e.g.
+/// `Budget::new(0.3)` tolerates a subset of weights 0.1 + 0.2
+/// (which sums to 0.30000000000000004 in f64).
+///
+/// Mirrors the relative-vs-absolute split used by `sweep.rs` `dedup_by`:
+/// relative epsilon when values are non-negligible, absolute floor only
+/// for both-near-zero values. This prevents e.g. `1e-13` from being
+/// mistakenly treated as "within" a zero budget.
+fn cost_within_budget(cost: f64, budget: f64) -> bool {
+    if cost <= budget {
+        return true;
+    }
+    let scale = cost.abs().max(budget.abs());
+    if scale > 1e-100 {
+        cost - budget <= 1e-9 * scale
+    } else {
+        cost - budget <= 1e-100
+    }
+}
+
 /// Upper bound on the combined attack + support edge count for exact
 /// subset enumeration. `2^24 ≈ 16.8M` subsets per residual build;
 /// larger frameworks return [`Error::TooManyEdges`].
@@ -54,7 +75,7 @@ where
                 cost += sup.weight.value();
             }
         }
-        if cost > budget.value() {
+        if !cost_within_budget(cost, budget.value()) {
             continue;
         }
 
@@ -131,5 +152,24 @@ mod tests {
         for r in &residuals {
             assert_eq!(r.arguments().count(), 3);
         }
+    }
+
+    #[test]
+    fn budget_tolerates_floating_point_sum_of_intended_weights() {
+        // Mirror of argumentation-weighted test: weights 0.1 + 0.2
+        // must be jointly tolerated by Budget::new(0.3) despite f64
+        // rounding summing them to 0.30000000000000004.
+        let mut wbf = WeightedBipolarFramework::new();
+        wbf.add_weighted_attack("a", "b", 0.1).unwrap();
+        wbf.add_weighted_support("c", "a", 0.2).unwrap();
+        let residuals = wbipolar_residuals(&wbf, Budget::new(0.3).unwrap()).unwrap();
+        // The "drop both edges" residual has 0 attacks + 0 supports.
+        let dropped_both = residuals
+            .iter()
+            .any(|bf| bf.attacks().count() == 0 && bf.supports().count() == 0);
+        assert!(
+            dropped_both,
+            "expected to find residual with both edges dropped at budget 0.3"
+        );
     }
 }

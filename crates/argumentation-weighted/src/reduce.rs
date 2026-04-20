@@ -30,6 +30,27 @@ use argumentation::ArgumentationFramework;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+/// Test `cost ≤ budget` with a relative epsilon that matches
+/// `sweep.rs` breakpoint dedup, so that e.g.
+/// `Budget::new(0.3)` tolerates a subset of weights 0.1 + 0.2
+/// (which sums to 0.30000000000000004 in f64).
+///
+/// Mirrors the relative-vs-absolute split used by `sweep.rs` `dedup_by`:
+/// relative epsilon when values are non-negligible, absolute floor only
+/// for both-near-zero values. This prevents e.g. `1e-13` from being
+/// mistakenly treated as "within" a zero budget.
+fn cost_within_budget(cost: f64, budget: f64) -> bool {
+    if cost <= budget {
+        return true;
+    }
+    let scale = cost.abs().max(budget.abs());
+    if scale > 1e-100 {
+        cost - budget <= 1e-9 * scale
+    } else {
+        cost - budget <= 1e-100
+    }
+}
+
 /// Upper bound on attack count for exact Dunne 2011 subset enumeration.
 ///
 /// At `n = 24` the power-set iteration visits `~16.8M` subsets; in
@@ -86,7 +107,7 @@ where
                 cost += atk.weight.value();
             }
         }
-        if cost > budget.value() {
+        if !cost_within_budget(cost, budget.value()) {
             continue;
         }
 
@@ -163,5 +184,25 @@ mod tests {
         for r in &residuals {
             assert_eq!(r.len(), 3);
         }
+    }
+
+    #[test]
+    fn budget_tolerates_floating_point_sum_of_intended_weights() {
+        // Budget::new(0.3) should tolerate two attacks summing to 0.3
+        // in f64 (0.1 + 0.2 = 0.30000000000000004). Strict `>` would
+        // silently exclude this subset, giving only 3 residuals instead
+        // of the full power-set of 4.
+        let mut wf = WeightedFramework::new();
+        wf.add_weighted_attack("a", "b", 0.1).unwrap();
+        wf.add_weighted_attack("c", "d", 0.2).unwrap();
+        let residuals = dunne_residuals(&wf, Budget::new(0.3).unwrap()).unwrap();
+        // With epsilon tolerance all 4 subsets (including "drop both
+        // attacks") are within budget; strict comparison would yield 3.
+        assert_eq!(
+            residuals.len(),
+            4,
+            "expected full power set of 4 residuals at budget 0.3, got {}",
+            residuals.len()
+        );
     }
 }
