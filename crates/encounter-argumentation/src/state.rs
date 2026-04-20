@@ -163,6 +163,28 @@ impl EncounterArgumentationState {
             .unwrap_or(&[])
     }
 
+    /// Return the direct attackers of `target` in the current
+    /// framework. Ignores support edges and does NOT resolve the
+    /// β-inconsistent residual — this is a structural query.
+    ///
+    /// Consumers that want "is there a credulously accepted attacker
+    /// at current β?" should query each attacker via
+    /// [`Self::is_credulously_accepted`].
+    ///
+    /// If the underlying framework contains multiple attack edges for
+    /// the same `(attacker, target)` pair (the framework does not
+    /// deduplicate), the attacker id appears once per edge in the
+    /// returned `Vec`. Consumers that want a set projection should
+    /// `.dedup()` or collect through a `HashSet`.
+    #[must_use]
+    pub fn attackers_of(&self, target: &ArgumentId) -> Vec<ArgumentId> {
+        self.framework
+            .attacks()
+            .filter(|atk| &atk.target == target)
+            .map(|atk| atk.attacker.clone())
+            .collect()
+    }
+
     /// Add a weighted attack edge. Both endpoints are implicitly added
     /// to the framework if not already present. Returns
     /// `Error::WeightedBipolar` for invalid weights.
@@ -595,5 +617,39 @@ mod tests {
             state.actors_for(&alice_id),
             &["alice".to_string(), "bob".to_string()]
         );
+    }
+
+    #[test]
+    fn attackers_of_returns_all_direct_attackers() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let target = ArgumentId::new("target");
+        let a1 = ArgumentId::new("a1");
+        let a2 = ArgumentId::new("a2");
+        let unrelated = ArgumentId::new("unrelated");
+        state.add_weighted_attack(&a1, &target, 0.5).unwrap();
+        state.add_weighted_attack(&a2, &target, 0.3).unwrap();
+        state.add_weighted_attack(&unrelated, &ArgumentId::new("x"), 0.5).unwrap();
+        let attackers: std::collections::HashSet<_> =
+            state.attackers_of(&target).into_iter().collect();
+        assert_eq!(attackers.len(), 2);
+        assert!(attackers.contains(&a1));
+        assert!(attackers.contains(&a2));
+    }
+
+    #[test]
+    fn attackers_of_returns_empty_for_unattacked() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        let lonely = ArgumentId::new("lonely");
+        assert!(state.attackers_of(&lonely).is_empty());
+    }
+
+    #[test]
+    fn attackers_of_preserves_duplicate_edges() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let target = ArgumentId::new("target");
+        let a1 = ArgumentId::new("a1");
+        state.add_weighted_attack(&a1, &target, 0.5).unwrap();
+        state.add_weighted_attack(&a1, &target, 0.7).unwrap();
+        assert_eq!(state.attackers_of(&target).len(), 2);
     }
 }
