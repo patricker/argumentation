@@ -12,8 +12,8 @@ use argumentation_schemes::instance::SchemeInstance;
 use argumentation_schemes::registry::CatalogRegistry;
 use argumentation_weighted::types::Budget;
 use argumentation_weighted_bipolar::WeightedBipolarFramework;
-use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 /// Encounter-level argumentation state composing schemes (premises +
 /// conclusion), bipolar graph structure (attacks + supports), weighted
@@ -36,16 +36,17 @@ pub struct EncounterArgumentationState {
     /// up the right argument node at `evaluate`/`score_actions` time
     /// given only an `(actor, affordance_name, bindings)` triple.
     argument_id_by_affordance: HashMap<AffordanceKey, ArgumentId>,
-    /// Current scene intensity (β). Stored in `Cell` so it can be
+    /// Current scene intensity (β). Stored in `Mutex` so it can be
     /// mutated through a shared reference (`&self`) — required for
     /// bridge consumers that hold `&State` during encounter's
-    /// `resolve` loops.
-    intensity: Cell<Budget>,
+    /// `resolve` loops — while still being `Sync`, which encounter's
+    /// `AcceptanceEval`/`ActionScorer` traits require.
+    intensity: Mutex<Budget>,
     /// Error latch: last error observed by a bridge impl whose trait
     /// signature can't propagate `Result` (e.g.,
     /// `AcceptanceEval::evaluate`). Consumers drain via
     /// [`Self::take_latest_error`] after encounter's resolve returns.
-    latest_error: RefCell<Option<Error>>,
+    latest_error: Mutex<Option<Error>>,
 }
 
 impl EncounterArgumentationState {
@@ -63,15 +64,28 @@ impl EncounterArgumentationState {
             actors_by_argument: HashMap::new(),
             instances_by_argument: HashMap::new(),
             argument_id_by_affordance: HashMap::new(),
-            intensity: Cell::new(Budget::zero()),
-            latest_error: RefCell::new(None),
+            intensity: Mutex::new(Budget::zero()),
+            latest_error: Mutex::new(None),
         }
     }
 
     /// Read-only access to the current scene intensity.
     #[must_use]
     pub fn intensity(&self) -> Budget {
-        self.intensity.get()
+        *self.intensity_guard()
+    }
+
+    // Lock intensity, recovering from poisoning — a prior panic
+    // elsewhere must not turn into a panic here, since the bridge's
+    // D5 contract requires permissive-on-failure behaviour.
+    fn intensity_guard(&self) -> std::sync::MutexGuard<'_, Budget> {
+        self.intensity.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    // Lock latest_error, recovering from poisoning — see
+    // `intensity_guard` for rationale.
+    fn latest_error_guard(&self) -> std::sync::MutexGuard<'_, Option<Error>> {
+        self.latest_error.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Number of argument nodes in the framework.
@@ -259,7 +273,7 @@ impl EncounterArgumentationState {
     /// `self` by value to allow chaining.
     #[must_use]
     pub fn at_intensity(self, intensity: Budget) -> Self {
-        self.intensity.set(intensity);
+        *self.intensity_guard() = intensity;
         self
     }
 
@@ -271,7 +285,7 @@ impl EncounterArgumentationState {
     /// For new-state construction prefer the by-value builder
     /// [`Self::at_intensity`].
     pub fn set_intensity(&self, intensity: Budget) {
-        self.intensity.set(intensity);
+        *self.intensity_guard() = intensity;
     }
 
     /// Whether the argument is credulously accepted under the current
@@ -281,7 +295,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_credulously_accepted_at(
             &self.framework,
             arg,
-            self.intensity.get(),
+            self.intensity(),
         )?)
     }
 
@@ -292,7 +306,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_skeptically_accepted_at(
             &self.framework,
             arg,
-            self.intensity.get(),
+            self.intensity(),
         )?)
     }
 
@@ -323,7 +337,7 @@ impl EncounterArgumentationState {
     /// last drain.
     #[must_use]
     pub fn take_latest_error(&self) -> Option<Error> {
-        self.latest_error.borrow_mut().take()
+        self.latest_error_guard().take()
     }
 
     /// Record an error into the latch. Called by bridge impls whose
@@ -333,11 +347,8 @@ impl EncounterArgumentationState {
     /// one error survives per drain window. Consumers should call
     /// [`Self::take_latest_error`] after each `resolve` invocation if
     /// they need per-resolve error fidelity.
-    // TODO(Task 7): remove #[allow(dead_code)] once StateAcceptanceEval
-    // consumes this method.
-    #[allow(dead_code)]
     pub(crate) fn record_error(&self, err: Error) {
-        *self.latest_error.borrow_mut() = Some(err);
+        *self.latest_error_guard() = Some(err);
     }
 }
 

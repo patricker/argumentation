@@ -67,6 +67,7 @@ pub mod relationship;
 pub mod resolver;
 pub mod scoring;
 pub mod state;
+pub mod state_acceptance;
 pub mod value_argument;
 
 pub use acceptance::ArgumentAcceptanceEval;
@@ -79,6 +80,7 @@ pub use relationship::{RelationshipDims, RelationshipSnapshot, RelationshipWeigh
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
 pub use state::EncounterArgumentationState;
+pub use state_acceptance::StateAcceptanceEval;
 pub use value_argument::scheme_value_argument;
 
 /// Numeric rank for a scheme strength (higher = stronger).
