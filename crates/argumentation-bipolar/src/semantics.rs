@@ -5,6 +5,21 @@
 //! direct necessary supporter of `a` is also in `E`. Nouioua & Risch 2011
 //! proves this captures necessary-support acceptability exactly when
 //! applied on top of Dung extensions of the closed attack relation.
+//!
+//! # Emptiness caveat
+//!
+//! The Dung-preferred-then-filter pipeline means that if every Dung-
+//! preferred extension fails support-closure, the public
+//! [`bipolar_preferred_extensions`] returns an empty `Vec`, even when
+//! strictly smaller support-closed admissible sets exist. This is a
+//! deliberate scoping choice for v0.1 — a future release may add a
+//! companion function that relaxes Dung-preferredness in favour of
+//! maximal support-closed admissibility. Consumers that need a
+//! guaranteed non-empty result on any framework should either:
+//!
+//! 1. Use [`bipolar_grounded_extension`] (always single and non-empty in
+//!    the trivial sense), or
+//! 2. Check `is_empty()` on the result and fall back to grounded.
 
 use crate::error::Error;
 use crate::flatten::flatten;
