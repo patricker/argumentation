@@ -160,15 +160,15 @@ fn scene_resolves_cleanly_at_low_intensity() {
          to argue_abandon_east, no cross-actor counter fires); got {:?}",
         result.beats
     );
-    assert!(state.take_latest_error().is_none());
+    assert!(state.drain_errors().is_empty());
 }
 
 #[test]
 fn higher_intensity_changes_acceptance_outcomes() {
-    // At β=0.5 > 0.4, the attack on alice's argue_fortify_east is
-    // droppable, so alice's argument IS credulously accepted → the
-    // scorer applies the +0.5 boost → alice picks argue_fortify_east
-    // (score 1.5 > argue_abandon_east's 1.0). When bob responds,
+    // At β=0.5 (attack weight 0.4 ≤ β → droppable, inclusive boundary
+    // at β=0.4): alice's argument IS credulously accepted → scorer
+    // boost fires → alice picks argue_fortify_east (score 1.5 >
+    // argue_abandon_east's 1.0). When bob responds,
     // has_accepted_counter_by("bob", alice_id) returns true (bob's
     // argue_abandon_east is credulous and attacks alice's argument)
     // → alice's beats are REJECTED. Bob's argue_abandon_east remains
@@ -202,5 +202,23 @@ fn higher_intensity_changes_acceptance_outcomes() {
             );
         }
     }
-    assert!(state.take_latest_error().is_none());
+    assert!(state.drain_errors().is_empty());
+}
+
+#[test]
+fn beta_exactly_equal_to_attack_weight_flips_acceptance() {
+    // The β-inconsistent residual cost check uses `cost <= budget`
+    // (inclusive), so β == attack_weight is already the flip point.
+    let (state, catalog_vec, practice) = build_scene();
+    state.set_intensity(Budget::new(0.4).unwrap());
+    let scorer = StateActionScorer::new(&state, UniformScorer, 0.5);
+    let acceptance = StateAcceptanceEval::new(&state);
+    let participants = vec!["alice".to_string(), "bob".to_string()];
+    let result =
+        MultiBeat.resolve(&participants, &practice, &catalog_vec, &scorer, &acceptance);
+    assert_eq!(result.beats.len(), 4);
+    // At β=0.4 exactly, alice's argument is credulous → she picks
+    // argue_fortify_east, matches the β=0.5 behaviour.
+    assert_eq!(result.beats[0].action, "argue_fortify_east");
+    assert!(state.drain_errors().is_empty());
 }

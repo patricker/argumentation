@@ -65,11 +65,6 @@ where
                 }
             }
         }
-        scored.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
         scored
     }
 }

@@ -42,11 +42,12 @@ pub struct EncounterArgumentationState {
     /// `resolve` loops — while still being `Sync`, which encounter's
     /// `AcceptanceEval`/`ActionScorer` traits require.
     intensity: Mutex<Budget>,
-    /// Error latch: last error observed by a bridge impl whose trait
-    /// signature can't propagate `Result` (e.g.,
-    /// `AcceptanceEval::evaluate`). Consumers drain via
-    /// [`Self::take_latest_error`] after encounter's resolve returns.
-    latest_error: Mutex<Option<Error>>,
+    /// Error buffer: errors observed by bridge impls whose trait
+    /// signatures can't propagate `Result` (e.g.,
+    /// `AcceptanceEval::evaluate`). Bridge impls APPEND to this
+    /// buffer; consumers DRAIN via [`Self::drain_errors`] after
+    /// encounter's resolve returns.
+    errors: Mutex<Vec<Error>>,
 }
 
 impl EncounterArgumentationState {
@@ -65,7 +66,7 @@ impl EncounterArgumentationState {
             instances_by_argument: HashMap::new(),
             argument_id_by_affordance: HashMap::new(),
             intensity: Mutex::new(Budget::zero()),
-            latest_error: Mutex::new(None),
+            errors: Mutex::new(Vec::new()),
         }
     }
 
@@ -78,14 +79,22 @@ impl EncounterArgumentationState {
     // Lock intensity, recovering from poisoning — a prior panic
     // elsewhere must not turn into a panic here, since the bridge's
     // D5 contract requires permissive-on-failure behaviour.
+    //
+    // NON-REENTRANT: `std::sync::Mutex` does not support recursive
+    // locking on the same thread. Callers must NOT hold the returned
+    // guard across another call to `intensity()` or `set_intensity()`.
     fn intensity_guard(&self) -> std::sync::MutexGuard<'_, Budget> {
         self.intensity.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    // Lock latest_error, recovering from poisoning — see
-    // `intensity_guard` for rationale.
-    fn latest_error_guard(&self) -> std::sync::MutexGuard<'_, Option<Error>> {
-        self.latest_error.lock().unwrap_or_else(|e| e.into_inner())
+    // Lock errors, recovering from poisoning — see `intensity_guard`
+    // for rationale.
+    //
+    // NON-REENTRANT: `std::sync::Mutex` does not support recursive
+    // locking on the same thread. Callers must NOT hold the returned
+    // guard across another call to `record_error` or `drain_errors`.
+    fn errors_guard(&self) -> std::sync::MutexGuard<'_, Vec<Error>> {
+        self.errors.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Number of argument nodes in the framework.
@@ -134,6 +143,9 @@ impl EncounterArgumentationState {
     /// single argument node — convergence behaviour is the same as
     /// [`Self::add_scheme_instance`]. Both keys in the forward index
     /// point at the shared id.
+    ///
+    /// Convergence has a downstream consequence for
+    /// [`Self::has_accepted_counter_by`]: see that method's docs.
     ///
     /// **Re-seeding the same key silently overwrites.** Calling this
     /// method twice with identical `(actor, affordance_name, bindings)`
@@ -221,6 +233,17 @@ impl EncounterArgumentationState {
     /// residual enumeration limit. The bridge wraps this error into
     /// its error latch; consumers should rarely see `Err` surface
     /// directly.
+    ///
+    /// **Shared-ArgumentId attribution.** If two actors both assert scheme
+    /// instances whose conclusions resolve to the same `ArgumentId` (i.e.,
+    /// they independently endorse the same argument), both appear in
+    /// [`Self::actors_for`] against that node. This method considers all
+    /// of them to "have put forward" the argument — so it returns `true`
+    /// for any responder in the shared set, not just the specific actor
+    /// who seeded the instance that carries the attack edge. Consumers
+    /// who need strict per-instance attribution should seed distinct
+    /// conclusions for each actor (e.g., `"alice_opposes"` vs
+    /// `"bob_opposes"` rather than a shared `"oppose"` literal).
     pub fn has_accepted_counter_by(
         &self,
         responder: &str,
@@ -332,23 +355,27 @@ impl EncounterArgumentationState {
         Ok(argumentation_bipolar::detect_coalitions(&bipolar))
     }
 
-    /// Drain the last error observed by a bridge impl. Clears the
-    /// latch. Returns `None` if no error has been stashed since the
-    /// last drain.
+    /// Drain all errors observed by bridge impls whose trait
+    /// signature can't propagate `Result`. Clears the internal
+    /// buffer. Returns an empty `Vec` if no errors occurred since
+    /// the last drain.
+    ///
+    /// Errors are returned in the order they were recorded, so
+    /// the first entry is the first error observed in the current
+    /// drain window.
     #[must_use]
-    pub fn take_latest_error(&self) -> Option<Error> {
-        self.latest_error_guard().take()
+    pub fn drain_errors(&self) -> Vec<Error> {
+        std::mem::take(&mut *self.errors_guard())
     }
 
-    /// Record an error into the latch. Called by bridge impls whose
-    /// trait signature can't propagate `Result`.
-    ///
-    /// **Overwrites any prior unread error** — callers must assume only
-    /// one error survives per drain window. Consumers should call
-    /// [`Self::take_latest_error`] after each `resolve` invocation if
-    /// they need per-resolve error fidelity.
+    /// Append an error to the internal buffer. Called by bridge impls
+    /// whose trait signature can't propagate `Result`. All recorded
+    /// errors survive until [`Self::drain_errors`] is called, so
+    /// errors from both `StateActionScorer::score_actions` and
+    /// `StateAcceptanceEval::evaluate` within the same beat are
+    /// preserved independently.
     pub(crate) fn record_error(&self, err: Error) {
-        *self.latest_error_guard() = Some(err);
+        self.errors_guard().push(err);
     }
 }
 
@@ -756,15 +783,28 @@ mod tests {
     }
 
     #[test]
-    fn take_latest_error_round_trips_a_stashed_error() {
+    fn drain_errors_round_trips_stashed_errors() {
         let state = EncounterArgumentationState::new(default_catalog());
-        // No error yet.
-        assert!(state.take_latest_error().is_none());
-        // Stash an error manually (internal helper).
+        assert!(state.drain_errors().is_empty());
         state.record_error(Error::SchemeNotFound("x".into()));
-        let err = state.take_latest_error();
-        assert!(matches!(err, Some(Error::SchemeNotFound(_))));
+        state.record_error(Error::SchemeNotFound("y".into()));
+        let errs = state.drain_errors();
+        assert_eq!(errs.len(), 2);
+        assert!(matches!(&errs[0], Error::SchemeNotFound(s) if s == "x"));
+        assert!(matches!(&errs[1], Error::SchemeNotFound(s) if s == "y"));
         // Second call: drained.
-        assert!(state.take_latest_error().is_none());
+        assert!(state.drain_errors().is_empty());
+    }
+
+    #[test]
+    fn state_is_send_and_sync() {
+        // EncounterArgumentationState MUST be Send+Sync so that bridge
+        // impls like StateAcceptanceEval and StateActionScorer satisfy
+        // encounter's AcceptanceEval<P>: Send + Sync / ActionScorer<P>:
+        // Send + Sync trait bounds. This test locks down that contract
+        // at compile time — if a future change reintroduces a !Sync
+        // primitive (e.g. Cell, RefCell, Rc), it will fail here.
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<EncounterArgumentationState>();
     }
 }

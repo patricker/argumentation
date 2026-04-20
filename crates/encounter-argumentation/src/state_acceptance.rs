@@ -6,8 +6,8 @@
 //! current scene intensity. Otherwise it accepts.
 //!
 //! Internal errors (e.g. weighted-bipolar edge limit exceeded) cause
-//! the eval to default to *accept* and stash the error on the state's
-//! latch; consumers call `state.take_latest_error()` to drain.
+//! the eval to default to *accept* and append the error to the state's
+//! buffer; consumers call `state.drain_errors()` to drain.
 //!
 //! ## Proposer-slot convention
 //!
@@ -59,6 +59,9 @@ impl<'a> StateAcceptanceEval<'a> {
 impl<P> AcceptanceEval<P> for StateAcceptanceEval<'_> {
     fn evaluate(&self, responder: &str, action: &ScoredAffordance<P>) -> bool {
         let Some(key) = self.proposer_key(action) else {
+            self.state.record_error(crate::error::Error::MissingProposerBinding {
+                affordance_name: action.entry.spec.name.clone(),
+            });
             return true;
         };
         let Some(target) = self.state.argument_id_for(&key) else {
@@ -211,5 +214,12 @@ mod tests {
             bindings: HashMap::new(),
         };
         assert!(eval.evaluate("anyone", &action));
+        let errors = state.drain_errors();
+        assert_eq!(errors.len(), 1);
+        assert!(matches!(
+            &errors[0],
+            crate::error::Error::MissingProposerBinding { affordance_name }
+                if affordance_name == "anon"
+        ));
     }
 }
