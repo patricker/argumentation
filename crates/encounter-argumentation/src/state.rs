@@ -5,6 +5,7 @@
 //! a weight source and scene intensity via builders, add scheme
 //! instances and raw edges, then query acceptance and coalitions.
 
+use crate::affordance_key::AffordanceKey;
 use crate::arg_id::ArgumentId;
 use crate::error::Error;
 use argumentation_schemes::instance::SchemeInstance;
@@ -28,6 +29,13 @@ pub struct EncounterArgumentationState {
     actors_by_argument: HashMap<ArgumentId, Vec<String>>,
     /// Scheme instances backing each argument.
     instances_by_argument: HashMap<ArgumentId, Vec<SchemeInstance>>,
+    /// Forward index: maps affordance-keyed scheme instances to their
+    /// argument id in the framework. Populated by
+    /// [`Self::add_scheme_instance_for_affordance`]. Enables bridge
+    /// consumers (`StateActionScorer`, `StateAcceptanceEval`) to look
+    /// up the right argument node at `evaluate`/`score_actions` time
+    /// given only an `(actor, affordance_name, bindings)` triple.
+    argument_id_by_affordance: HashMap<AffordanceKey, ArgumentId>,
     /// Current scene intensity (β). Stored in `Cell` so it can be
     /// mutated through a shared reference (`&self`) — required for
     /// bridge consumers that hold `&State` during encounter's
@@ -49,6 +57,7 @@ impl EncounterArgumentationState {
             framework: WeightedBipolarFramework::new(),
             actors_by_argument: HashMap::new(),
             instances_by_argument: HashMap::new(),
+            argument_id_by_affordance: HashMap::new(),
             intensity: Cell::new(Budget::zero()),
         }
     }
@@ -92,6 +101,46 @@ impl EncounterArgumentationState {
             .or_default()
             .push(instance);
         id
+    }
+
+    /// Add a scheme instance asserted by `actor` for the named
+    /// affordance with the given bindings. Functionally identical to
+    /// [`Self::add_scheme_instance`] plus an entry in the affordance
+    /// forward index so consumers can later look up this argument
+    /// from an `(actor, affordance_name, bindings)` triple.
+    ///
+    /// If two scheme instances produce the same conclusion literal
+    /// (same `ArgumentId`), both actors are recorded against that
+    /// single argument node — convergence behaviour is the same as
+    /// [`Self::add_scheme_instance`]. Both keys in the forward index
+    /// point at the shared id.
+    ///
+    /// **Re-seeding the same key silently overwrites.** Calling this
+    /// method twice with identical `(actor, affordance_name, bindings)`
+    /// triples replaces the previous entry; the most recent
+    /// `ArgumentId` wins. Callers should seed each affordance at most
+    /// once per scene.
+    pub fn add_scheme_instance_for_affordance(
+        &mut self,
+        actor: &str,
+        affordance_name: &str,
+        bindings: &std::collections::HashMap<String, String>,
+        instance: SchemeInstance,
+    ) -> ArgumentId {
+        let id = self.add_scheme_instance(actor, instance);
+        let key = AffordanceKey::new(actor, affordance_name, bindings);
+        self.argument_id_by_affordance.insert(key, id.clone());
+        id
+    }
+
+    /// Look up the argument id associated with an affordance key, if
+    /// one was seeded via [`Self::add_scheme_instance_for_affordance`].
+    #[must_use]
+    pub fn argument_id_for(
+        &self,
+        key: &AffordanceKey,
+    ) -> Option<ArgumentId> {
+        self.argument_id_by_affordance.get(key).cloned()
     }
 
     /// Return the list of actors who have asserted the given argument.
@@ -450,5 +499,101 @@ mod tests {
         bump(&state, 0.3);
         bump(&state, 0.5);
         assert_eq!(state.intensity().value(), 0.5);
+    }
+
+    #[test]
+    fn add_scheme_instance_for_affordance_indexes_by_key() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut bindings = std::collections::HashMap::new();
+        bindings.insert("expert".to_string(), "alice".to_string());
+        bindings.insert("domain".to_string(), "military".to_string());
+        bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let instance = scheme.instantiate(&bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &bindings,
+            instance,
+        );
+
+        let key = AffordanceKey::new("alice", "argue_fortify_east", &bindings);
+        let looked_up = state.argument_id_for(&key);
+        assert_eq!(looked_up, Some(id));
+    }
+
+    #[test]
+    fn argument_id_for_returns_none_for_unseeded_key() {
+        let bindings = std::collections::HashMap::new();
+        let state = EncounterArgumentationState::new(default_catalog());
+        let key = AffordanceKey::new("nobody", "nothing", &bindings);
+        assert_eq!(state.argument_id_for(&key), None);
+    }
+
+    #[test]
+    fn add_scheme_instance_for_affordance_is_consistent_with_add_scheme_instance() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut bindings = std::collections::HashMap::new();
+        bindings.insert("expert".to_string(), "alice".to_string());
+        bindings.insert("domain".to_string(), "military".to_string());
+        bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let instance = scheme.instantiate(&bindings).unwrap();
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &bindings,
+            instance,
+        );
+        assert_eq!(state.actors_for(&id), &["alice".to_string()]);
+        assert_eq!(state.instances_for(&id).len(), 1);
+    }
+
+    #[test]
+    fn two_distinct_affordance_keys_with_same_conclusion_point_at_shared_id() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+
+        let mut alice_bindings = std::collections::HashMap::new();
+        alice_bindings.insert("expert".to_string(), "alice".to_string());
+        alice_bindings.insert("domain".to_string(), "military".to_string());
+        alice_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let alice_instance = scheme.instantiate(&alice_bindings).unwrap();
+
+        let mut bob_bindings = std::collections::HashMap::new();
+        bob_bindings.insert("expert".to_string(), "bob".to_string());
+        bob_bindings.insert("domain".to_string(), "logistics".to_string());
+        bob_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let bob_instance = scheme.instantiate(&bob_bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let alice_id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &alice_bindings,
+            alice_instance,
+        );
+        let bob_id = state.add_scheme_instance_for_affordance(
+            "bob",
+            "second_expert_opinion",
+            &bob_bindings,
+            bob_instance,
+        );
+
+        assert_eq!(alice_id, bob_id, "same conclusion literal → shared ArgumentId");
+        assert_eq!(state.argument_count(), 1);
+
+        let alice_key = AffordanceKey::new("alice", "argue_fortify_east", &alice_bindings);
+        let bob_key = AffordanceKey::new("bob", "second_expert_opinion", &bob_bindings);
+        assert_eq!(state.argument_id_for(&alice_key), Some(alice_id.clone()));
+        assert_eq!(state.argument_id_for(&bob_key), Some(alice_id.clone()));
+
+        assert_eq!(
+            state.actors_for(&alice_id),
+            &["alice".to_string(), "bob".to_string()]
+        );
     }
 }
