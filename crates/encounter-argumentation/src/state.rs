@@ -11,6 +11,7 @@ use argumentation_schemes::instance::SchemeInstance;
 use argumentation_schemes::registry::CatalogRegistry;
 use argumentation_weighted::types::Budget;
 use argumentation_weighted_bipolar::WeightedBipolarFramework;
+use std::cell::Cell;
 use std::collections::HashMap;
 
 /// Encounter-level argumentation state composing schemes (premises +
@@ -27,8 +28,11 @@ pub struct EncounterArgumentationState {
     actors_by_argument: HashMap<ArgumentId, Vec<String>>,
     /// Scheme instances backing each argument.
     instances_by_argument: HashMap<ArgumentId, Vec<SchemeInstance>>,
-    /// Current scene intensity. Defaults to zero.
-    intensity: Budget,
+    /// Current scene intensity (β). Stored in `Cell` so it can be
+    /// mutated through a shared reference (`&self`) — required for
+    /// bridge consumers that hold `&State` during encounter's
+    /// `resolve` loops.
+    intensity: Cell<Budget>,
 }
 
 impl EncounterArgumentationState {
@@ -45,14 +49,14 @@ impl EncounterArgumentationState {
             framework: WeightedBipolarFramework::new(),
             actors_by_argument: HashMap::new(),
             instances_by_argument: HashMap::new(),
-            intensity: Budget::zero(),
+            intensity: Cell::new(Budget::zero()),
         }
     }
 
     /// Read-only access to the current scene intensity.
     #[must_use]
     pub fn intensity(&self) -> Budget {
-        self.intensity
+        self.intensity.get()
     }
 
     /// Number of argument nodes in the framework.
@@ -141,9 +145,20 @@ impl EncounterArgumentationState {
     /// Builder method setting the scene-intensity budget. Returns
     /// `self` by value to allow chaining.
     #[must_use]
-    pub fn at_intensity(mut self, intensity: Budget) -> Self {
-        self.intensity = intensity;
+    pub fn at_intensity(self, intensity: Budget) -> Self {
+        self.intensity.set(intensity);
         self
+    }
+
+    /// Mutate the scene intensity (β) through a shared reference.
+    /// Used by consumers — notably the bridge's `StateAcceptanceEval`
+    /// and `StateActionScorer` — that hold `&self` during encounter's
+    /// `resolve` loops but still want to escalate β mid-scene.
+    ///
+    /// For new-state construction prefer the by-value builder
+    /// [`Self::at_intensity`].
+    pub fn set_intensity(&self, intensity: Budget) {
+        self.intensity.set(intensity);
     }
 
     /// Whether the argument is credulously accepted under the current
@@ -153,7 +168,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_credulously_accepted_at(
             &self.framework,
             arg,
-            self.intensity,
+            self.intensity.get(),
         )?)
     }
 
@@ -164,7 +179,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_skeptically_accepted_at(
             &self.framework,
             arg,
-            self.intensity,
+            self.intensity.get(),
         )?)
     }
 
@@ -413,5 +428,27 @@ mod tests {
         assert!(coalitions.iter().any(|c| c.members.len() == 2
             && c.members.contains(&a)
             && c.members.contains(&b)));
+    }
+
+    #[test]
+    fn set_intensity_mutates_through_shared_ref() {
+        let state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.2).unwrap());
+        assert_eq!(state.intensity().value(), 0.2);
+        // set_intensity takes &self (shared ref). This line must
+        // compile without &mut state.
+        state.set_intensity(Budget::new(0.6).unwrap());
+        assert_eq!(state.intensity().value(), 0.6);
+    }
+
+    #[test]
+    fn intensity_is_mutable_from_two_shared_refs_in_sequence() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        fn bump(s: &EncounterArgumentationState, b: f64) {
+            s.set_intensity(Budget::new(b).unwrap());
+        }
+        bump(&state, 0.3);
+        bump(&state, 0.5);
+        assert_eq!(state.intensity().value(), 0.5);
     }
 }
