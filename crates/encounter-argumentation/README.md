@@ -1,5 +1,37 @@
 # encounter-argumentation
 
+## State-aware bridge (v0.3.0)
+
+Plug an `EncounterArgumentationState` into `encounter`'s protocols via:
+
+```rust,ignore
+use argumentation_schemes::catalog::default_catalog;
+use argumentation_weighted::types::Budget;
+use encounter::resolution::MultiBeat;
+use encounter_argumentation::{
+    EncounterArgumentationState, StateAcceptanceEval, StateActionScorer,
+};
+
+let state = EncounterArgumentationState::new(default_catalog());
+state.set_intensity(Budget::new(0.4).unwrap());
+
+// Seed one scheme instance per (actor, affordance) the scene needs.
+// state.add_scheme_instance_for_affordance(actor, name, bindings, instance);
+
+let scorer = StateActionScorer::new(&state, my_inner_scorer, 0.5);
+let acceptance = StateAcceptanceEval::new(&state);
+
+let result = MultiBeat.resolve(&participants, &practice, &catalog, &scorer, &acceptance);
+
+// Drain any internal errors that the trait impls couldn't propagate.
+for err in state.drain_errors() {
+    // handle...
+}
+```
+
+Scene-intensity (β) lives on the state object and can be mutated with
+`state.set_intensity(...)` mid-scene through a shared reference.
+
 Bridge crate connecting encounter's social-interaction engine with the
 `argumentation` stack.
 

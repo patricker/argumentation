@@ -5,6 +5,7 @@
 //! a weight source and scene intensity via builders, add scheme
 //! instances and raw edges, then query acceptance and coalitions.
 
+use crate::affordance_key::AffordanceKey;
 use crate::arg_id::ArgumentId;
 use crate::error::Error;
 use argumentation_schemes::instance::SchemeInstance;
@@ -12,6 +13,7 @@ use argumentation_schemes::registry::CatalogRegistry;
 use argumentation_weighted::types::Budget;
 use argumentation_weighted_bipolar::WeightedBipolarFramework;
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 /// Encounter-level argumentation state composing schemes (premises +
 /// conclusion), bipolar graph structure (attacks + supports), weighted
@@ -27,8 +29,25 @@ pub struct EncounterArgumentationState {
     actors_by_argument: HashMap<ArgumentId, Vec<String>>,
     /// Scheme instances backing each argument.
     instances_by_argument: HashMap<ArgumentId, Vec<SchemeInstance>>,
-    /// Current scene intensity. Defaults to zero.
-    intensity: Budget,
+    /// Forward index: maps affordance-keyed scheme instances to their
+    /// argument id in the framework. Populated by
+    /// [`Self::add_scheme_instance_for_affordance`]. Enables bridge
+    /// consumers (`StateActionScorer`, `StateAcceptanceEval`) to look
+    /// up the right argument node at `evaluate`/`score_actions` time
+    /// given only an `(actor, affordance_name, bindings)` triple.
+    argument_id_by_affordance: HashMap<AffordanceKey, ArgumentId>,
+    /// Current scene intensity (β). Stored in `Mutex` so it can be
+    /// mutated through a shared reference (`&self`) — required for
+    /// bridge consumers that hold `&State` during encounter's
+    /// `resolve` loops — while still being `Sync`, which encounter's
+    /// `AcceptanceEval`/`ActionScorer` traits require.
+    intensity: Mutex<Budget>,
+    /// Error buffer: errors observed by bridge impls whose trait
+    /// signatures can't propagate `Result` (e.g.,
+    /// `AcceptanceEval::evaluate`). Bridge impls APPEND to this
+    /// buffer; consumers DRAIN via [`Self::drain_errors`] after
+    /// encounter's resolve returns.
+    errors: Mutex<Vec<Error>>,
 }
 
 impl EncounterArgumentationState {
@@ -45,14 +64,37 @@ impl EncounterArgumentationState {
             framework: WeightedBipolarFramework::new(),
             actors_by_argument: HashMap::new(),
             instances_by_argument: HashMap::new(),
-            intensity: Budget::zero(),
+            argument_id_by_affordance: HashMap::new(),
+            intensity: Mutex::new(Budget::zero()),
+            errors: Mutex::new(Vec::new()),
         }
     }
 
     /// Read-only access to the current scene intensity.
     #[must_use]
     pub fn intensity(&self) -> Budget {
-        self.intensity
+        *self.intensity_guard()
+    }
+
+    // Lock intensity, recovering from poisoning — a prior panic
+    // elsewhere must not turn into a panic here, since the bridge's
+    // D5 contract requires permissive-on-failure behaviour.
+    //
+    // NON-REENTRANT: `std::sync::Mutex` does not support recursive
+    // locking on the same thread. Callers must NOT hold the returned
+    // guard across another call to `intensity()` or `set_intensity()`.
+    fn intensity_guard(&self) -> std::sync::MutexGuard<'_, Budget> {
+        self.intensity.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    // Lock errors, recovering from poisoning — see `intensity_guard`
+    // for rationale.
+    //
+    // NON-REENTRANT: `std::sync::Mutex` does not support recursive
+    // locking on the same thread. Callers must NOT hold the returned
+    // guard across another call to `record_error` or `drain_errors`.
+    fn errors_guard(&self) -> std::sync::MutexGuard<'_, Vec<Error>> {
+        self.errors.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Number of argument nodes in the framework.
@@ -90,6 +132,49 @@ impl EncounterArgumentationState {
         id
     }
 
+    /// Add a scheme instance asserted by `actor` for the named
+    /// affordance with the given bindings. Functionally identical to
+    /// [`Self::add_scheme_instance`] plus an entry in the affordance
+    /// forward index so consumers can later look up this argument
+    /// from an `(actor, affordance_name, bindings)` triple.
+    ///
+    /// If two scheme instances produce the same conclusion literal
+    /// (same `ArgumentId`), both actors are recorded against that
+    /// single argument node — convergence behaviour is the same as
+    /// [`Self::add_scheme_instance`]. Both keys in the forward index
+    /// point at the shared id.
+    ///
+    /// Convergence has a downstream consequence for
+    /// [`Self::has_accepted_counter_by`]: see that method's docs.
+    ///
+    /// **Re-seeding the same key silently overwrites.** Calling this
+    /// method twice with identical `(actor, affordance_name, bindings)`
+    /// triples replaces the previous entry; the most recent
+    /// `ArgumentId` wins. Callers should seed each affordance at most
+    /// once per scene.
+    pub fn add_scheme_instance_for_affordance(
+        &mut self,
+        actor: &str,
+        affordance_name: &str,
+        bindings: &std::collections::HashMap<String, String>,
+        instance: SchemeInstance,
+    ) -> ArgumentId {
+        let id = self.add_scheme_instance(actor, instance);
+        let key = AffordanceKey::new(actor, affordance_name, bindings);
+        self.argument_id_by_affordance.insert(key, id.clone());
+        id
+    }
+
+    /// Look up the argument id associated with an affordance key, if
+    /// one was seeded via [`Self::add_scheme_instance_for_affordance`].
+    #[must_use]
+    pub fn argument_id_for(
+        &self,
+        key: &AffordanceKey,
+    ) -> Option<ArgumentId> {
+        self.argument_id_by_affordance.get(key).cloned()
+    }
+
     /// Return the list of actors who have asserted the given argument.
     /// Empty slice if the argument is not associated with any actor.
     #[must_use]
@@ -108,6 +193,75 @@ impl EncounterArgumentationState {
             .get(id)
             .map(Vec::as_slice)
             .unwrap_or(&[])
+    }
+
+    /// Return the direct attackers of `target` in the current
+    /// framework. Ignores support edges and does NOT resolve the
+    /// β-inconsistent residual — this is a structural query.
+    ///
+    /// Consumers that want "is there a credulously accepted attacker
+    /// at current β?" should query each attacker via
+    /// [`Self::is_credulously_accepted`].
+    ///
+    /// If the underlying framework contains multiple attack edges for
+    /// the same `(attacker, target)` pair (the framework does not
+    /// deduplicate), the attacker id appears once per edge in the
+    /// returned `Vec`. Consumers that want a set projection should
+    /// `.dedup()` or collect through a `HashSet`.
+    #[must_use]
+    pub fn attackers_of(&self, target: &ArgumentId) -> Vec<ArgumentId> {
+        self.framework
+            .attacks()
+            .filter(|atk| &atk.target == target)
+            .map(|atk| atk.attacker.clone())
+            .collect()
+    }
+
+    /// Return `true` iff `responder` has put forward (via
+    /// [`Self::add_scheme_instance`] or
+    /// [`Self::add_scheme_instance_for_affordance`]) some argument that
+    /// (1) directly attacks `target`, AND
+    /// (2) is credulously accepted at the current scene intensity.
+    ///
+    /// This is the per-responder counter-argument query used by the
+    /// bridge's [`crate::state_acceptance::StateAcceptanceEval`] to
+    /// decide whether a responder rejects a proposed action. It differs
+    /// from [`Self::is_credulously_accepted`] (which is a global β
+    /// acceptance check regardless of who asserted the argument).
+    ///
+    /// Returns `Err` if the framework exceeds the weighted-bipolar
+    /// residual enumeration limit. The bridge wraps this error into
+    /// its error latch; consumers should rarely see `Err` surface
+    /// directly.
+    ///
+    /// **Shared-ArgumentId attribution.** If two actors both assert scheme
+    /// instances whose conclusions resolve to the same `ArgumentId` (i.e.,
+    /// they independently endorse the same argument), both appear in
+    /// [`Self::actors_for`] against that node. This method considers all
+    /// of them to "have put forward" the argument — so it returns `true`
+    /// for any responder in the shared set, not just the specific actor
+    /// who seeded the instance that carries the attack edge. Consumers
+    /// who need strict per-instance attribution should seed distinct
+    /// conclusions for each actor (e.g., `"alice_opposes"` vs
+    /// `"bob_opposes"` rather than a shared `"oppose"` literal).
+    pub fn has_accepted_counter_by(
+        &self,
+        responder: &str,
+        target: &ArgumentId,
+    ) -> Result<bool, Error> {
+        for attacker in self.attackers_of(target) {
+            let asserted_by_responder = self
+                .actors_for(&attacker)
+                .iter()
+                .any(|a| a == responder);
+            if !asserted_by_responder {
+                continue;
+            }
+            if self.is_credulously_accepted(&attacker)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     /// Add a weighted attack edge. Both endpoints are implicitly added
@@ -141,9 +295,20 @@ impl EncounterArgumentationState {
     /// Builder method setting the scene-intensity budget. Returns
     /// `self` by value to allow chaining.
     #[must_use]
-    pub fn at_intensity(mut self, intensity: Budget) -> Self {
-        self.intensity = intensity;
+    pub fn at_intensity(self, intensity: Budget) -> Self {
+        *self.intensity_guard() = intensity;
         self
+    }
+
+    /// Mutate the scene intensity (β) through a shared reference.
+    /// Used by consumers — notably the bridge's `StateAcceptanceEval`
+    /// and `StateActionScorer` — that hold `&self` during encounter's
+    /// `resolve` loops but still want to escalate β mid-scene.
+    ///
+    /// For new-state construction prefer the by-value builder
+    /// [`Self::at_intensity`].
+    pub fn set_intensity(&self, intensity: Budget) {
+        *self.intensity_guard() = intensity;
     }
 
     /// Whether the argument is credulously accepted under the current
@@ -153,7 +318,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_credulously_accepted_at(
             &self.framework,
             arg,
-            self.intensity,
+            self.intensity(),
         )?)
     }
 
@@ -164,7 +329,7 @@ impl EncounterArgumentationState {
         Ok(argumentation_weighted_bipolar::is_skeptically_accepted_at(
             &self.framework,
             arg,
-            self.intensity,
+            self.intensity(),
         )?)
     }
 
@@ -188,6 +353,29 @@ impl EncounterArgumentationState {
             .next()
             .expect("zero-budget residual always includes the empty subset");
         Ok(argumentation_bipolar::detect_coalitions(&bipolar))
+    }
+
+    /// Drain all errors observed by bridge impls whose trait
+    /// signature can't propagate `Result`. Clears the internal
+    /// buffer. Returns an empty `Vec` if no errors occurred since
+    /// the last drain.
+    ///
+    /// Errors are returned in the order they were recorded, so
+    /// the first entry is the first error observed in the current
+    /// drain window.
+    #[must_use]
+    pub fn drain_errors(&self) -> Vec<Error> {
+        std::mem::take(&mut *self.errors_guard())
+    }
+
+    /// Append an error to the internal buffer. Called by bridge impls
+    /// whose trait signature can't propagate `Result`. All recorded
+    /// errors survive until [`Self::drain_errors`] is called, so
+    /// errors from both `StateActionScorer::score_actions` and
+    /// `StateAcceptanceEval::evaluate` within the same beat are
+    /// preserved independently.
+    pub(crate) fn record_error(&self, err: Error) {
+        self.errors_guard().push(err);
     }
 }
 
@@ -413,5 +601,210 @@ mod tests {
         assert!(coalitions.iter().any(|c| c.members.len() == 2
             && c.members.contains(&a)
             && c.members.contains(&b)));
+    }
+
+    #[test]
+    fn set_intensity_mutates_through_shared_ref() {
+        let state = EncounterArgumentationState::new(default_catalog())
+            .at_intensity(Budget::new(0.2).unwrap());
+        assert_eq!(state.intensity().value(), 0.2);
+        // set_intensity takes &self (shared ref). This line must
+        // compile without &mut state.
+        state.set_intensity(Budget::new(0.6).unwrap());
+        assert_eq!(state.intensity().value(), 0.6);
+    }
+
+    #[test]
+    fn intensity_is_mutable_from_two_shared_refs_in_sequence() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        fn bump(s: &EncounterArgumentationState, b: f64) {
+            s.set_intensity(Budget::new(b).unwrap());
+        }
+        bump(&state, 0.3);
+        bump(&state, 0.5);
+        assert_eq!(state.intensity().value(), 0.5);
+    }
+
+    #[test]
+    fn add_scheme_instance_for_affordance_indexes_by_key() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut bindings = std::collections::HashMap::new();
+        bindings.insert("expert".to_string(), "alice".to_string());
+        bindings.insert("domain".to_string(), "military".to_string());
+        bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let instance = scheme.instantiate(&bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &bindings,
+            instance,
+        );
+
+        let key = AffordanceKey::new("alice", "argue_fortify_east", &bindings);
+        let looked_up = state.argument_id_for(&key);
+        assert_eq!(looked_up, Some(id));
+    }
+
+    #[test]
+    fn argument_id_for_returns_none_for_unseeded_key() {
+        let bindings = std::collections::HashMap::new();
+        let state = EncounterArgumentationState::new(default_catalog());
+        let key = AffordanceKey::new("nobody", "nothing", &bindings);
+        assert_eq!(state.argument_id_for(&key), None);
+    }
+
+    #[test]
+    fn add_scheme_instance_for_affordance_is_consistent_with_add_scheme_instance() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut bindings = std::collections::HashMap::new();
+        bindings.insert("expert".to_string(), "alice".to_string());
+        bindings.insert("domain".to_string(), "military".to_string());
+        bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let instance = scheme.instantiate(&bindings).unwrap();
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &bindings,
+            instance,
+        );
+        assert_eq!(state.actors_for(&id), &["alice".to_string()]);
+        assert_eq!(state.instances_for(&id).len(), 1);
+    }
+
+    #[test]
+    fn two_distinct_affordance_keys_with_same_conclusion_point_at_shared_id() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+
+        let mut alice_bindings = std::collections::HashMap::new();
+        alice_bindings.insert("expert".to_string(), "alice".to_string());
+        alice_bindings.insert("domain".to_string(), "military".to_string());
+        alice_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let alice_instance = scheme.instantiate(&alice_bindings).unwrap();
+
+        let mut bob_bindings = std::collections::HashMap::new();
+        bob_bindings.insert("expert".to_string(), "bob".to_string());
+        bob_bindings.insert("domain".to_string(), "logistics".to_string());
+        bob_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let bob_instance = scheme.instantiate(&bob_bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let alice_id = state.add_scheme_instance_for_affordance(
+            "alice",
+            "argue_fortify_east",
+            &alice_bindings,
+            alice_instance,
+        );
+        let bob_id = state.add_scheme_instance_for_affordance(
+            "bob",
+            "second_expert_opinion",
+            &bob_bindings,
+            bob_instance,
+        );
+
+        assert_eq!(alice_id, bob_id, "same conclusion literal → shared ArgumentId");
+        assert_eq!(state.argument_count(), 1);
+
+        let alice_key = AffordanceKey::new("alice", "argue_fortify_east", &alice_bindings);
+        let bob_key = AffordanceKey::new("bob", "second_expert_opinion", &bob_bindings);
+        assert_eq!(state.argument_id_for(&alice_key), Some(alice_id.clone()));
+        assert_eq!(state.argument_id_for(&bob_key), Some(alice_id.clone()));
+
+        assert_eq!(
+            state.actors_for(&alice_id),
+            &["alice".to_string(), "bob".to_string()]
+        );
+    }
+
+    #[test]
+    fn attackers_of_returns_all_direct_attackers() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let target = ArgumentId::new("target");
+        let a1 = ArgumentId::new("a1");
+        let a2 = ArgumentId::new("a2");
+        let unrelated = ArgumentId::new("unrelated");
+        state.add_weighted_attack(&a1, &target, 0.5).unwrap();
+        state.add_weighted_attack(&a2, &target, 0.3).unwrap();
+        state.add_weighted_attack(&unrelated, &ArgumentId::new("x"), 0.5).unwrap();
+        let attackers: std::collections::HashSet<_> =
+            state.attackers_of(&target).into_iter().collect();
+        assert_eq!(attackers.len(), 2);
+        assert!(attackers.contains(&a1));
+        assert!(attackers.contains(&a2));
+    }
+
+    #[test]
+    fn attackers_of_returns_empty_for_unattacked() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        let lonely = ArgumentId::new("lonely");
+        assert!(state.attackers_of(&lonely).is_empty());
+    }
+
+    #[test]
+    fn attackers_of_preserves_duplicate_edges() {
+        let mut state = EncounterArgumentationState::new(default_catalog());
+        let target = ArgumentId::new("target");
+        let a1 = ArgumentId::new("a1");
+        state.add_weighted_attack(&a1, &target, 0.5).unwrap();
+        state.add_weighted_attack(&a1, &target, 0.7).unwrap();
+        assert_eq!(state.attackers_of(&target).len(), 2);
+    }
+
+    #[test]
+    fn has_accepted_counter_by_detects_responder_attacker_at_beta() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let mut target_bindings = std::collections::HashMap::new();
+        target_bindings.insert("expert".to_string(), "alice".to_string());
+        target_bindings.insert("domain".to_string(), "military".to_string());
+        target_bindings.insert("claim".to_string(), "fortify_east".to_string());
+        let target_instance = scheme.instantiate(&target_bindings).unwrap();
+        let mut counter_bindings = std::collections::HashMap::new();
+        counter_bindings.insert("expert".to_string(), "bob".to_string());
+        counter_bindings.insert("domain".to_string(), "logistics".to_string());
+        counter_bindings.insert("claim".to_string(), "abandon_east".to_string());
+        let counter_instance = scheme.instantiate(&counter_bindings).unwrap();
+
+        let mut state = EncounterArgumentationState::new(registry);
+        let target_id = state.add_scheme_instance("alice", target_instance);
+        let counter_id = state.add_scheme_instance("bob", counter_instance);
+        state.add_weighted_attack(&counter_id, &target_id, 0.5).unwrap();
+
+        // At β=0 bob's counter is credulously accepted (unattacked) and
+        // attacks alice's target → has_accepted_counter_by(bob, target)=true,
+        // has_accepted_counter_by(alice, target)=false.
+        assert!(state.has_accepted_counter_by("bob", &target_id).unwrap());
+        assert!(!state.has_accepted_counter_by("alice", &target_id).unwrap());
+    }
+
+    #[test]
+    fn drain_errors_round_trips_stashed_errors() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        assert!(state.drain_errors().is_empty());
+        state.record_error(Error::SchemeNotFound("x".into()));
+        state.record_error(Error::SchemeNotFound("y".into()));
+        let errs = state.drain_errors();
+        assert_eq!(errs.len(), 2);
+        assert!(matches!(&errs[0], Error::SchemeNotFound(s) if s == "x"));
+        assert!(matches!(&errs[1], Error::SchemeNotFound(s) if s == "y"));
+        // Second call: drained.
+        assert!(state.drain_errors().is_empty());
+    }
+
+    #[test]
+    fn state_is_send_and_sync() {
+        // EncounterArgumentationState MUST be Send+Sync so that bridge
+        // impls like StateAcceptanceEval and StateActionScorer satisfy
+        // encounter's AcceptanceEval<P>: Send + Sync / ActionScorer<P>:
+        // Send + Sync trait bounds. This test locks down that contract
+        // at compile time — if a future change reintroduces a !Sync
+        // primitive (e.g. Cell, RefCell, Rc), it will fail here.
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<EncounterArgumentationState>();
     }
 }

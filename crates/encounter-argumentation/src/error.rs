@@ -37,6 +37,18 @@ pub enum Error {
     /// An error propagated from the argumentation-weighted-bipolar layer.
     #[error("weighted-bipolar error: {0}")]
     WeightedBipolar(#[from] argumentation_weighted_bipolar::Error),
+
+    /// An affordance passed to `StateAcceptanceEval` has no `"self"`
+    /// binding, so the bridge cannot identify the proposer. The eval
+    /// defaulted to *accept* for this action. Surfaces via
+    /// [`crate::state::EncounterArgumentationState::drain_errors`].
+    /// Consumers who use a non-`"self"` proposer slot name should wrap
+    /// `StateAcceptanceEval` with a custom implementation.
+    #[error("acceptance eval could not find a 'self' binding on affordance {affordance_name}")]
+    MissingProposerBinding {
+        /// The affordance name with no `"self"` binding.
+        affordance_name: String,
+    },
 }
 
 #[cfg(test)]

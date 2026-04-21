@@ -57,6 +57,7 @@
 //! ```
 
 pub mod acceptance;
+pub mod affordance_key;
 pub mod arg_id;
 pub mod critical_moves;
 /// Error types for encounter-argumentation operations.
@@ -66,9 +67,12 @@ pub mod relationship;
 pub mod resolver;
 pub mod scoring;
 pub mod state;
+pub mod state_acceptance;
+pub mod state_scorer;
 pub mod value_argument;
 
 pub use acceptance::ArgumentAcceptanceEval;
+pub use affordance_key::AffordanceKey;
 pub use arg_id::ArgumentId;
 pub use critical_moves::{cq_to_beat, critical_question_beats};
 pub use error::Error;
@@ -77,6 +81,8 @@ pub use relationship::{RelationshipDims, RelationshipSnapshot, RelationshipWeigh
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
 pub use state::EncounterArgumentationState;
+pub use state_acceptance::StateAcceptanceEval;
+pub use state_scorer::StateActionScorer;
 pub use value_argument::scheme_value_argument;
 
 /// Numeric rank for a scheme strength (higher = stronger).
