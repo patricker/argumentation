@@ -1,0 +1,59 @@
+---
+sidebar_position: 3
+title: Attacks and supports
+---
+
+import AttackGraph from '@site/src/components/AttackGraph';
+
+**An *attack* is a directed edge from one argument to another, saying: "if A holds, B fails." A *support* is its dual: "if A holds, B gains strength."**
+
+Attacks give you contradiction. Supports give you reinforcement. Together they form a **bipolar argumentation framework** — the structure that all semantics operate on.
+
+## Attacks alone (Dung, 1995)
+
+Dung's original paper cared only about attacks. An argument is **acceptable** (roughly) if every argument that attacks it is itself attacked by some argument that survives. Recursion and fixed-points make this interesting:
+
+<AttackGraph
+  title="Simple attack chain"
+  arguments={[
+    {id: 'A', accepted: true},
+    {id: 'B', accepted: false},
+    {id: 'C', accepted: true},
+  ]}
+  attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'C'}]}
+/>
+
+A attacks B; B attacks C. Under the standard (grounded) semantics, A is accepted, C is accepted (because its attacker B is itself attacked), and B is rejected.
+
+## Why supports?
+
+Cayrol & Lagasquie-Schiex (2005) argued that attack alone misses something: two arguments can **reinforce** each other without either being an attack. "Dr. Vance (engineer) says X" and "Dr. Chen (engineer) independently says X" are distinct arguments that **support** the same conclusion.
+
+Supports form the backbone of **coalition detection**: strongly-connected components of the support graph are arguments that stand or fall together.
+
+<AttackGraph
+  title="Mutual support (coalition)"
+  arguments={[
+    {id: 'A'}, {id: 'B'}, {id: 'C'},
+  ]}
+  supports={[
+    {from: 'A', to: 'B'},
+    {from: 'B', to: 'A'},
+  ]}
+  attacks={[{from: 'C', to: 'A'}]}
+/>
+
+A and B mutually support → they are in a coalition. C attacks A, which by the coalition indirectly weakens B too.
+
+## In our library
+
+- [`argumentation_bipolar::BipolarFramework`](/api/) — attacks + supports.
+- [`argumentation_weighted_bipolar::WeightedBipolarFramework`](/api/) — adds edge weights (see the [weighted & β page](/concepts/weighted-and-beta)).
+- [`EncounterArgumentationState::add_weighted_attack`](/api/) / [`add_weighted_support`](/api/) — the consumer-facing API in the encounter bridge.
+- [`EncounterArgumentationState::coalitions`](/api/) — strongly-connected components over the support graph.
+
+## Further reading
+
+- [Dung (1995)](/academic/bibliography#dung1995) — attacks only; the seminal paper.
+- [Cayrol & Lagasquie-Schiex (2005)](/academic/bibliography#cayrol2005) — bipolar frameworks.
+- [Amgoud et al. (2008)](/academic/bibliography#amgoud2008) — "On bipolarity in argumentation frameworks" (survey).
