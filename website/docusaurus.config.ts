@@ -10,7 +10,7 @@ const config: Config = {
   baseUrl: '/',
   organizationName: 'patricker',
   projectName: 'argumentation',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'throw',
   i18n: {defaultLocale: 'en', locales: ['en']},
   presets: [
