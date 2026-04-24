@@ -1,3 +1,0 @@
-# walton-schemes
-
-Coming soon.

@@ -1,0 +1,76 @@
+---
+sidebar_position: 2
+title: Walton schemes
+---
+
+import SchemeCard from '@site/src/components/SchemeCard';
+
+**A Walton scheme is a reusable template of argument — a named pattern of premises and conclusion that people actually use to reason.**
+
+Walton, Reed, and Macagno catalogued about 60 schemes in their 2008 book. Each scheme also carries a list of **critical questions** — the standard ways that argument can be challenged. Our [`argumentation-schemes`](https://crates.io/crates/argumentation-schemes) crate ships instantiable versions of the canon.
+
+## The flagship: argument from expert opinion
+
+<SchemeCard
+  name="Argument from expert opinion"
+  premises={[
+    "Source E is an expert in domain D containing proposition A.",
+    "E asserts that A is true.",
+  ]}
+  conclusion="A is true."
+  criticalQuestions={[
+    "Expertise: How credible is E as an expert source?",
+    "Field: Is E an expert in the field D that A is in?",
+    "Opinion: What did E actually assert about A?",
+    "Trustworthiness: Is E personally reliable as a source?",
+    "Consistency: Is A consistent with what other experts assert?",
+    "Backup: Is E's assertion based on evidence?",
+  ]}
+/>
+
+Instantiate it by binding `expert`, `domain`, and `claim`:
+
+```rust
+use argumentation_schemes::catalog::default_catalog;
+
+let registry = default_catalog();
+let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+let instance = scheme.instantiate(&[
+    ("expert".into(), "Dr. Vance".into()),
+    ("domain".into(), "structural engineering".into()),
+    ("claim".into(), "the bridge is unsafe".into()),
+].into_iter().collect()).unwrap();
+```
+
+## Other flagship schemes
+
+Walton's catalogue is large; a few names you'll recognize:
+
+- **Argument from analogy** — "A and B are similar in respects X, Y, Z; A has property P; therefore B probably has P."
+- **Argument from cause to effect** — "C generally causes E; C happened; therefore E."
+- **Slippery slope** — "A leads to B, B leads to C, …, therefore A leads to something bad."
+- **Ad hominem** — "E says A; E has property X; therefore A is suspect."
+- **Practical reasoning** — "I want goal G; action M achieves G; therefore I should do M."
+
+Each of these has a `SchemeCard` in the [full scheme gallery](/academic/bibliography#walton2008) (planned for a later release). For the MVP we focus on **expert opinion** because it underpins most of the scene examples in this site.
+
+## Critical questions as attack templates
+
+When a responder rejects an assertion, they often do so by picking a critical question. "Expert says the bridge is unsafe" is defeated by any of:
+
+- **Field:** Dr. Vance is a civil engineer, but this bridge is suspension — different discipline. → undermines premise 1.
+- **Consistency:** The other six structural consultants said the bridge was safe. → rebuts the conclusion.
+- **Trustworthiness:** Dr. Vance was paid by the bridge's demolition contractor. → rebuts via source.
+
+In our encounter bridge, rejection in `StateAcceptanceEval` corresponds to "the responder has put forward an argument that (credulously) attacks the proposer's." Critical questions are the *template* for those attacks. See [the encounter integration page](/concepts/encounter-integration) for the wiring.
+
+## In our library
+
+- [`argumentation_schemes::Scheme`](/api/) — the scheme trait.
+- [`argumentation_schemes::catalog::default_catalog()`](/api/) — the bundled 60+ schemes.
+- [`argumentation_schemes::instance::SchemeInstance`](/api/) — an instantiated scheme with bindings.
+
+## Further reading
+
+- Walton, Reed, Macagno (2008) — [the canonical catalogue](/academic/bibliography#walton2008).
+- Walton's [*Fundamentals of Critical Argumentation*](/academic/bibliography#walton2006) for shorter teaching examples.
