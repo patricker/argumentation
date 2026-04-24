@@ -1,54 +1,77 @@
-import type {ReactNode} from 'react';
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
-  description: ReactNode;
+  description: React.JSX.Element;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Auditable scene AI',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Every beat has a receipt: which arguments fired, which attacks bound,
+        which residual produced the acceptance. No black-box LLM hallucinations.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: '60+ Walton schemes out of the box',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Argument from expert opinion, analogy, cause-to-effect, slippery slope —
+        all as composable scheme instances with premises, conclusions, and critical
+        questions.
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'β — scene intensity as a first-class dial',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Tune how strictly attacks bind. Low β = every counter bites (courtroom
+        energy); high β = counters slide off (boardroom cordiality). One knob,
+        radically different scenes.
+      </>
+    ),
+  },
+  {
+    title: 'Trait-inverted encounter bridge',
+    description: (
+      <>
+        <code>StateActionScorer</code> and <code>StateAcceptanceEval</code> plug
+        into any consumer's scene engine through the <code>encounter</code> crate's
+        trait-inverted interface.
+      </>
+    ),
+  },
+  {
+    title: 'Grounded in the canon',
+    description: (
+      <>
+        Implements Dung (1995), Walton-Reed-Macagno (2008), Cayrol &
+        Lagasquie-Schiex (2005), Dunne et al. (2011), Modgil-Prakken ASPIC+ (2014).
+        Every primitive traces back to a paper.
+      </>
+    ),
+  },
+  {
+    title: 'Rust-first, WASM-ready (soon)',
+    description: (
+      <>
+        Workspace of small, composable crates. Zero unsafe. Deterministic by
+        default. A WASM build is on the roadmap for browser-native demos.
       </>
     ),
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, description}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
+      <div className="padding-horiz--md">
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>
       </div>
@@ -56,7 +79,7 @@ function Feature({title, Svg, description}: FeatureItem) {
   );
 }
 
-export default function HomepageFeatures(): ReactNode {
+export default function HomepageFeatures(): React.JSX.Element {
   return (
     <section className={styles.features}>
       <div className="container">
