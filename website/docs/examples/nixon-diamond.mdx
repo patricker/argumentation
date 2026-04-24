@@ -1,3 +1,56 @@
-# nixon-diamond
+---
+sidebar_position: 1
+title: Nixon diamond
+---
 
-Coming soon.
+import AttackGraph from '@site/src/components/AttackGraph';
+
+> "Nixon is anti-pacifist since he is a Republican." / "Nixon is a pacifist since he is a Quaker." — the canonical example for frameworks with multiple extensions, introduced in Dung (1995).
+
+## The setup
+
+Two arguments, each attacking the other. Neither attacks anything else.
+
+<AttackGraph
+  arguments={[
+    {id: 'A', label: 'Republican → not pacifist'},
+    {id: 'B', label: 'Quaker → pacifist'},
+  ]}
+  attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'A'}]}
+/>
+
+## Which sets stand?
+
+- **Grounded extension:** `∅`. Neither A nor B is unconditionally defensible.
+- **Preferred extensions:** `{A}`, `{B}`. Two maximal admissible sets.
+- **Stable extensions:** `{A}`, `{B}`. Each stably defeats the other.
+
+Credulously accepted: both A and B (each is in some preferred).
+Skeptically accepted: neither (neither is in every preferred).
+
+## In code
+
+```rust
+use argumentation::dung::{Framework, grounded};
+
+let mut fw = Framework::new();
+fw.add_argument("A");
+fw.add_argument("B");
+fw.add_attack("A", "B");
+fw.add_attack("B", "A");
+
+let g = grounded(&fw);
+assert!(g.is_empty());  // grounded extension is empty
+
+let prefs = fw.preferred_extensions();
+assert_eq!(prefs.len(), 2);  // two preferred extensions
+```
+
+## Why it matters
+
+The diamond is the smallest case where semantics disagree. It's the argument-theoretic equivalent of "should I believe he flies or doesn't?" — a forced choice. Scene AI designers should notice that diamonds create **indecision**: either branch is equally defensible, so the scene resolution depends on *which* preferred extension you pick. In practice, you'd break the tie by adding a weighted attack, a preference ordering, or β — turning the diamond into a one-sided framework.
+
+## Further reading
+
+- [Dung (1995)](/academic/bibliography#dung1995), Example 6.
+- [Nixon diamond, Wikipedia](https://en.wikipedia.org/wiki/Nixon_diamond).
