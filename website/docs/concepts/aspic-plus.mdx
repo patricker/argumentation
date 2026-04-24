@@ -1,0 +1,42 @@
+---
+sidebar_position: 6
+title: ASPIC+ structured arguments
+---
+
+**ASPIC+ is a framework that builds Dung-style abstract arguments out of *structured* pieces: strict rules, defeasible rules, premises, and an ordering over them.**
+
+Dung (1995) took arguments as atomic — you have them, they attack each other, you find extensions. ASPIC+ (Modgil & Prakken, 2014) says: let's look inside each argument. An argument is a derivation from premises via strict or defeasible rules. Attacks come in three flavors:
+
+- **Rebutting** — attack the conclusion. "Your argument concludes *fly*; mine concludes *not fly*."
+- **Undermining** — attack a premise. "Your argument assumes *Tweety is a bird*; I deny that."
+- **Undercutting** — attack a defeasible rule. "Your argument uses *birds generally fly*; I argue the rule doesn't apply here."
+
+## The penguin example
+
+The canonical ASPIC+ example (also Tweety; see [Modgil & Prakken (2014)](/academic/bibliography#modgil2014)):
+
+- Strict: *penguins are birds*.
+- Defeasible: *birds generally fly*.
+- Defeasible: *penguins generally don't fly*.
+- Premise: *Tweety is a penguin*.
+
+Build argument A₁: Tweety → bird (strict) → flies (defeasible, birds-fly rule).
+Build argument A₂: Tweety → penguin → doesn't fly (defeasible, penguins-don't-fly rule).
+
+A₁ and A₂ rebut each other. The **preference ordering** (more specific rules beat more general) tells you A₂ wins. The resulting abstract framework has A₂ accepted, A₁ rejected.
+
+## Why our library doesn't force ASPIC+
+
+We support ASPIC+ as a formalism but **don't require it**. In many practical scenes the rule structure is implicit — a scheme instance has premises and a conclusion, and attacks come from schemes attacking schemes. ASPIC+ shines when you need to audit *which rule* got undercut, which the structured view exposes cleanly.
+
+For a full ASPIC+ walkthrough, see [Modgil & Prakken's tutorial](/academic/bibliography#modgil2014) — it is the friendliest entry point to the formalism.
+
+## In our library
+
+- [`argumentation::aspic`](/api/) — structured arguments, strict/defeasible rules, preferences.
+- [`argumentation::dung`](/api/) — the abstract layer ASPIC+ reduces to.
+
+## Further reading
+
+- [Modgil & Prakken (2014)](/academic/bibliography#modgil2014) — *The ASPIC+ framework for structured argumentation: a tutorial*.
+- [Prakken (2010)](/academic/bibliography#prakken2010) — the original ASPIC+ paper.

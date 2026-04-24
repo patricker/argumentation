@@ -1,3 +1,0 @@
-# aspic-plus
-
-Coming soon.
