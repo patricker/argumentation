@@ -1,0 +1,51 @@
+---
+sidebar_position: 1
+title: What is argumentation?
+---
+
+import AttackGraph from '@site/src/components/AttackGraph';
+
+**Formal argumentation is the study of how arguments attack and support each other, and which sets of arguments can stand together without contradicting themselves.**
+
+It sounds abstract, but it's the formal machinery behind auditable reasoning. When a courtroom jury decides which testimony to believe, or when a scientific review board weighs competing studies, they're doing argumentation informally. Formal argumentation gives you primitives — *argument*, *attack*, *support*, *acceptance* — that a computer can reason about.
+
+## Why it matters for scene AI
+
+Most AI scene generation today hands the steering wheel to a language model: prompt it with the setup, let it hallucinate beats. The results can be fluent, but the reasoning is opaque. Why did the villain concede? Why did the witness break down? The answer is "the LLM decided," which is neither auditable nor reproducible.
+
+Formal argumentation replaces the hallucination with a graph and a semantics. Every beat has a receipt:
+
+- Which arguments were asserted by whom.
+- Which attacks bound under the current scene tension.
+- Which acceptance semantics the beat outcome came from.
+
+You can replay the scene deterministically. You can tune one parameter (β, scene intensity) and watch the beats change in an explainable way. You can mix argumentation with LLM-generated surface prose — argumentation gives you the skeleton, the LLM gives you the dialogue.
+
+## The smallest example
+
+Two arguments that attack each other — the [Nixon diamond](/examples/nixon-diamond):
+
+<AttackGraph
+  title="Nixon diamond"
+  arguments={[
+    {id: 'A', label: 'Republican\n→ not pacifist'},
+    {id: 'B', label: 'Quaker\n→ pacifist'},
+  ]}
+  attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'A'}]}
+  height={260}
+/>
+
+Neither argument "wins" in isolation. Dung's acceptance semantics tell you which subsets of these arguments can coherently stand together — in this case, either-or, but not both. The canonical examples page walks through this in detail.
+
+## In our library
+
+- `argumentation` — the core Dung + ASPIC+ implementation.
+- `argumentation-bipolar` — attack + support graph structure.
+- `argumentation-weighted` — edge weights and β-budgets.
+- `argumentation-weighted-bipolar` — the composition of the two.
+- `argumentation-schemes` — Walton's 60+ presumptive argument schemes.
+- `encounter-argumentation` — the bridge into scene AI via the [`encounter`](https://github.com/patricker/encounter) crate.
+
+## Further reading
+
+Start with [Dung (1995)](/academic/bibliography#dung1995), the paper that founded the field. Then [Walton, Reed & Macagno (2008)](/academic/bibliography#walton2008) for schemes. See [the reading order](/academic/reading-order) for a full curriculum.

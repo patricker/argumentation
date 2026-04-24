@@ -1,0 +1,37 @@
+---
+sidebar_position: 2
+title: Courtroom (snoring witness)
+---
+
+import SchemeCard from '@site/src/components/SchemeCard';
+
+> Bob testifies that he saw the defendant at the scene. Alice argues Bob was asleep at the time and could not have seen anything.
+
+A compact illustration of **undercutting** — attacking a premise rather than a conclusion. Adapted from Modgil & Prakken's ASPIC+ tutorial.
+
+## The arguments
+
+Alice's argument undercuts Bob's source-credibility premise (not Bob's conclusion). If Bob was asleep, Bob cannot be a witness; his testimony provides no evidence either way. This is different from rebutting Bob — Alice isn't claiming the defendant *wasn't* at the scene, she's claiming Bob's evidence is void.
+
+## The scheme
+
+<SchemeCard
+  name="Argument from witness testimony"
+  premises={[
+    "W was in position to observe E.",
+    "W asserts having observed E.",
+  ]}
+  conclusion="E happened."
+  criticalQuestions={[
+    "Was W actually in position to observe (awake, unobstructed, etc.)?",
+    "Is W a reliable source (honest, no motive to lie)?",
+    "Is W's recollection consistent with other testimony?",
+  ]}
+/>
+
+Alice's challenge keys on the first critical question. If the framework accepts "Bob was asleep at the time" as credulously accepted, then the premise-attacker wins and Bob's testimony is undercut.
+
+## Further reading
+
+- [Bex, Prakken, Reed, Walton (2003)](/academic/bibliography#bex2003) — argumentation in legal/forensic reasoning.
+- [Modgil & Prakken (2014)](/academic/bibliography#modgil2014) — undercutting in ASPIC+.

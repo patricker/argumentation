@@ -1,0 +1,5 @@
+{
+  "label": "Reference",
+  "position": 5,
+  "link": {"type": "generated-index", "description": "Curated overview of the key types and methods. Full API is in the rustdoc link."}
+}

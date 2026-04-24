@@ -1,0 +1,46 @@
+---
+sidebar_position: 2
+title: Hal & Carla
+---
+
+import AttackGraph from '@site/src/components/AttackGraph';
+
+> Hal, a diabetic, loses his insulin. Before collapsing, he enters Carla's house and uses some of her insulin. Carla is another diabetic, not home. Should Hal be punished?
+
+— Trevor Bench-Capon, introducing **value-based argumentation frameworks** (2003). This is the field's most-cited worked example for reasoning about values.
+
+## The arguments
+
+<AttackGraph
+  arguments={[
+    {id: 'H1', label: 'Hal: life > property'},
+    {id: 'C1', label: 'Carla: property rights'},
+    {id: 'H2', label: 'Hal: too poor to compensate'},
+    {id: 'C2', label: 'Carla: he endangered me (my only dose)'},
+  ]}
+  attacks={[
+    {from: 'C1', to: 'H1'},
+    {from: 'H1', to: 'C1'},
+    {from: 'C2', to: 'H2'},
+    {from: 'H2', to: 'C1'},
+  ]}
+  height={320}
+/>
+
+## Why values matter
+
+Pure Dung semantics can't resolve this — symmetric attacks give you multiple extensions. But you can attach **values** to arguments: H1 promotes *life*, C1 promotes *property*. Different audiences with different value orderings reach different stable positions *rationally*:
+
+- An audience that ranks life > property → H1 accepted, C1 rejected.
+- An audience that ranks property > life → the opposite.
+
+Bench-Capon's VAF framework is the machinery that makes "different audiences, same framework, different conclusions" formally precise.
+
+## In our library
+
+Value-based argumentation is on the roadmap for a future crate (`argumentation-values`). Currently our [`argumentation-schemes`](/api/) supports a related mechanism: `PracticalReasoning` schemes carry a value dimension in their bindings, and `encounter-argumentation`'s `StateActionScorer` can be composed with a value-aware inner scorer to produce audience-conditioned outcomes.
+
+## Further reading
+
+- [Bench-Capon (2003)](/academic/bibliography#benchcapon2003) — value-based argumentation frameworks.
+- [Atkinson & Bench-Capon (2007)](/academic/bibliography#atkinson2007) — practical reasoning over VAFs.

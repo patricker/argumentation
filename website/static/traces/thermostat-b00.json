@@ -1,0 +1,50 @@
+{
+  "scene_name": "thermostat",
+  "beta": 0.0,
+  "participants": [
+    "alice",
+    "bob"
+  ],
+  "seeded_arguments": [
+    {
+      "actor": "alice",
+      "affordance_name": "argue_fortify_east",
+      "conclusion": "fortify_east"
+    },
+    {
+      "actor": "bob",
+      "affordance_name": "argue_abandon_east",
+      "conclusion": "abandon_east"
+    }
+  ],
+  "attacks": [
+    {
+      "attacker": "abandon_east",
+      "target": "fortify_east",
+      "weight": 0.4
+    }
+  ],
+  "beats": [
+    {
+      "actor": "alice",
+      "action": "argue_abandon_east",
+      "accepted": true
+    },
+    {
+      "actor": "bob",
+      "action": "argue_abandon_east",
+      "accepted": true
+    },
+    {
+      "actor": "alice",
+      "action": "argue_abandon_east",
+      "accepted": true
+    },
+    {
+      "actor": "bob",
+      "action": "argue_abandon_east",
+      "accepted": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,37 @@
+.card {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  background: var(--ifm-background-surface-color);
+}
+
+.header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  background: var(--ifm-color-primary-darker);
+  color: #fff;
+}
+
+.body { padding: 1rem; }
+.section { margin-bottom: 1rem; }
+.section:last-child { margin-bottom: 0; }
+.label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-600);
+  margin-bottom: 0.25rem;
+}
+.list { margin: 0; padding-left: 1.25rem; }
+.conclusion { font-weight: 600; font-size: 1.05rem; }
+.cqToggle {
+  background: none;
+  border: none;
+  color: var(--ifm-color-primary);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.cqToggle:hover { text-decoration: underline; }
