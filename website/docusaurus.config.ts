@@ -7,6 +7,8 @@ const config: Config = {
   tagline: 'Formal argumentation for scene AI — auditable reasoning, interpretable beats',
   favicon: 'img/favicon.svg',
   url: 'https://argumentation.dev',
+  // If deploying to https://<org>.github.io/argumentation/ instead of a
+  // custom domain, change baseUrl to '/argumentation/'.
   baseUrl: '/',
   organizationName: 'patricker',
   projectName: 'argumentation',
