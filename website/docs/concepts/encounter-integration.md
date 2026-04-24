@@ -1,3 +1,0 @@
-# encounter-integration
-
-Coming soon.

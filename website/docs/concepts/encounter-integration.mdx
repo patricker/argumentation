@@ -1,0 +1,47 @@
+---
+sidebar_position: 7
+title: Encounter integration
+---
+
+**The `encounter-argumentation` crate bridges formal argumentation into a trait-inverted scene engine.** It is the reason this library exists: to turn the research corpus into a production-ready building block for auditable scene AI.
+
+## The two-question architecture
+
+Scene engines like [`encounter`](https://github.com/patricker/encounter) are trait-inverted — they don't know how to score actions or decide acceptance. They delegate via traits:
+
+- `ActionScorer<P>::score_actions` — how much does actor X want to take action Y right now?
+- `AcceptanceEval<P>::evaluate` — does the responder accept Y's proposal?
+
+Our bridge provides one impl of each:
+
+- [`StateActionScorer<'a, S>`](/api/) wraps any inner scorer and **boosts** affordances whose backing argument is credulously accepted at current β. Proposer-side salience.
+- [`StateAcceptanceEval<'a>`](/api/) **rejects** when the responder has put forward a credulously-accepted counter-argument. Responder-side gate.
+
+These ask genuinely different questions. The scorer is "what's in the proposer's vocabulary right now?" — a global-β credulous check. The eval is "does the responder have ammunition?" — a per-responder check using [`has_accepted_counter_by`](/api/).
+
+## Lifecycle
+
+1. Build an [`EncounterArgumentationState`](/api/) with your scheme catalog.
+2. Set β via [`set_intensity`](/api/).
+3. For each (actor, affordance) pair in the scene, call [`add_scheme_instance_for_affordance`](/api/) — this seeds the forward index that the bridge uses at resolve time.
+4. Construct a `StateActionScorer` and `StateAcceptanceEval`, both borrowing the state.
+5. Hand them to `encounter::resolution::MultiBeat::resolve` (or `SingleExchange`).
+6. After resolve returns, call [`drain_errors`](/api/) to collect any latched errors.
+
+See the [first-scene guide](/getting-started/first-scene) for a complete worked example.
+
+## Why the error latch?
+
+Bridge traits return `bool`, not `Result<bool, Error>`. If `has_accepted_counter_by` fails internally (e.g., framework exceeds the weighted-bipolar enumeration limit), we default to **accept** — permissive — and **append** the error to a per-state buffer. Consumers drain via `drain_errors()` after the scene. This keeps scenes flowing even under internal failure, and exposes failures on the normal drain path.
+
+A common latch entry is [`Error::MissingProposerBinding`](/api/): the bridge uses `"self"` as the proposer slot by convention, and will surface this error when an affordance's bindings don't contain one.
+
+## Zero `encounter` changes
+
+The bridge was designed with the constraint that the sibling `encounter` crate could not be modified. Every Phase B feature — forward index, β dial, error latch — lives on our side of the trait boundary. That meant some interesting workarounds: `Sync` is required by encounter's trait bounds, so our state uses `Mutex<Budget>` and `Mutex<Vec<Error>>` internally (see the [plan doc](https://github.com/patricker/argumentation/blob/main/docs/superpowers/plans/2026-04-20-phase-b-state-scorer-bridge.md) for the full story).
+
+## Further reading
+
+- [encounter crate docs](https://docs.rs/encounter) — the scene engine.
+- [Our Phase B plan](https://github.com/patricker/argumentation/blob/main/docs/superpowers/plans/2026-04-20-phase-b-state-scorer-bridge.md) — the architectural walkthrough.
+- [First scene guide](/getting-started/first-scene) — practical walkthrough.
