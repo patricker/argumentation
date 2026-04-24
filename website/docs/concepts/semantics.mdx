@@ -1,0 +1,50 @@
+---
+sidebar_position: 4
+title: Acceptance semantics
+---
+
+import AttackGraph from '@site/src/components/AttackGraph';
+
+**An acceptance semantics is a rule for deciding which subsets of arguments in a framework can coherently "stand together."** Dung's original paper defined four main ones; we'll walk through them with examples.
+
+## The building blocks
+
+- **Conflict-free set** — no argument in the set attacks another in the set.
+- **Admissible set** — conflict-free AND defends itself: every attacker of a member is itself attacked by some member.
+- **Complete extension** — an admissible set that contains every argument it defends. (The minimum complete extension is the **grounded extension**; maximum complete extensions are **preferred**.)
+- **Stable extension** — a conflict-free set that attacks every argument outside it.
+
+## Credulous vs skeptical
+
+- **Credulously accepted** — the argument is in **at least one** preferred extension.
+- **Skeptically accepted** — the argument is in **every** preferred extension.
+
+Skeptical is strictly stronger than credulous. Our library exposes both via [`EncounterArgumentationState::is_credulously_accepted`](/api/) and [`is_skeptically_accepted`](/api/).
+
+## When they diverge
+
+Most of the time, all four semantics (grounded / preferred / stable / complete) agree on which arguments are accepted. The **Nixon diamond** is the canonical case where they diverge:
+
+<AttackGraph
+  title="Nixon diamond"
+  arguments={[{id: 'A', label: 'Republican'}, {id: 'B', label: 'Quaker'}]}
+  attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'A'}]}
+/>
+
+- Grounded: `{}` (no argument is "unconditionally acceptable").
+- Preferred: `{A}` and `{B}` (two maximal admissible sets).
+- Stable: `{A}` and `{B}` (both are stable).
+- Complete: `{}`, `{A}`, `{B}`.
+
+Credulous acceptance holds for both A and B (each is in some preferred extension). Skeptical acceptance holds for neither (neither is in every preferred extension).
+
+## Why we care in scene AI
+
+Credulous acceptance is a natural fit for "is this claim live right now?" A beat can proceed as long as the proposer's argument is credulously accepted at the current β. Skeptical acceptance is too strict — it would stall scenes the moment any counter-argument exists.
+
+Our bridge's [`StateActionScorer`](/api/) boosts affordances whose argument is credulously accepted; [`StateAcceptanceEval`](/api/) rejects only when the responder has put forward a credulously-accepted counter.
+
+## Further reading
+
+- [Dung (1995)](/academic/bibliography#dung1995) — definitive.
+- [Baroni, Caminada, Giacomin (2011)](/academic/bibliography#baroni2011) — a survey of semantics beyond the original four.
