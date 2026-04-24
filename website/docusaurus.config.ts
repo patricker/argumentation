@@ -2,97 +2,46 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
-// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
-
 const config: Config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
-  favicon: 'img/favicon.ico',
-
-  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
-  future: {
-    v4: true, // Improve compatibility with the upcoming Docusaurus v4
-  },
-
-  // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
+  title: 'argumentation.dev',
+  tagline: 'Formal argumentation for scene AI — auditable reasoning, interpretable beats',
+  favicon: 'img/favicon.svg',
+  url: 'https://argumentation.dev',
   baseUrl: '/',
-
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
-
+  organizationName: 'patricker',
+  projectName: 'argumentation',
   onBrokenLinks: 'throw',
-
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
-  i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
-  },
-
+  onBrokenMarkdownLinks: 'throw',
+  i18n: {defaultLocale: 'en', locales: ['en']},
   presets: [
     [
       'classic',
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: 'https://github.com/patricker/argumentation/tree/main/website/',
+          routeBasePath: '/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
-        theme: {
-          customCss: './src/css/custom.css',
-        },
+        blog: false,
+        theme: {customCss: './src/css/custom.css'},
       } satisfies Preset.Options,
     ],
   ],
-
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
-    colorMode: {
-      respectPrefersColorScheme: true,
-    },
+    image: 'img/social-card.png',
+    colorMode: {defaultMode: 'dark', respectPrefersColorScheme: true},
     navbar: {
-      title: 'My Site',
-      logo: {
-        alt: 'My Site Logo',
-        src: 'img/logo.svg',
-      },
+      title: 'argumentation.dev',
+      logo: {alt: 'argumentation.dev logo', src: 'img/logo.svg'},
       items: [
-        {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'Tutorial',
-        },
-        {to: '/blog', label: 'Blog', position: 'left'},
-        {
-          href: 'https://github.com/facebook/docusaurus',
-          label: 'GitHub',
-          position: 'right',
-        },
+        {type: 'docSidebar', sidebarId: 'gettingStartedSidebar', label: 'Getting Started', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'conceptsSidebar', label: 'Concepts', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'examplesSidebar', label: 'Examples', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'guidesSidebar', label: 'Guides', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'referenceSidebar', label: 'Reference', position: 'left'},
+        {type: 'docSidebar', sidebarId: 'academicSidebar', label: 'Academic', position: 'left'},
+        {href: '/api/', label: 'Rustdoc', position: 'right'},
+        {href: 'https://github.com/patricker/argumentation', label: 'GitHub', position: 'right'},
       ],
     },
     footer: {
@@ -101,48 +50,34 @@ const config: Config = {
         {
           title: 'Docs',
           items: [
-            {
-              label: 'Tutorial',
-              to: '/docs/intro',
-            },
+            {label: 'Getting Started', to: '/getting-started/first-scene'},
+            {label: 'Concepts', to: '/concepts/what-is-argumentation'},
+            {label: 'Examples', to: '/examples/thermostat'},
+            {label: 'Guides', to: '/guides/installation'},
+            {label: 'Reference', to: '/reference/overview'},
           ],
         },
         {
-          title: 'Community',
+          title: 'Academic',
           items: [
-            {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-            },
-            {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/docusaurus',
-            },
+            {label: 'Bibliography', to: '/academic/bibliography'},
+            {label: 'Reading order', to: '/academic/reading-order'},
           ],
         },
         {
-          title: 'More',
+          title: 'Project',
           items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
-            },
+            {label: 'GitHub', href: 'https://github.com/patricker/argumentation'},
+            {label: 'Crates.io', href: 'https://crates.io/crates/argumentation'},
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `MIT / Apache-2.0 dual licensed. Built on the shoulders of Dung, Walton, and the whole argumentation community.`,
     },
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['rust', 'toml', 'bash'],
     },
   } satisfies Preset.ThemeConfig,
 };
