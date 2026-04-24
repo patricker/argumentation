@@ -1,0 +1,58 @@
+---
+sidebar_position: 5
+title: Weighted frameworks and β
+---
+
+import BetaSlider from '@site/src/components/BetaSlider';
+
+**Weighted argumentation assigns a real-valued strength to each attack. A *budget* β lets you drop attacks whose total weight fits in the budget — turning acceptance from a binary question into a continuous one.**
+
+Introduced by Dunne, Hunter, McBurney, Parsons & Wooldridge (2011), weighted argument systems are the mechanism that lets scene tension modulate outcome. In our bridge, β is the **scene intensity** dial.
+
+## The semantic chain
+
+1. A framework has attacks with weights `w(a, b) > 0`.
+2. Given a budget β, you consider all *residuals* — frameworks obtained by dropping some subset of attacks whose total cost ≤ β.
+3. An argument is **credulously accepted at β** if it is credulously accepted in at least one such residual.
+
+At β = 0 you can drop nothing (equivalent to ordinary Dung semantics). At β large enough to cover every attack, every non-self-attacking argument becomes acceptable.
+
+The boundary is **inclusive**: attacks whose weight exactly equals β are droppable.
+
+## As scene intensity
+
+Think of β as how much the scene can "let slide":
+
+- **β = 0.0** — every counter bites. Tense courtroom energy.
+- **β = 0.4** — mid-range; some counters survive, some are waved off.
+- **β = 1.0** — counters slide off; amicable boardroom cordiality.
+
+Here's the marquee demo (the [thermostat scene](/examples/thermostat)) at four discrete β values:
+
+<BetaSlider
+  title="Thermostat scene across β"
+  tracePaths={[
+    {beta: 0.0, path: '/traces/thermostat-b00.json'},
+    {beta: 0.4, path: '/traces/thermostat-b04.json'},
+    {beta: 0.5, path: '/traces/thermostat-b05.json'},
+    {beta: 1.0, path: '/traces/thermostat-b10.json'},
+  ]}
+/>
+
+Drag the slider. At β = 0 both characters accept everything (no attacks survive the budget check below zero — so neither argument is credulous, no boost fires, both fall back to the same action and accept each other). At β = 0.4 and above, alice's argument becomes credulous — the scorer boosts it, she switches to her signature action, and bob rejects with his accepted counter.
+
+## Weighted support (bipolar)
+
+Supports can also carry weights. They don't consume budget — they reinforce the supported argument in the weighted-bipolar semantics of [argumentation-weighted-bipolar](/api/).
+
+## In our library
+
+- [`argumentation_weighted::types::Budget`](/api/) — a validated β value in [0, 1].
+- [`argumentation_weighted_bipolar::WeightedBipolarFramework`](/api/) — the underlying graph.
+- [`EncounterArgumentationState::set_intensity`](/api/) — set β mid-scene through a shared reference.
+- [`EncounterArgumentationState::is_credulously_accepted`](/api/) — acceptance at current β.
+
+## Further reading
+
+- [Dunne, Hunter, McBurney, Parsons, Wooldridge (2011)](/academic/bibliography#dunne2011) — weighted argument systems.
+- [Amgoud, Ben-Naim (2016)](/academic/bibliography#amgoud2016) — graded semantics in weighted frameworks.
