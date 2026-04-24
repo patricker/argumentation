@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'argumentation.dev',
   tagline: 'Formal argumentation for scene AI — auditable reasoning, interpretable beats',
-  favicon: 'img/favicon.svg',
+  favicon: 'img/favicon.ico',
   url: 'https://argumentation.dev',
   // If deploying to https://<org>.github.io/argumentation/ instead of a
   // custom domain, change baseUrl to '/argumentation/'.

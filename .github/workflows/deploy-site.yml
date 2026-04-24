@@ -20,6 +20,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout sibling encounter repo
+        uses: actions/checkout@v4
+        with:
+          repository: patricker/encounter
+          path: encounter-sibling
+          ref: main
+
+      - name: Stage sibling repo for path-dep resolution
+        run: |
+          # Path deps in argumentation/crates/... use ../../../encounter,
+          # which resolves to the parent of this repo's root. Move the
+          # sibling checkout there.
+          mv encounter-sibling ../encounter
+          ls -la ../encounter
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 

@@ -152,6 +152,7 @@ fn trace_thermostat(beta: f64) -> Trace {
         duration_policy: DurationPolicy::MultiBeat { max_beats: 4 },
         entry_condition_source: String::new(),
     };
+    // 0.5 is the scorer boost magnitude, independent of scene β (set via set_intensity above).
     let scorer = StateActionScorer::new(&state, UniformScorer, 0.5);
     let acceptance = StateAcceptanceEval::new(&state);
     let participants = vec!["alice".into(), "bob".into()];

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styles from './styles.module.css';
 import SceneTrace, {type Trace} from '../SceneTrace';
 
@@ -10,15 +10,23 @@ type Props = {
 export default function BetaSlider({tracePaths, title}: Props) {
   const [idx, setIdx] = useState(0);
   const [traces, setTraces] = useState<Record<number, Trace>>({});
+  const inFlight = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     tracePaths.forEach(tp => {
-      if (traces[tp.beta]) return;
-      fetch(tp.path).then(r => r.json()).then(json => {
-        setTraces(prev => ({...prev, [tp.beta]: json}));
-      });
+      if (traces[tp.beta] || inFlight.current.has(tp.beta)) return;
+      inFlight.current.add(tp.beta);
+      fetch(tp.path)
+        .then(r => r.json())
+        .then(json => {
+          setTraces(prev => ({...prev, [tp.beta]: json}));
+        })
+        .finally(() => {
+          inFlight.current.delete(tp.beta);
+        });
     });
-  }, [tracePaths]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracePaths.map(tp => tp.path).join('|')]);
 
   const current = tracePaths[idx];
   const trace = traces[current?.beta];
