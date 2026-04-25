@@ -53,10 +53,11 @@ pub struct EncounterArgumentationState {
 impl EncounterArgumentationState {
     /// Create a new state with the given scheme registry and zero
     /// scene intensity. Consumers that want relationship-modulated
-    /// attack weights should construct a `RelationshipWeightSource`
-    /// separately and pass its computed weights into
-    /// [`add_weighted_attack`](Self::add_weighted_attack); Phase A
-    /// does not auto-wire the source into the state.
+    /// attack weights should construct a [`crate::societas_relationship::SocietasRelationshipSource`]
+    /// over a societas-relations registry and store, then pass its
+    /// computed weights into
+    /// [`add_weighted_attack`](Self::add_weighted_attack); the state
+    /// does not auto-wire the source.
     #[must_use]
     pub fn new(registry: CatalogRegistry) -> Self {
         Self {

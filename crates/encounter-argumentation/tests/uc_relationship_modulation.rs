@@ -11,7 +11,7 @@
 use argumentation_schemes::catalog::default_catalog;
 use argumentation_weighted::{types::Budget, WeightSource};
 use encounter_argumentation::{
-    ArgumentId, EncounterArgumentationState, SocietasRelationshipSource,
+    ArgumentId, EncounterArgumentationState, SocietasRelationshipSource, TRUST_COEF,
 };
 use societas_core::{EntityId, ModifierSource, Tick};
 use societas_memory::MemStore;
@@ -89,9 +89,10 @@ fn high_trust_reduces_effective_attack_weight() {
     );
 
     let w = source.weight_for(&bob_id, &alice_id).unwrap();
+    let expected = (0.5_f64 + TRUST_COEF).clamp(0.0, 1.0);
     assert!(
-        w < 0.5,
-        "bob→alice with high trust should produce sub-baseline weight, got {w}"
+        (w - expected).abs() < 1e-9,
+        "bob→alice with Trust=1.0 should produce 0.5 + TRUST_COEF = {expected}, got {w}"
     );
 
     // Reverse direction: alice has no trust recorded of bob → baseline.

@@ -82,12 +82,22 @@ for coalition in state.coalitions().unwrap() {
 }
 ```
 
-### Relationship modulation (Phase-A stub)
+### Relationship modulation (Phase C)
 
-`RelationshipWeightSource` provides a default mapping from relationship
-dimensions (trust, fear, respect, attraction, friendship) to attack
-weights. Phase A ships a placeholder `RelationshipSnapshot` type; Phase
-C will replace it with a societas adapter.
+`SocietasRelationshipSource` reads relationship dimensions (trust,
+fear, respect, attraction, friendship) from a live `societas-relations`
+registry and `SocialStore`, applies a coefficient recipe (see public
+`*_COEF` constants), and returns a per-edge attack weight. Pass the
+computed weight into
+[`add_weighted_attack`](crate::EncounterArgumentationState::add_weighted_attack)
+to wire it into the framework.
+
+The adapter resolves an `ArgumentId` to its asserting actor(s) via
+[`actors_by_argument()`](crate::EncounterArgumentationState::actors_by_argument)
+and a pluggable
+[`NameResolver`](crate::NameResolver) (a blanket impl is provided for
+`HashMap<String, EntityId>`). Multi-actor arguments are aggregated by
+arithmetic mean; unresolvable names are skipped.
 
 ## Architecture
 
