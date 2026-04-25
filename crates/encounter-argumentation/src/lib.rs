@@ -63,9 +63,10 @@ pub mod critical_moves;
 /// Error types for encounter-argumentation operations.
 pub mod error;
 pub mod knowledge;
-pub mod relationship;
+pub mod name_resolver;
 pub mod resolver;
 pub mod scoring;
+pub mod societas_relationship;
 pub mod state;
 pub mod state_acceptance;
 pub mod state_scorer;
@@ -77,9 +78,13 @@ pub use arg_id::ArgumentId;
 pub use critical_moves::{cq_to_beat, critical_question_beats};
 pub use error::Error;
 pub use knowledge::{ArgumentKnowledge, ArgumentPosition, StaticKnowledge};
-pub use relationship::{RelationshipDims, RelationshipSnapshot, RelationshipWeightSource};
+pub use name_resolver::NameResolver;
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
+pub use societas_relationship::{
+    ATTRACTION_COEF, BASELINE_WEIGHT, FEAR_COEF, FRIENDSHIP_COEF, RESPECT_COEF, TRUST_COEF,
+    SocietasRelationshipSource,
+};
 pub use state::EncounterArgumentationState;
 pub use state_acceptance::StateAcceptanceEval;
 pub use state_scorer::StateActionScorer;

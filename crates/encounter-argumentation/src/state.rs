@@ -53,10 +53,11 @@ pub struct EncounterArgumentationState {
 impl EncounterArgumentationState {
     /// Create a new state with the given scheme registry and zero
     /// scene intensity. Consumers that want relationship-modulated
-    /// attack weights should construct a `RelationshipWeightSource`
-    /// separately and pass its computed weights into
-    /// [`add_weighted_attack`](Self::add_weighted_attack); Phase A
-    /// does not auto-wire the source into the state.
+    /// attack weights should construct a [`crate::societas_relationship::SocietasRelationshipSource`]
+    /// over a societas-relations registry and store, then pass its
+    /// computed weights into
+    /// [`add_weighted_attack`](Self::add_weighted_attack); the state
+    /// does not auto-wire the source.
     #[must_use]
     pub fn new(registry: CatalogRegistry) -> Self {
         Self {
@@ -183,6 +184,16 @@ impl EncounterArgumentationState {
             .get(id)
             .map(Vec::as_slice)
             .unwrap_or(&[])
+    }
+
+    /// Read-only access to the actor-per-argument map. Used by
+    /// bridge weight sources (notably
+    /// [`crate::societas_relationship::SocietasRelationshipSource`])
+    /// to resolve an [`ArgumentId`] back to the actors whose
+    /// asserted schemes produce that conclusion.
+    #[must_use]
+    pub fn actors_by_argument(&self) -> &HashMap<ArgumentId, Vec<String>> {
+        &self.actors_by_argument
     }
 
     /// Return the list of scheme instances backing the given argument.
@@ -794,6 +805,34 @@ mod tests {
         assert!(matches!(&errs[1], Error::SchemeNotFound(s) if s == "y"));
         // Second call: drained.
         assert!(state.drain_errors().is_empty());
+    }
+
+    #[test]
+    fn actors_by_argument_exposes_actor_map() {
+        let registry = default_catalog();
+        let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
+        let instance = scheme
+            .instantiate(
+                &[
+                    ("expert".to_string(), "alice".to_string()),
+                    ("domain".to_string(), "military".to_string()),
+                    ("claim".to_string(), "fortify_east".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap();
+        let mut state = EncounterArgumentationState::new(registry);
+        let id = state.add_scheme_instance("alice", instance);
+        let map = state.actors_by_argument();
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get(&id), Some(&vec!["alice".to_string()]));
+    }
+
+    #[test]
+    fn actors_by_argument_is_empty_on_new_state() {
+        let state = EncounterArgumentationState::new(default_catalog());
+        assert!(state.actors_by_argument().is_empty());
     }
 
     #[test]
