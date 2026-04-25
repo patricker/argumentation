@@ -9,7 +9,7 @@ mod framework;
 mod weighted;
 
 pub use framework::WasmFramework;
-// pub use weighted::WasmWeightedFramework; // populated in Task 6
+pub use weighted::WasmWeightedFramework;
 
 /// Install a panic hook that pipes Rust panics to `console.error`.
 /// Called once on first construction; idempotent.
