@@ -3,28 +3,30 @@ sidebar_position: 1
 title: The thermostat
 ---
 
-import AttackGraph from '@site/src/components/AttackGraph';
+import BetaPlayground from '@site/src/components/BetaPlayground';
 import BetaSlider from '@site/src/components/BetaSlider';
 
 > Two roommates argue about the thermostat. Alice wants 72°F; Bob wants 68°F. We model the disagreement as a single scene with two arguments and a weighted attack, then watch how the outcome changes as we move β — the scene's intensity dial.
 
 A worked example for the `encounter-argumentation` bridge: a scene where both parties have a valid argument, the arguments attack each other, and the framework decides the outcome based on β.
 
-## The seeded framework
+## Drag β to see the scene flip
 
-<AttackGraph
-  title="Thermostat scene — seeded arguments"
-  arguments={[
+<BetaPlayground
+  title="Thermostat scene — live"
+  args={[
     {id: 'A', label: 'Alice: warmer is healthier'},
     {id: 'B', label: 'Bob: cooler saves energy'},
   ]}
   attacks={[{from: 'B', to: 'A', weight: 0.4}]}
-  caption="Bob's argument attacks Alice's with weight 0.4. Alice does not counter-attack here — this is a one-sided framework. Whether Bob's attack binds depends on β."
+  initialBeta={0}
 />
 
-Two arguments, one directed weighted attack. The attack weight is **0.4**, meaning Bob's argument is credible enough to undermine Alice's when the scene's tolerance for contention (β) is at or below 0.4.
+Two arguments, one directed weighted attack. The attack weight is **0.4**, meaning Bob's argument is credible enough to undermine Alice's when β is at or below 0.4. The slider above runs the real `argumentation` engine compiled to WebAssembly — every drag recomputes credulous acceptance in your browser.
 
-## Drag β to change the scene
+## A pre-recorded scene trace at four discrete β
+
+For comparison, the snapshots below come from running the full encounter bridge with `MultiBeat` resolution at four fixed β values, captured to JSON traces:
 
 <BetaSlider
   title="The thermostat across β"
