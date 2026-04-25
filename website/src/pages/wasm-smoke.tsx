@@ -3,6 +3,7 @@ import Layout from '@theme/Layout';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import {Framework, WeightedFramework} from '@site/src/lib/argumentation';
 import BetaPlayground from '@site/src/components/BetaPlayground';
+import FrameworkBuilder from '@site/src/components/FrameworkBuilder';
 
 function SmokeInner() {
   const [result, setResult] = useState<string[]>(['loading...']);
@@ -50,6 +51,10 @@ function SmokeInner() {
           ]}
           attacks={[{from: 'B', to: 'A', weight: 0.4}]}
         />
+      </div>
+      <div style={{margin: '3rem 0'}}>
+        <h2>FrameworkBuilder smoke</h2>
+        <FrameworkBuilder />
       </div>
     </>
   );
