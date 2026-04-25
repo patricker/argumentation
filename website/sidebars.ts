@@ -28,6 +28,11 @@ const sidebars: SidebarsConfig = {
       label: 'Applied',
       items: ['examples/thermostat', 'examples/courtroom'],
     },
+    {
+      type: 'category',
+      label: 'Interactive',
+      items: ['examples/playground'],
+    },
   ],
   guidesSidebar: [
     'guides/installation',
