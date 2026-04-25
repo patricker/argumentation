@@ -67,6 +67,7 @@ pub mod name_resolver;
 pub mod relationship;
 pub mod resolver;
 pub mod scoring;
+pub mod societas_relationship;
 pub mod state;
 pub mod state_acceptance;
 pub mod state_scorer;
