@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import Layout from '@theme/Layout';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import {Framework, WeightedFramework} from '@site/src/lib/argumentation';
+import BetaPlayground from '@site/src/components/BetaPlayground';
 
 function SmokeInner() {
   const [result, setResult] = useState<string[]>(['loading...']);
@@ -36,9 +37,21 @@ function SmokeInner() {
     return () => { cancelled = true; };
   }, []);
   return (
-    <div style={{padding: '4rem', fontFamily: 'monospace', fontSize: 16, lineHeight: 1.7}}>
-      {result.map((line, i) => <div key={i}>{line}</div>)}
-    </div>
+    <>
+      <div style={{padding: '4rem', fontFamily: 'monospace', fontSize: 16, lineHeight: 1.7}}>
+        {result.map((line, i) => <div key={i}>{line}</div>)}
+      </div>
+      <div style={{maxWidth: 700, margin: '3rem 0', padding: '0 4rem'}}>
+        <BetaPlayground
+          title="BetaPlayground smoke (Alice vs Bob)"
+          args={[
+            {id: 'A', label: 'Alice: warmer is healthier'},
+            {id: 'B', label: 'Bob: cooler saves energy'},
+          ]}
+          attacks={[{from: 'B', to: 'A', weight: 0.4}]}
+        />
+      </div>
+    </>
   );
 }
 

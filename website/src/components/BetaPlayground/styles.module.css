@@ -1,0 +1,46 @@
+.wrapper {
+  margin: 1.75rem 0;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-global-radius, 8px);
+  background: var(--ifm-background-surface-color);
+  overflow: hidden;
+}
+.title {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  font-weight: 600;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+.slider {
+  flex: 1;
+}
+.beta {
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 700;
+  min-width: 4ch;
+  text-align: right;
+}
+.status {
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: var(--ifm-color-content-secondary);
+  background: var(--ifm-background-color);
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+.statusItem {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+.accepted {
+  color: var(--ifm-color-success);
+  font-weight: 600;
+}
+.rejected {
+  color: var(--ifm-color-emphasis-600);
+}
