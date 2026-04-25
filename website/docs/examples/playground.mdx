@@ -1,0 +1,27 @@
+---
+sidebar_position: 6
+title: Framework playground
+---
+
+import FrameworkBuilder from '@site/src/components/FrameworkBuilder';
+
+> Build your own argumentation framework. Click the canvas to add an argument, switch to **→ Attack** and click two nodes to draw an attack between them. The side panel shows grounded / preferred / credulously / skeptically accepted in real time.
+
+<FrameworkBuilder />
+
+## What you can try
+
+- **Recreate Nixon** — load the preset, then add a third argument that defends one side. Watch grounded change.
+- **Recreate Tweety** — use the Tweety preset, then add a meta-argument like "specificity" attacking the bird-fly rule.
+- **Build a chain** — A attacks B attacks C attacks D. Notice how grounded bounces between odd and even positions.
+- **Even cycles vs odd cycles** — three nodes in a cycle (A→B→C→A) versus four (A→B→C→D→A). The semantics behave differently.
+
+## How it works
+
+This whole panel is the `argumentation` Rust crate compiled to WebAssembly. Each click recomputes extensions client-side — no server, no network round-trip. The wasm bundle is around 50 KB; load is a one-time cost on first visit.
+
+## Further reading
+
+- [Acceptance semantics](/concepts/semantics) — what grounded / preferred / credulous / skeptical mean.
+- [Attacks and supports](/concepts/attacks-and-supports) — the structural primitives.
+- [Nixon, Tweety, Hal & Carla](/examples/nixon-diamond) — the worked examples the presets are drawn from.

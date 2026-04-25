@@ -1,0 +1,211 @@
+/* =====================================================================
+   HELVETICA SUISSE — Swiss international style
+   Pure black/white, single hot red hairline accent. Grid precision.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
+:root {
+  --ifm-color-primary: #FF0033;
+  --ifm-color-primary-dark: #E60029;
+  --ifm-color-primary-darker: #CC0026;
+  --ifm-color-primary-darkest: #99001D;
+  --ifm-color-primary-light: #FF3355;
+  --ifm-color-primary-lighter: #FF5577;
+  --ifm-color-primary-lightest: #FF99AA;
+
+  --wb-white: #FFFFFF;
+  --wb-black: #000000;
+  --wb-gray-2: #F4F4F4;
+  --wb-gray-8: #8A8A8A;
+  --wb-red: #FF0033;
+
+  --ifm-background-color: var(--wb-white);
+  --ifm-background-surface-color: var(--wb-gray-2);
+  --ifm-font-family-base: 'Archivo', system-ui, sans-serif;
+  --ifm-heading-font-family: 'Archivo', system-ui, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', monospace;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.5;
+  --ifm-heading-color: var(--wb-black);
+  --ifm-color-content: var(--wb-black);
+  --ifm-color-content-secondary: var(--wb-gray-8);
+  --ifm-link-color: var(--wb-red);
+  --ifm-link-hover-color: var(--wb-black);
+  --ifm-navbar-background-color: var(--wb-white);
+  --ifm-footer-background-color: var(--wb-black);
+  --ifm-blockquote-border-color: var(--wb-red);
+  --ifm-hr-border-color: var(--wb-black);
+  --ifm-hr-border-width: 1px;
+  --ifm-global-radius: 0;
+  --ifm-toc-border-color: var(--wb-black);
+  --docusaurus-highlighted-code-line-bg: rgba(255, 0, 51, 0.08);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #FF3355;
+  --ifm-color-primary-dark: #FF0033;
+  --ifm-color-primary-darker: #E60029;
+  --ifm-color-primary-darkest: #CC0026;
+  --ifm-color-primary-light: #FF5577;
+  --ifm-color-primary-lighter: #FF99AA;
+  --ifm-color-primary-lightest: #FFCCD6;
+
+  --wb-white: #000000;
+  --wb-gray-2: #0F0F0F;
+
+  --ifm-background-color: #000;
+  --ifm-background-surface-color: #0F0F0F;
+  --ifm-heading-color: #FFFFFF;
+  --ifm-color-content: #FFFFFF;
+  --ifm-color-content-secondary: #9A9A9A;
+  --ifm-link-color: #FF3355;
+  --ifm-link-hover-color: #FFFFFF;
+  --ifm-navbar-background-color: #000;
+  --ifm-footer-background-color: #000;
+  --ifm-hr-border-color: #FFFFFF;
+  --ifm-toc-border-color: #FFFFFF;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 51, 85, 0.12);
+}
+
+* { border-radius: 0 !important; }
+
+body { font-feature-settings: "kern" 1, "tnum" 1; }
+
+h1 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 3.8rem;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.35em;
+}
+
+h2 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-top: 2.5em;
+  padding-top: 0.35em;
+  border-top: 1px solid currentColor;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+}
+h2::before {
+  content: counter(h2-counter, decimal-leading-zero);
+  counter-increment: h2-counter;
+  font-family: 'Archivo Narrow', sans-serif;
+  font-weight: 400;
+  font-size: 0.55em;
+  color: var(--wb-red);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.markdown { counter-reset: h2-counter; }
+
+h3 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  margin-top: 2em;
+}
+
+h4, h5, h6 {
+  font-family: 'Archivo Narrow', sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.markdown p { max-width: 64ch; }
+
+a { text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+a:hover { background: var(--wb-red); color: var(--wb-white) !important; border-bottom-color: var(--wb-red); padding: 0 0.15em 1px; }
+[data-theme='dark'] a:hover { color: #000 !important; }
+
+hr {
+  border: 0;
+  border-top: 1px solid currentColor;
+  margin: 3em 0;
+  position: relative;
+  overflow: visible;
+}
+hr::after {
+  content: '';
+  position: absolute;
+  left: 0; top: -0.35em;
+  width: 2.5em; height: 0.7em;
+  background: var(--wb-red);
+}
+
+blockquote {
+  border-left: 4px solid var(--wb-red);
+  padding-left: 1.2em;
+  font-weight: 400;
+  font-size: 1.1em;
+  color: currentColor;
+  font-style: normal;
+}
+
+.navbar {
+  border-bottom: 1px solid currentColor;
+  box-shadow: none;
+  min-height: 60px;
+}
+.navbar__title {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-size: 1.3rem;
+}
+.navbar__title::before { content: ''; display: inline-block; width: 0.5em; height: 0.5em; background: var(--wb-red); margin-right: 0.5em; vertical-align: 0.1em; }
+
+.hero--primary {
+  background: var(--ifm-background-color) !important;
+  color: var(--ifm-color-content) !important;
+  border-bottom: 1px solid currentColor;
+  padding: 8rem 0 5rem !important;
+  position: relative;
+}
+.hero--primary::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 2rem;
+  transform: translateX(-50%);
+  width: 3.5rem; height: 1rem;
+  background: var(--wb-red);
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: inherit !important; }
+.hero--primary .hero__title {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 6rem;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  max-width: 12ch;
+  margin: 0 auto;
+}
+.hero--primary .hero__subtitle {
+  font-family: 'Archivo Narrow', sans-serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 1.5em;
+}
+
+.button {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid currentColor !important;
+}
+.button--secondary { background: var(--wb-red) !important; color: var(--wb-white) !important; border-color: var(--wb-red) !important; }
+.button--secondary:hover { background: var(--ifm-background-color) !important; color: currentColor !important; border-color: currentColor !important; }
+[data-theme='dark'] .button--secondary { color: #FFFFFF !important; }

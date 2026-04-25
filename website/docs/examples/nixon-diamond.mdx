@@ -12,11 +12,13 @@ import AttackGraph from '@site/src/components/AttackGraph';
 Two arguments, each attacking the other. Neither attacks anything else.
 
 <AttackGraph
+  title="Nixon diamond"
   arguments={[
     {id: 'A', label: 'Republican → not pacifist'},
     {id: 'B', label: 'Quaker → pacifist'},
   ]}
   attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'A'}]}
+  caption="Symmetric mutual attack. Grounded semantics leaves both undecided; preferred semantics picks one or the other — the framework alone cannot decide between them."
 />
 
 ## Which sets stand?

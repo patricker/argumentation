@@ -3,11 +3,12 @@ sidebar_position: 3
 title: Tweety the penguin
 ---
 
+import AttackGraph from '@site/src/components/AttackGraph';
 import SchemeCard from '@site/src/components/SchemeCard';
 
 > Birds fly. Penguins are birds. Penguins don't fly. Tweety is a penguin. Does Tweety fly?
 
-The canonical **defeasible reasoning** example — everyone in non-monotonic logic uses it, and it's the go-to demo for ASPIC+.
+The canonical **defeasible reasoning** example, used throughout non-monotonic logic and featured as the opening demo in the ASPIC+ tutorial literature.
 
 ## The rules
 
@@ -18,26 +19,39 @@ The canonical **defeasible reasoning** example — everyone in non-monotonic log
 
 ## Two arguments
 
-**A₁:** Tweety → bird (strict) → flies (defeasible via R1).
-**A₂:** Tweety → penguin → doesn't fly (defeasible via R2).
+**A₁** uses R1: Tweety → bird (strict) → flies (defeasible).
+**A₂** uses R2: Tweety → penguin → doesn't fly (defeasible).
 
-A₁ and A₂ **rebut** each other (opposite conclusions about Tweety's flying).
+A₁ and A₂ **rebut** each other — they reach contradictory conclusions about Tweety's flying.
+
+<AttackGraph
+  title="Tweety — rebutting arguments"
+  arguments={[
+    {id: 'A₁', label: 'Tweety flies  (R1: birds fly)'},
+    {id: 'A₂', label: "Tweety doesn't fly  (R2: penguins don't)", accepted: true},
+  ]}
+  attacks={[
+    {from: 'A₁', to: 'A₂'},
+    {from: 'A₂', to: 'A₁'},
+  ]}
+  caption="Mutual rebut. Without preferences this is the same symmetric-attack problem as Nixon diamond. ASPIC+ breaks the tie with a preference ordering: the more-specific rule (R2) dominates, so A₂ defeats A₁."
+/>
 
 ## Which wins?
 
-ASPIC+ adds a **preference ordering**: more specific rules dominate more general ones. R2 (about penguins specifically) beats R1 (about birds in general). Therefore A₂ defeats A₁. Tweety does **not** fly.
+ASPIC+ adds a **preference ordering**: more specific rules dominate more general ones. R2 (about penguins specifically) beats R1 (about birds in general). Therefore A₂ defeats A₁ and Tweety does **not** fly.
 
 Without the preference ordering, the framework has two preferred extensions — same symmetric-attack problem as [Nixon](/examples/nixon-diamond). Preferences are the tool ASPIC+ gives you to resolve this kind of draw structurally.
 
 ## In code
 
-Full example in our [`argumentation::aspic`](/api/) module — the `aspic::demo::tweety` helper builds the framework, applies the preference, and reports A₂ as the winner.
+The `argumentation::aspic` module builds the framework, applies the specificity preference, and reports A₂ as the winner. See the `aspic::demo::tweety` helper in the [API reference](/api/).
 
 ## Why it matters
 
-Tweety is the smallest case where you need something *beyond* Dung's attack-only abstraction to get an intuitive answer. ASPIC+'s innovation was packaging that "something beyond" as structured arguments + preferences, all of which reduce to an abstract framework that standard semantics can chew on.
+Tweety is the smallest case where Dung's attack-only abstraction is not enough to get the intuitive answer. ASPIC+'s contribution was packaging "structured arguments + preferences" as machinery that still reduces to an abstract framework that standard semantics can evaluate.
 
 ## Further reading
 
-- [Modgil & Prakken (2014)](/academic/bibliography#modgil2014) — ASPIC+ tutorial, uses Tweety as the opening example.
-- [Reiter (1980)](/academic/bibliography#reiter1980) — the default logic paper that first posed the penguin problem.
+- [Modgil & Prakken (2014)](/academic/bibliography#modgil2014) — ASPIC+ tutorial; opens with Tweety.
+- [Reiter (1980)](/academic/bibliography#reiter1980) — the default logic paper that first posed the problem.

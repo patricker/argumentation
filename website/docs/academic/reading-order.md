@@ -3,13 +3,13 @@ sidebar_position: 1
 title: Reading order
 ---
 
-The field spans 30 years of papers, most of them technically dense. Here's a curated curriculum.
+The field spans 30 years of papers, many of them technically dense. Here's one path through them that we've found useful.
 
 ## 1-hour overview
 
 If you only read one paper:
 
-- [**Baroni, Caminada, Giacomin (2011)**](/academic/bibliography#baroni2011) — *An introduction to argumentation semantics.* The best field-wide survey.
+- [**Baroni, Caminada, Giacomin (2011)**](/academic/bibliography#baroni2011) — *An introduction to argumentation semantics.* A widely-cited survey of the field.
 
 ## Full curriculum
 

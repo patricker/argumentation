@@ -1,14 +1,147 @@
 .wrapper {
+  margin: 1.75rem 0;
   border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-  margin: 1.5rem 0;
+  border-radius: var(--ifm-global-radius, 8px);
   overflow: hidden;
   background: var(--ifm-background-surface-color);
+
+  /* AttackGraph-scoped variables — themes may override globally. */
+  --ag-attack: var(--ifm-color-danger);
+  --ag-support: var(--ifm-color-success);
+  --ag-surface: var(--ifm-background-surface-color);
+  --ag-surface-deep: var(--ifm-background-color);
+  --ag-node-border: var(--ifm-color-emphasis-400);
+  --ag-node-text: var(--ifm-color-content);
+  --ag-node-id: var(--ifm-color-primary);
+  --ag-grid: var(--ifm-color-emphasis-200);
+  --ag-legend-text: var(--ifm-color-content-secondary);
+}
+
+[data-theme='dark'] .wrapper {
+  --ag-grid: var(--ifm-color-emphasis-300);
 }
 
 .title {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
   font-weight: 600;
   font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: var(--ifm-color-content);
+}
+
+.canvas {
+  position: relative;
+  background: var(--ag-surface-deep);
+}
+
+/* Hide react-flow handle dots entirely — we render all 8 so edges route
+   freely, but they shouldn't be visible to the reader. */
+.handle {
+  opacity: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+}
+
+.node {
+  position: relative;
+  background: var(--ag-surface);
+  border: 1.5px solid var(--ag-node-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  min-width: 150px;
+  max-width: 220px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px -8px rgba(0, 0, 0, 0.15);
+  cursor: grab;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+.node:active { cursor: grabbing; transform: translateY(1px); }
+
+.nodeId {
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ag-node-id);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.nodeLabel {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  margin-top: 4px;
+  color: var(--ag-node-text);
+  opacity: 0.9;
+}
+
+.accepted {
+  border-color: var(--ag-support);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--ag-support) 22%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.credulous {
+  border-style: dashed;
+  border-color: var(--ag-support);
+}
+
+.rejected {
+  border-color: var(--ag-node-border);
+  opacity: 0.55;
+}
+
+/* The react-flow control bar sits on top of the canvas; give it a
+   theme-aware surface. */
+.canvas :global(.react-flow__controls) {
+  background: var(--ag-surface);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.1);
+}
+.canvas :global(.react-flow__controls-button) {
+  background: var(--ag-surface);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+.canvas :global(.react-flow__controls-button svg) { fill: var(--ifm-color-content); }
+.canvas :global(.react-flow__controls-button:hover) { background: var(--ifm-color-emphasis-100); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  font-size: 0.75rem;
+  color: var(--ag-legend-text);
+  background: var(--ag-surface);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  line-height: 1;
+}
+
+.legendHint {
+  margin-left: auto;
+  font-style: italic;
+  opacity: 0.72;
+}
+
+.caption {
+  padding: 0.55rem 1rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+  font-style: italic;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ag-surface);
 }

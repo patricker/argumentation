@@ -7,9 +7,9 @@ import SchemeCard from '@site/src/components/SchemeCard';
 
 **A Walton scheme is a reusable template of argument — a named pattern of premises and conclusion that people actually use to reason.**
 
-Walton, Reed, and Macagno catalogued about 60 schemes in their 2008 book. Each scheme also carries a list of **critical questions** — the standard ways that argument can be challenged. Our [`argumentation-schemes`](https://crates.io/crates/argumentation-schemes) crate ships instantiable versions of the canon.
+Walton, Reed, and Macagno catalogued about 60 schemes in their 2008 book. Each scheme also carries a list of **critical questions** — the standard ways that argument can be challenged. Our [`argumentation-schemes`](https://crates.io/crates/argumentation-schemes) crate ships instantiable versions of a subset of them.
 
-## The flagship: argument from expert opinion
+## Example: argument from expert opinion
 
 <SchemeCard
   name="Argument from expert opinion"
@@ -42,9 +42,9 @@ let instance = scheme.instantiate(&[
 ].into_iter().collect()).unwrap();
 ```
 
-## Other flagship schemes
+## Other schemes
 
-Walton's catalogue is large; a few names you'll recognize:
+Walton's catalogue is large; a few names you may recognize:
 
 - **Argument from analogy** — "A and B are similar in respects X, Y, Z; A has property P; therefore B probably has P."
 - **Argument from cause to effect** — "C generally causes E; C happened; therefore E."

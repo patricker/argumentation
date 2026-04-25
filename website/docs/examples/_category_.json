@@ -1,5 +1,5 @@
 {
   "label": "Examples",
   "position": 3,
-  "link": {"type": "generated-index", "description": "Worked scenarios — canonical (Hal & Carla, Nixon, Tweety) plus applied (thermostat demo, courtroom)."}
+  "link": {"type": "generated-index", "description": "Worked scenarios from the argumentation literature (Nixon, Tweety, Hal & Carla, the snoring witness) plus the thermostat example that drives the encounter bridge."}
 }

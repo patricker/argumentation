@@ -7,16 +7,17 @@ import AttackGraph from '@site/src/components/AttackGraph';
 
 > Hal, a diabetic, loses his insulin. Before collapsing, he enters Carla's house and uses some of her insulin. Carla is another diabetic, not home. Should Hal be punished?
 
-— Trevor Bench-Capon, introducing **value-based argumentation frameworks** (2003). This is the field's most-cited worked example for reasoning about values.
+— Trevor Bench-Capon, introducing **value-based argumentation frameworks** (2003). A widely-used worked example for reasoning about values.
 
 ## The arguments
 
 <AttackGraph
+  title="Hal & Carla — value-based attacks"
   arguments={[
     {id: 'H1', label: 'Hal: life > property'},
     {id: 'C1', label: 'Carla: property rights'},
     {id: 'H2', label: 'Hal: too poor to compensate'},
-    {id: 'C2', label: 'Carla: he endangered me (my only dose)'},
+    {id: 'C2', label: 'Carla: my only dose'},
   ]}
   attacks={[
     {from: 'C1', to: 'H1'},
@@ -24,7 +25,8 @@ import AttackGraph from '@site/src/components/AttackGraph';
     {from: 'C2', to: 'H2'},
     {from: 'H2', to: 'C1'},
   ]}
-  height={320}
+  height={400}
+  caption="H1 and C1 attack each other symmetrically. C2 neutralises Hal's compensation argument H2 by showing Carla was also endangered. H2 in turn attacks C1 — if Hal cannot pay, property-rights-as-remedy dissolves."
 />
 
 ## Why values matter

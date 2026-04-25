@@ -1,0 +1,238 @@
+/* =====================================================================
+   WASHI — Japanese paper
+   Sumi ink on washi cream. Vermilion (shu) accent, indigo secondary.
+   Shippori Mincho display. Restraint, asymmetry, breathing room.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Zen+Kaku+Gothic+Antique:wght@400;500;700&display=swap');
+
+:root {
+  --ifm-color-primary: #B83227;
+  --ifm-color-primary-dark: #9F2B22;
+  --ifm-color-primary-darker: #85241C;
+  --ifm-color-primary-darkest: #5C1913;
+  --ifm-color-primary-light: #D0463A;
+  --ifm-color-primary-lighter: #DB665B;
+  --ifm-color-primary-lightest: #EA9990;
+
+  --wb-washi: #FAF3E7;
+  --wb-washi-alt: #F2E9D7;
+  --wb-sumi: #1C1C1C;
+  --wb-shu: #B83227;
+  --wb-indigo: #264653;
+  --wb-ochre: #C9A76B;
+
+  --ifm-background-color: var(--wb-washi);
+  --ifm-background-surface-color: var(--wb-washi-alt);
+  --ifm-font-family-base: 'Noto Serif', 'Shippori Mincho', Georgia, serif;
+  --ifm-heading-font-family: 'Shippori Mincho', 'Noto Serif', serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', monospace;
+  --ifm-font-size-base: 17px;
+  --ifm-line-height-base: 1.8;
+  --ifm-heading-color: var(--wb-sumi);
+  --ifm-color-content: #2A2A2A;
+  --ifm-color-content-secondary: #666;
+  --ifm-link-color: var(--wb-shu);
+  --ifm-link-hover-color: var(--wb-indigo);
+  --ifm-navbar-background-color: var(--wb-washi);
+  --ifm-footer-background-color: var(--wb-sumi);
+  --ifm-blockquote-border-color: var(--wb-shu);
+  --ifm-hr-border-color: var(--wb-sumi);
+  --ifm-hr-border-width: 1px;
+  --ifm-toc-border-color: rgba(28, 28, 28, 0.12);
+  --docusaurus-highlighted-code-line-bg: rgba(184, 50, 39, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #E85D52;
+  --ifm-color-primary-dark: #D94A3F;
+  --ifm-color-primary-darker: #C44035;
+  --ifm-color-primary-darkest: #9F2B22;
+  --ifm-color-primary-light: #ED7C73;
+  --ifm-color-primary-lighter: #F1998F;
+  --ifm-color-primary-lightest: #F5C3BC;
+
+  --wb-washi: #141821;
+  --wb-washi-alt: #1C2230;
+  --wb-sumi: #F0E8D8;
+  --wb-shu: #E85D52;
+
+  --ifm-background-color: #141821;
+  --ifm-background-surface-color: #1C2230;
+  --ifm-heading-color: #F0E8D8;
+  --ifm-color-content: #DED5C1;
+  --ifm-color-content-secondary: #9A9280;
+  --ifm-link-color: #E85D52;
+  --ifm-link-hover-color: #7AA3B0;
+  --ifm-navbar-background-color: #0F131B;
+  --ifm-footer-background-color: #0A0D14;
+  --ifm-toc-border-color: rgba(240, 232, 216, 0.15);
+  --docusaurus-highlighted-code-line-bg: rgba(232, 93, 82, 0.14);
+}
+
+html, body {
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(184, 50, 39, 0.04), transparent 35%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' opacity='0.05'%3E%3Cg fill='%231C1C1C'%3E%3Ccircle cx='12' cy='40' r='0.8'/%3E%3Ccircle cx='78' cy='18' r='0.6'/%3E%3Ccircle cx='160' cy='58' r='0.7'/%3E%3Ccircle cx='45' cy='110' r='0.5'/%3E%3Ccircle cx='190' cy='150' r='0.8'/%3E%3Ccircle cx='95' cy='175' r='0.6'/%3E%3Ccircle cx='30' cy='195' r='0.7'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body {
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(232, 93, 82, 0.05), transparent 35%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' opacity='0.06'%3E%3Cg fill='%23F0E8D8'%3E%3Ccircle cx='12' cy='40' r='0.8'/%3E%3Ccircle cx='78' cy='18' r='0.6'/%3E%3Ccircle cx='160' cy='58' r='0.7'/%3E%3Ccircle cx='45' cy='110' r='0.5'/%3E%3Ccircle cx='190' cy='150' r='0.8'/%3E%3Ccircle cx='95' cy='175' r='0.6'/%3E%3Ccircle cx='30' cy='195' r='0.7'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+h1 {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+  font-size: 2.8rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  position: relative;
+  margin-bottom: 0.6em;
+}
+h1::before {
+  content: '';
+  position: absolute;
+  top: -0.5em; left: -0.2em;
+  width: 2em; height: 2em;
+  background: var(--wb-shu);
+  border-radius: 50%;
+  opacity: 0.12;
+  z-index: -1;
+}
+
+h2 {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 500;
+  font-size: 1.75rem;
+  line-height: 1.35;
+  margin-top: 3em;
+  padding-top: 0.4em;
+  position: relative;
+}
+h2::before {
+  content: '';
+  display: block;
+  width: 2em; height: 1px;
+  background: var(--wb-shu);
+  margin-bottom: 0.6em;
+}
+
+h3 {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 500;
+  font-size: 1.3rem;
+  letter-spacing: 0.01em;
+}
+h3::before { content: '・'; color: var(--wb-shu); margin-right: 0.1em; }
+
+.markdown p { max-width: 60ch; }
+
+a { text-decoration: none; border-bottom: 1px dotted currentColor; padding-bottom: 1px; transition: color 0.2s; }
+a:hover { border-bottom-style: solid; }
+
+hr {
+  border: 0;
+  height: 6px;
+  background: none;
+  margin: 3em 0;
+  text-align: center;
+  overflow: visible;
+  position: relative;
+}
+hr::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 0;
+  transform: translateX(-50%);
+  width: 6px; height: 6px;
+  background: var(--wb-shu);
+  border-radius: 50%;
+}
+
+blockquote {
+  font-family: 'Shippori Mincho', serif;
+  font-style: normal;
+  border-left: 2px solid var(--wb-shu);
+  padding: 0.5em 1.4em;
+  font-size: 1.05em;
+  color: var(--ifm-color-content);
+  background: none;
+}
+
+.navbar {
+  box-shadow: none;
+  border-bottom: 1px solid rgba(28, 28, 28, 0.08);
+  backdrop-filter: saturate(140%);
+}
+[data-theme='dark'] .navbar { border-bottom-color: rgba(240, 232, 216, 0.1); }
+.navbar__title {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+}
+.navbar__title::before {
+  content: '';
+  display: inline-block;
+  width: 0.55em; height: 0.55em;
+  background: var(--wb-shu);
+  border-radius: 50%;
+  margin-right: 0.55em;
+  vertical-align: 0.1em;
+}
+
+.hero--primary {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(184, 50, 39, 0.18) 0 140px, transparent 141px),
+    var(--wb-washi) !important;
+  color: var(--wb-sumi) !important;
+  padding: 6rem 0 5rem !important;
+  position: relative;
+  border-bottom: 1px solid rgba(28, 28, 28, 0.08);
+}
+[data-theme='dark'] .hero--primary {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(232, 93, 82, 0.18) 0 140px, transparent 141px),
+    #141821 !important;
+  border-bottom-color: rgba(240, 232, 216, 0.1);
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: inherit !important; }
+.hero--primary .hero__title {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+  font-size: 4rem;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
+  text-align: left;
+  max-width: 18ch;
+  margin: 0;
+  padding-left: 2ch;
+}
+.hero--primary .hero__subtitle {
+  font-family: 'Noto Serif', serif;
+  font-weight: 400;
+  font-size: 1.2rem;
+  max-width: 48ch;
+  margin: 2em 0 0 2ch;
+  padding-left: 1em;
+  border-left: 1px solid var(--wb-shu);
+  text-align: left;
+  color: var(--ifm-color-content-secondary) !important;
+}
+
+.button--secondary {
+  background: var(--wb-shu) !important;
+  color: var(--wb-washi) !important;
+  border: none !important;
+  font-family: 'Zen Kaku Gothic Antique', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 0.7em 1.4em !important;
+}
+.button--secondary:hover { background: var(--wb-indigo) !important; }
+[data-theme='dark'] .button--secondary:hover { background: #7AA3B0 !important; color: #141821 !important; }
+.button--outline { font-family: 'Zen Kaku Gothic Antique', sans-serif; font-weight: 500; letter-spacing: 0.06em; }

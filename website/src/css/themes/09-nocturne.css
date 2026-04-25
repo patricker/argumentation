@@ -1,0 +1,253 @@
+/* =====================================================================
+   NOCTURNE — Cyberpunk neon
+   Orbitron display, Chivo Mono body. Magenta + cyan on deep purple-black.
+   Dark-first; light mode is "holographic white".
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Chivo+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --ifm-color-primary: #C0248F;
+  --ifm-color-primary-dark: #A61F7B;
+  --ifm-color-primary-darker: #8C1A68;
+  --ifm-color-primary-darkest: #5E1147;
+  --ifm-color-primary-light: #D44AA5;
+  --ifm-color-primary-lighter: #E06BBA;
+  --ifm-color-primary-lightest: #F096D0;
+
+  --wb-magenta: #C0248F;
+  --wb-cyan: #0099A8;
+  --wb-lime: #7A9B00;
+  --wb-bg: #F4F0FA;
+  --wb-surface: #EDE6F5;
+  --wb-ink: #140028;
+
+  --ifm-background-color: var(--wb-bg);
+  --ifm-background-surface-color: var(--wb-surface);
+  --ifm-font-family-base: 'Chivo Mono', 'JetBrains Mono', monospace;
+  --ifm-heading-font-family: 'Orbitron', 'Chivo Mono', monospace;
+  --ifm-font-family-monospace: 'Share Tech Mono', 'Chivo Mono', monospace;
+  --ifm-font-size-base: 15px;
+  --ifm-line-height-base: 1.6;
+  --ifm-heading-color: var(--wb-ink);
+  --ifm-color-content: var(--wb-ink);
+  --ifm-color-content-secondary: #4A3560;
+  --ifm-link-color: var(--wb-magenta);
+  --ifm-link-hover-color: var(--wb-cyan);
+  --ifm-navbar-background-color: rgba(244, 240, 250, 0.85);
+  --ifm-footer-background-color: #140028;
+  --ifm-blockquote-border-color: var(--wb-cyan);
+  --ifm-hr-border-color: var(--wb-magenta);
+  --ifm-toc-border-color: rgba(192, 36, 143, 0.3);
+  --docusaurus-highlighted-code-line-bg: rgba(192, 36, 143, 0.12);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #FF2E93;
+  --ifm-color-primary-dark: #F70077;
+  --ifm-color-primary-darker: #D40068;
+  --ifm-color-primary-darkest: #9C004D;
+  --ifm-color-primary-light: #FF5BAA;
+  --ifm-color-primary-lighter: #FF85C2;
+  --ifm-color-primary-lightest: #FFB5D9;
+
+  --wb-magenta: #FF2E93;
+  --wb-cyan: #00F0FF;
+  --wb-lime: #CCFF00;
+  --wb-bg: #0A001A;
+  --wb-surface: #140029;
+  --wb-ink: #F0E8FF;
+
+  --ifm-background-color: #0A001A;
+  --ifm-background-surface-color: #140029;
+  --ifm-heading-color: #F0E8FF;
+  --ifm-color-content: #D8CCE8;
+  --ifm-color-content-secondary: #9A80B5;
+  --ifm-link-color: #FF2E93;
+  --ifm-link-hover-color: #00F0FF;
+  --ifm-navbar-background-color: rgba(10, 0, 26, 0.85);
+  --ifm-footer-background-color: #030008;
+  --ifm-toc-border-color: rgba(255, 46, 147, 0.3);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 240, 255, 0.12);
+}
+
+html, body {
+  background-image:
+    linear-gradient(rgba(192, 36, 143, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 153, 168, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px;
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body {
+  background-image:
+    linear-gradient(rgba(255, 46, 147, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(ellipse at 20% 0%, rgba(255, 46, 147, 0.08), transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 240, 255, 0.07), transparent 55%),
+    #0A001A;
+  background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%;
+}
+
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: 2.8rem;
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--wb-magenta), var(--wb-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme='dark'] h1 {
+  text-shadow:
+    0 0 12px rgba(255, 46, 147, 0.35),
+    0 0 28px rgba(0, 240, 255, 0.2);
+}
+
+h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 1.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid var(--wb-magenta);
+  position: relative;
+}
+h2::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0;
+  width: 3em; height: 3px;
+  background: var(--wb-cyan);
+}
+h2::after {
+  content: '▹';
+  color: var(--wb-cyan);
+  margin-left: 0.4em;
+  font-weight: 400;
+}
+
+h3 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wb-cyan);
+}
+[data-theme='dark'] h3 { color: var(--wb-cyan); text-shadow: 0 0 8px rgba(0, 240, 255, 0.4); }
+
+a {
+  text-decoration: none;
+  position: relative;
+  padding: 0 0.15em;
+  transition: color 0.15s;
+}
+a::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 100%; height: 1px;
+  background: currentColor;
+  transition: transform 0.25s;
+  transform-origin: left;
+}
+a:hover::after { background: var(--wb-cyan); transform: scaleX(1.05); }
+[data-theme='dark'] a:hover { text-shadow: 0 0 8px currentColor; }
+
+hr {
+  border: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--wb-magenta) 25%, var(--wb-cyan) 75%, transparent);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  border: 1px solid var(--wb-cyan);
+  border-left-width: 4px;
+  padding: 0.8em 1.2em;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.05), transparent 60%);
+  font-family: 'Chivo Mono', monospace;
+}
+
+pre, .prism-code {
+  border: 1px solid var(--wb-magenta) !important;
+  background: var(--ifm-background-surface-color) !important;
+  box-shadow: 0 0 24px -6px rgba(255, 46, 147, 0.25);
+}
+
+.admonition { border: 1px solid var(--wb-cyan) !important; }
+
+.navbar {
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--wb-magenta);
+  box-shadow: 0 1px 20px -4px rgba(255, 46, 147, 0.3);
+}
+.navbar__title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero--primary {
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(255, 46, 147, 0.28), transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(0, 240, 255, 0.22), transparent 50%),
+    linear-gradient(180deg, #0A001A 0%, #1C0038 100%) !important;
+  color: #F0E8FF !important;
+  border-bottom: 1px solid var(--wb-magenta);
+  position: relative;
+  overflow: hidden;
+}
+.hero--primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 46, 147, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+  pointer-events: none;
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: inherit !important; position: relative; z-index: 1; }
+.hero--primary .hero__title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 4.5rem;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #FF2E93, #00F0FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 20px rgba(255, 46, 147, 0.4));
+}
+.hero--primary .hero__subtitle {
+  font-family: 'Chivo Mono', monospace;
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  opacity: 0.92;
+}
+
+.button {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid currentColor !important;
+  border-radius: 0 !important;
+}
+.button--secondary { background: var(--wb-magenta) !important; color: #FFFFFF !important; border-color: var(--wb-magenta) !important; box-shadow: 0 0 20px -4px rgba(255, 46, 147, 0.5); }
+.button--secondary:hover { background: var(--wb-cyan) !important; border-color: var(--wb-cyan) !important; color: #0A001A !important; box-shadow: 0 0 24px -2px rgba(0, 240, 255, 0.6); }
+.button--outline { color: var(--wb-cyan) !important; border-color: var(--wb-cyan) !important; }
+.button--outline:hover { background: rgba(0, 240, 255, 0.12) !important; }

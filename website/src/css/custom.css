@@ -1,26 +1,27 @@
-:root {
-  --ifm-color-primary: #6b4ee6;
-  --ifm-color-primary-dark: #5538dc;
-  --ifm-color-primary-darker: #4f32d2;
-  --ifm-color-primary-darkest: #4029ab;
-  --ifm-color-primary-light: #8163ea;
-  --ifm-color-primary-lighter: #8c71ec;
-  --ifm-color-primary-lightest: #ad9bf1;
-  --ifm-code-font-size: 92%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
-}
+/**
+ * custom.css — Docusaurus entry point for site-wide styling.
+ *
+ * Active theme: Scholastica (illuminated manuscript)
+ *
+ * To swap themes, comment out the current import and uncomment one of
+ * the others. See ./themes/README.md for a description of each.
+ * Only one theme should be active at a time.
+ */
 
-[data-theme='dark'] {
-  --ifm-color-primary: #a994ff;
-  --ifm-color-primary-dark: #8c70ff;
-  --ifm-color-primary-darker: #7d5eff;
-  --ifm-color-primary-darkest: #4f28ff;
-  --ifm-color-primary-light: #c6b8ff;
-  --ifm-color-primary-lighter: #d4c9ff;
-  --ifm-color-primary-lightest: #ffffff;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
-}
+/* @import './themes/01-scholastica.css';     */
+@import './themes/02-brutalist.css';
+/* @import './themes/03-editorial.css';        */
+/* @import './themes/04-phosphor.css';         */
+/* @import './themes/05-atelier-deco.css';     */
+/* @import './themes/06-bauhaus.css';          */
+/* @import './themes/07-helvetica-suisse.css'; */
+/* @import './themes/08-herbarium.css';        */
+/* @import './themes/09-nocturne.css';         */
+/* @import './themes/10-washi.css';            */
 
-.hero--primary {
-  background: linear-gradient(135deg, var(--ifm-color-primary-dark), var(--ifm-color-primary-lightest));
-}
+/* ----------------------------------------------------------------
+   Site-wide overrides that apply regardless of theme.
+   Keep this section small — theme files own visual identity.
+   ---------------------------------------------------------------- */
+
+.hero--primary { overflow: hidden; }

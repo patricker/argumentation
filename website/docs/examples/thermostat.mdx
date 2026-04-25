@@ -1,15 +1,32 @@
 ---
 sidebar_position: 1
-title: The thermostat (marquee)
+title: The thermostat
 ---
 
+import BetaPlayground from '@site/src/components/BetaPlayground';
 import BetaSlider from '@site/src/components/BetaSlider';
 
-> Two roommates argue about the thermostat. No lawyers, no scientists, no courtroom. Just the world's most relatable disagreement — modeled with formal argumentation.
+> Two roommates argue about the thermostat. Alice wants 72°F; Bob wants 68°F. We model the disagreement as a single scene with two arguments and a weighted attack, then watch how the outcome changes as we move β — the scene's intensity dial.
 
-This is the example the argumentation literature has never built: an **everyday-domain, multi-scheme, single-unfolding-scene** demo. Walton's book has 60+ schemes taught in isolation; academic papers prefer courtroom or medical settings; nobody has shown what happens when the full machinery is turned on "my roommate wants the heat at 68°F and I want it at 72°F."
+A worked example for the `encounter-argumentation` bridge: a scene where both parties have a valid argument, the arguments attack each other, and the framework decides the outcome based on β.
 
-## Drag β to change the scene
+## Drag β to see the scene flip
+
+<BetaPlayground
+  title="Thermostat scene — live"
+  args={[
+    {id: 'A', label: 'Alice: warmer is healthier'},
+    {id: 'B', label: 'Bob: cooler saves energy'},
+  ]}
+  attacks={[{from: 'B', to: 'A', weight: 0.4}]}
+  initialBeta={0}
+/>
+
+Two arguments, one directed weighted attack. The attack weight is **0.4**, meaning Bob's argument is credible enough to undermine Alice's when β is at or below 0.4. The slider above runs the real `argumentation` engine compiled to WebAssembly — every drag recomputes credulous acceptance in your browser.
+
+## A pre-recorded scene trace at four discrete β
+
+For comparison, the snapshots below come from running the full encounter bridge with `MultiBeat` resolution at four fixed β values, captured to JSON traces:
 
 <BetaSlider
   title="The thermostat across β"
@@ -23,26 +40,22 @@ This is the example the argumentation literature has never built: an **everyday-
 
 ## What's happening
 
-At **β = 0**, every argument's counter binds. Neither character can assert their position without rejection, so they both fall back to a non-contentious action (accepting each other's default).
+At **β = 0**, every attack binds. Alice's argument has a live attacker, so it is not credulously accepted; her action is rejected. She falls back to a non-contentious action.
 
-At **β = 0.4**, the 0.4-weight attack becomes droppable (inclusive boundary). Alice's preferred argument (`argue_fortify_east` — mapped here to her thermostat preference) becomes credulously accepted → the scorer boosts it → she picks it. Bob still has his counter, though, and the counter is still credulously accepted, so he rejects her.
+At **β = 0.4**, the 0.4-weight attack becomes droppable (the inclusive boundary — see [β as scene intensity](/concepts/weighted-and-beta)). Alice's argument becomes credulously accepted; the `StateActionScorer` boosts it; she picks it.
 
-At **β = 1.0**, same dynamic as β = 0.4 for this fixture (the attack weight is 0.4, well below 1.0; no additional edges bind differently).
+At **β = 0.5** and **β = 1.0**, the dynamic is the same as at 0.4 for this fixture — no additional edges bind differently past the 0.4 threshold.
 
-## Multiple schemes in sequence (planned)
+## The trace
 
-In v0.4 we'll extend the scene so that, when alice's first argument is rejected, she escalates to a second scheme — say, `argument_from_cause_to_effect` ("if we don't fortify east, morale will collapse"). The point of the marquee demo is to show multiple Walton schemes firing in sequence on the same scene — a demonstration that the academic literature has not attempted.
+Each beat is recorded in the trace JSON (for example, `/traces/thermostat-b05.json`). You can read off the seeded arguments, the attack graph, the per-beat acceptance decision, and any errors latched by the bridge. Replayable and deterministic.
 
-## The receipt
+## Reading the outcome
 
-Every beat has a receipt visible in the trace JSON — check `/traces/thermostat-b05.json` in the browser. You can see the seeded arguments, the attack graph, the per-beat acceptance decision, and any errors latched by the bridge. No LLM hallucinations. Replayable.
-
-## What this buys you
-
-If you're building scene AI, the thermostat is a proof point: you don't have to choose between "fluent but opaque" (LLM free-text) and "rigid scripted branching" (state machines). Argumentation gives you formal reasoning with auditable receipts, and β gives you a single dial to move between tension registers — courtroom sharp vs boardroom smooth vs family-dinner relaxed.
+In this scene, the outcome is a function of β rather than a branching tree you hand-author. Turn β down for courtroom-sharp scenes where every objection lands; turn β up for family-dinner scenes where people let each other have a point.
 
 ## Further reading
 
 - [The encounter integration concept](/concepts/encounter-integration) — how the bridge composes with your scene engine.
 - [β as scene intensity](/concepts/weighted-and-beta) — the mechanics of the dial.
-- [The first-scene guide](/getting-started/first-scene) — build your own thermostat.
+- [The first-scene guide](/getting-started/first-scene) — build your own version.
