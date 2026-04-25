@@ -83,6 +83,10 @@ pub use name_resolver::NameResolver;
 pub use relationship::{RelationshipDims, RelationshipSnapshot, RelationshipWeightSource};
 pub use resolver::{ArgumentOutcome, resolve_argument};
 pub use scoring::SchemeActionScorer;
+pub use societas_relationship::{
+    ATTRACTION_COEF, BASELINE_WEIGHT, FEAR_COEF, FRIENDSHIP_COEF, RESPECT_COEF, TRUST_COEF,
+    SocietasRelationshipSource,
+};
 pub use state::EncounterArgumentationState;
 pub use state_acceptance::StateAcceptanceEval;
 pub use state_scorer::StateActionScorer;

@@ -18,6 +18,7 @@ use crate::arg_id::ArgumentId;
 use crate::name_resolver::NameResolver;
 use argumentation_weighted::WeightSource;
 use societas_core::{EntityId, SocialStore, Tick};
+use societas_relations::Dimension;
 use societas_relations::RelationshipRegistry;
 use std::collections::HashMap;
 
@@ -41,15 +42,10 @@ pub const FRIENDSHIP_COEF: f64 = -0.10;
 /// See the module-level documentation for the coefficient recipe and
 /// the aggregation strategy for multi-actor arguments.
 pub struct SocietasRelationshipSource<'a, R> {
-    // Will be read in Task 6 (single-pair scoring via societas query).
-    #[allow(dead_code)]
     registry: &'a RelationshipRegistry,
-    #[allow(dead_code)]
     store: &'a dyn SocialStore,
     resolver: &'a R,
     actors_by_argument: &'a HashMap<ArgumentId, Vec<String>>,
-    // Will be read in Task 6 (temporal relationship lookup).
-    #[allow(dead_code)]
     tick: Tick,
 }
 
@@ -109,16 +105,63 @@ impl<R: NameResolver> WeightSource<ArgumentId> for SocietasRelationshipSource<'_
             return Some(BASELINE_WEIGHT);
         }
 
-        // Placeholder for Task 6: when we have at least one resolvable
-        // pair, we should query societas. For now, still baseline.
-        Some(BASELINE_WEIGHT)
+        let mut sum = 0.0_f64;
+        let mut count = 0_u32;
+        for &src in &attacker_ids {
+            for &tgt in &target_ids {
+                sum += self.pairwise_weight(src, tgt);
+                count += 1;
+            }
+        }
+        let mean = sum / f64::from(count);
+        Some(mean)
+    }
+}
+
+impl<R: NameResolver> SocietasRelationshipSource<'_, R> {
+    /// Compute the per-pair weight for a single (source, target)
+    /// `EntityId` pair by summing the coefficient-weighted dimension
+    /// scores and clamping to the unit interval.
+    fn pairwise_weight(&self, source: EntityId, target: EntityId) -> f64 {
+        let trust =
+            self.registry
+                .score(self.store, source, target, Dimension::Trust, self.tick);
+        let fear =
+            self.registry
+                .score(self.store, source, target, Dimension::Fear, self.tick);
+        let respect =
+            self.registry
+                .score(self.store, source, target, Dimension::Respect, self.tick);
+        let attraction = self.registry.score(
+            self.store,
+            source,
+            target,
+            Dimension::Attraction,
+            self.tick,
+        );
+        let friendship = self.registry.score(
+            self.store,
+            source,
+            target,
+            Dimension::Friendship,
+            self.tick,
+        );
+        let raw = BASELINE_WEIGHT
+            + TRUST_COEF * trust
+            + FEAR_COEF * fear
+            + RESPECT_COEF * respect
+            + ATTRACTION_COEF * attraction
+            + FRIENDSHIP_COEF * friendship;
+        raw.clamp(0.0, 1.0)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use societas_core::ModifierSource;
     use societas_memory::MemStore;
+    use societas_relations::Dimension;
 
     #[test]
     fn constants_match_phase_a_stub() {
@@ -182,5 +225,152 @@ mod tests {
             SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
         let w = source.weight_for(&ArgumentId::new("x"), &ArgumentId::new("y"));
         assert_eq!(w, Some(BASELINE_WEIGHT));
+    }
+
+    /// Helper: build a minimal single-pair scene. Alice is the attacker
+    /// actor (EntityId 1), Bob the target (EntityId 2).
+    fn single_pair_fixture() -> (
+        RelationshipRegistry,
+        MemStore,
+        HashMap<String, EntityId>,
+        HashMap<ArgumentId, Vec<String>>,
+    ) {
+        let registry = RelationshipRegistry::new();
+        let store = MemStore::new();
+        let mut resolver: HashMap<String, EntityId> = HashMap::new();
+        resolver.insert("alice".to_string(), EntityId::from_u64(1));
+        resolver.insert("bob".to_string(), EntityId::from_u64(2));
+        let mut actors: HashMap<ArgumentId, Vec<String>> = HashMap::new();
+        actors.insert(ArgumentId::new("alice_arg"), vec!["alice".to_string()]);
+        actors.insert(ArgumentId::new("bob_arg"), vec!["bob".to_string()]);
+        (registry, store, resolver, actors)
+    }
+
+    #[test]
+    fn neutral_societas_state_yields_baseline_weight() {
+        let (registry, store, resolver, actors) = single_pair_fixture();
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("alice_arg"), &ArgumentId::new("bob_arg"))
+            .unwrap();
+        assert!(
+            (w - BASELINE_WEIGHT).abs() < 1e-9,
+            "neutral-state pair should produce baseline weight, got {w}"
+        );
+    }
+
+    #[test]
+    fn high_trust_lowers_attack_weight() {
+        let (registry, mut store, resolver, actors) = single_pair_fixture();
+        registry.add_modifier(
+            &mut store,
+            EntityId::from_u64(1),
+            EntityId::from_u64(2),
+            Dimension::Trust,
+            1.0,
+            0.0,
+            ModifierSource::Personality,
+            Tick(0),
+        );
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("alice_arg"), &ArgumentId::new("bob_arg"))
+            .unwrap();
+        let expected = (BASELINE_WEIGHT + TRUST_COEF).clamp(0.0, 1.0);
+        assert!(
+            (w - expected).abs() < 1e-9,
+            "high trust should produce baseline + TRUST_COEF = {expected}, got {w}"
+        );
+    }
+
+    #[test]
+    fn high_fear_raises_attack_weight() {
+        let (registry, mut store, resolver, actors) = single_pair_fixture();
+        registry.add_modifier(
+            &mut store,
+            EntityId::from_u64(1),
+            EntityId::from_u64(2),
+            Dimension::Fear,
+            1.0,
+            0.0,
+            ModifierSource::Personality,
+            Tick(0),
+        );
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("alice_arg"), &ArgumentId::new("bob_arg"))
+            .unwrap();
+        let expected = (BASELINE_WEIGHT + FEAR_COEF).clamp(0.0, 1.0);
+        assert!(
+            (w - expected).abs() < 1e-9,
+            "high fear should produce baseline + FEAR_COEF = {expected}, got {w}"
+        );
+    }
+
+    #[test]
+    fn weight_is_clamped_to_unit_interval_on_extreme_values() {
+        // Simultaneously max out every dimension in both directions.
+        // The raw linear combination can exceed [0, 1]; verify we clamp.
+        let (registry, mut store, resolver, actors) = single_pair_fixture();
+        for dim in [
+            Dimension::Trust,
+            Dimension::Fear,
+            Dimension::Friendship,
+            Dimension::Respect,
+            Dimension::Attraction,
+        ] {
+            registry.add_modifier(
+                &mut store,
+                EntityId::from_u64(1),
+                EntityId::from_u64(2),
+                dim,
+                1.0,
+                0.0,
+                ModifierSource::Personality,
+                Tick(0),
+            );
+        }
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("alice_arg"), &ArgumentId::new("bob_arg"))
+            .unwrap();
+        assert!(
+            (0.0..=1.0).contains(&w),
+            "weight should be clamped to [0, 1], got {w}"
+        );
+    }
+
+    #[test]
+    fn asymmetric_relationship_produces_asymmetric_weights() {
+        // alice's view of bob has high trust; bob's view of alice is neutral.
+        // alice → bob attack gets dampened (trust reduces weight);
+        // bob → alice attack stays at baseline.
+        let (registry, mut store, resolver, actors) = single_pair_fixture();
+        registry.add_modifier(
+            &mut store,
+            EntityId::from_u64(1), // alice
+            EntityId::from_u64(2), // bob
+            Dimension::Trust,
+            1.0,
+            0.0,
+            ModifierSource::Personality,
+            Tick(0),
+        );
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w_alice_on_bob = source
+            .weight_for(&ArgumentId::new("alice_arg"), &ArgumentId::new("bob_arg"))
+            .unwrap();
+        let w_bob_on_alice = source
+            .weight_for(&ArgumentId::new("bob_arg"), &ArgumentId::new("alice_arg"))
+            .unwrap();
+        assert!(
+            w_alice_on_bob < w_bob_on_alice,
+            "alice→bob with high trust should weigh less than bob→alice baseline; got {w_alice_on_bob} vs {w_bob_on_alice}"
+        );
     }
 }
