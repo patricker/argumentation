@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 mod framework;
 mod weighted;
 
-// pub use framework::WasmFramework;       // populated in Task 2
+pub use framework::WasmFramework;
 // pub use weighted::WasmWeightedFramework; // populated in Task 6
 
 /// Install a panic hook that pipes Rust panics to `console.error`.
