@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "prestart": "npm run build:wasm",
     "start": "docusaurus start",
+    "prebuild": "npm run build:wasm",
     "build": "docusaurus build",
+    "build:wasm": "wasm-pack build ../crates/argumentation-wasm --target web --out-dir ../../website/static/wasm/argumentation --no-typescript",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
