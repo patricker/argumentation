@@ -82,22 +82,38 @@ for coalition in state.coalitions().unwrap() {
 }
 ```
 
-### Relationship modulation (Phase C)
+### Relationship modulation
 
-`SocietasRelationshipSource` reads relationship dimensions (trust,
-fear, respect, attraction, friendship) from a live `societas-relations`
-registry and `SocialStore`, applies a coefficient recipe (see public
-`*_COEF` constants), and returns a per-edge attack weight. Pass the
-computed weight into
-[`add_weighted_attack`](crate::EncounterArgumentationState::add_weighted_attack)
-to wire it into the framework.
+Societas-aware attack weights live in the **`societas-encounter`** crate
+(in the `societas` workspace) under the `argumentation` feature.
+`societas_encounter::SocietasRelationshipSource` implements
+`argumentation_weighted::WeightSource<ArgumentId>` by reading the five
+relationship dimensions from `societas-relations` and applying a
+coefficient recipe.
 
-The adapter resolves an `ArgumentId` to its asserting actor(s) via
-[`actors_by_argument()`](crate::EncounterArgumentationState::actors_by_argument)
-and a pluggable
-[`NameResolver`](crate::NameResolver) (a blanket impl is provided for
-`HashMap<String, EntityId>`). Multi-actor arguments are aggregated by
-arithmetic mean; unresolvable names are skipped.
+Wiring sketch:
+
+```rust,ignore
+use argumentation_weighted::WeightSource;
+use societas_core::Tick;
+use societas_encounter::{SocietasRelationshipSource, names::StaticNameResolver};
+use societas_memory::MemStore;
+use societas_relations::RelationshipRegistry;
+
+let store = MemStore::new();                  // any &dyn SocialStore
+let registry = RelationshipRegistry::new();
+let mut resolver = StaticNameResolver::new();
+resolver.add("alice", /* alice's EntityId */);
+resolver.add("bob",   /* bob's EntityId   */);
+
+let source = SocietasRelationshipSource::new(
+    &registry, &store, &resolver,
+    state.actors_by_argument(),
+    Tick(0),
+);
+let w = source.weight_for(&attacker_arg, &target_arg).unwrap();
+state.add_weighted_attack(&attacker_arg, &target_arg, w)?;
+```
 
 ## Architecture
 

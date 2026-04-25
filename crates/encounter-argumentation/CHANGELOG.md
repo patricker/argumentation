@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.5.0] - 2026-04-25
+
+### Removed (breaking)
+- `SocietasRelationshipSource`, `NameResolver`, and the six coefficient
+  constants (`BASELINE_WEIGHT`, `TRUST_COEF`, `FEAR_COEF`,
+  `RESPECT_COEF`, `ATTRACTION_COEF`, `FRIENDSHIP_COEF`) are deleted.
+  These were misplaced in v0.4.0 — the societas-aware weight source
+  belongs in the `societas-encounter` crate alongside the other
+  societas↔encounter bridge types (action scorer, acceptance eval,
+  catalog, effects). No backward-compat shim.
+
+### Migration
+Consumers using the deleted types should add the `societas-encounter`
+crate (in the `societas` workspace) with the `argumentation` feature:
+
+```toml
+[dependencies]
+societas-encounter = { path = "../societas/crates/encounter", features = ["argumentation"] }
+```
+
+Imports change from:
+
+```rust
+use encounter_argumentation::{SocietasRelationshipSource, NameResolver, TRUST_COEF};
+```
+
+to:
+
+```rust
+use societas_encounter::{SocietasRelationshipSource, TRUST_COEF};
+use societas_encounter::names::NameResolver;  // or StaticNameResolver
+```
+
+**Signature change:** the generic `R: NameResolver` type parameter on
+`SocietasRelationshipSource<'a, R>` is gone — the new home uses
+`SocietasRelationshipSource<'a>` with `&'a dyn NameResolver`. The
+v0.4.0 `HashMap<String, EntityId>` blanket impl is NOT carried over;
+consumers that constructed the source directly with a HashMap must
+switch to `StaticNameResolver` (or another `NameResolver` implementor):
+
+```rust
+// v0.4.0:
+let resolver: HashMap<String, EntityId> = ...;
+let source = SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, tick);
+
+// v0.5.0:
+let mut resolver = StaticNameResolver::new();
+resolver.add("alice", EntityId::from_u64(1));
+let source = SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, tick);
+```
+
+(The `&resolver` borrow at the call site implicitly coerces to `&dyn NameResolver` — no API change beyond the type swap.)
+
+The `StaticNameResolver` in `societas-encounter` is strictly richer
+than v0.4.0's `HashMap<String, EntityId>` blanket impl: it requires
+`Send + Sync`, validates against affordance role-binding name
+collisions (`"self"`, `"target"`, etc.), and offers a `try_add`
+fallible variant.
+
+### Removed dependencies
+- `societas-core`, `societas-relations` (production deps)
+- `societas-memory` (dev-dep)
+
+### Preserved (no changes)
+All v0.3.0 + v0.4.0 surface remains: `EncounterArgumentationState`
+including the `actors_by_argument()` accessor (used by
+`SocietasRelationshipSource` from its new home), `StateAcceptanceEval`,
+`StateActionScorer`, `AffordanceKey`, error variants, scheme/CQ APIs.
+
 ## [0.4.0] - 2026-04-24
 
 ### Added — societas-backed relationship weights

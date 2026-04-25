@@ -1,6 +1,6 @@
 [package]
 name = "encounter-argumentation"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 description = "Bridge between encounter social interactions and argumentation schemes"
 license = "MIT OR Apache-2.0"
@@ -14,9 +14,5 @@ argumentation-schemes = { path = "../argumentation-schemes" }
 argumentation-bipolar = { path = "../argumentation-bipolar" }
 argumentation-weighted = { path = "../argumentation-weighted" }
 argumentation-weighted-bipolar = { path = "../argumentation-weighted-bipolar" }
-societas-core = { path = "../../../societas/crates/core" }
-societas-relations = { path = "../../../societas/crates/relations" }
 thiserror = "2.0"
 
-[dev-dependencies]
-societas-memory = { path = "../../../societas/crates/memory" }
