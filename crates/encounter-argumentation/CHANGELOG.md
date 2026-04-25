@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.4.0] - 2026-04-24
+
+### Added — societas-backed relationship weights
+- `SocietasRelationshipSource<'a, R>` — a `WeightSource<ArgumentId>`
+  implementation that reads attack weights from live
+  `societas-relations` state. Resolves an `ArgumentId` to its asserting
+  actors via `EncounterArgumentationState::actors_by_argument`, then
+  queries the five societas relationship dimensions (Trust, Fear,
+  Respect, Attraction, Friendship) at a caller-supplied `Tick` to
+  compute a per-edge weight.
+- `NameResolver` trait — maps actor-name strings to `EntityId`. Ships
+  with a blanket impl for `HashMap<String, EntityId>` so tests and
+  consumers with a fixed cast list can pass a HashMap directly.
+- Public coefficient constants: `BASELINE_WEIGHT`, `TRUST_COEF`,
+  `FEAR_COEF`, `RESPECT_COEF`, `ATTRACTION_COEF`, `FRIENDSHIP_COEF`.
+  These are the same values the Phase A stub used, now observable and
+  pinnable from tests. Calibration is provisional — see README.
+- `EncounterArgumentationState::actors_by_argument() -> &HashMap<ArgumentId, Vec<String>>`
+  — read-only accessor exposing the previously-private actor map.
+
+### Removed — Phase A relationship stubs
+- `RelationshipDims`, `RelationshipSnapshot`, and the old
+  `RelationshipWeightSource` are deleted. The stub was soundness-broken:
+  it treated `ArgumentId` (a conclusion literal) as if it were an actor
+  name, so scheme-derived `ArgumentId`s always missed the snapshot and
+  fell back to the neutral baseline. No migration shim — consumers
+  rewrite against `SocietasRelationshipSource`.
+
+### Multi-actor aggregation
+When `actors_by_argument` maps one `ArgumentId` to more than one actor
+(convergent conclusions), the per-pair weights are combined by
+arithmetic mean across the (attacker_actor × target_actor) Cartesian
+product. Unresolvable actor names are silently skipped; if all pairs
+are unresolvable, the source returns `BASELINE_WEIGHT`.
+
+### Dependencies
+- Added: `societas-core`, `societas-relations` (path deps on the
+  sibling societas workspace).
+- Added (dev): `societas-memory` — for `MemStore`-backed test
+  fixtures.
+
 ## [0.3.0] - 2026-04-20
 
 ### Added — state-aware bridge types
