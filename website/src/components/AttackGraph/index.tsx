@@ -38,6 +38,14 @@ type Props = {
   layout?: Layout;
   legend?: boolean;
   caption?: string;
+  /**
+   * Optional set of `"from->to"` keys for attacks that are currently
+   * binding. Edges whose key is not in this set render at reduced
+   * opacity. Use the `edgeKey(from, to)` helper from
+   * `@site/src/lib/argumentation` to construct the keys consistently.
+   * Undefined ≡ all edges live.
+   */
+  liveEdges?: Set<string>;
 };
 
 function ArgumentNode({data}: NodeProps<{argId: string; label?: string; accepted?: AcceptedState}>) {
@@ -91,6 +99,7 @@ export default function AttackGraph({
   layout = 'auto',
   legend = true,
   caption,
+  liveEdges,
 }: Props) {
   const chosenLayout: 'row' | 'circle' =
     layout === 'auto' ? (args.length <= 2 ? 'row' : 'circle') : layout;
@@ -110,6 +119,7 @@ export default function AttackGraph({
     const attackEdges: Edge[] = attacks.map((e, i) => {
       const isUndercut = e.kind === 'undercut';
       const selfLoop = e.from === e.to;
+      const isLive = liveEdges === undefined || liveEdges.has(`${e.from}->${e.to}`);
       return {
         id: `attack-${i}`,
         source: e.from,
@@ -120,8 +130,15 @@ export default function AttackGraph({
           stroke: 'var(--ag-attack)',
           strokeWidth: 2,
           strokeDasharray: isUndercut ? '6 4' : undefined,
+          opacity: isLive ? 1 : 0.22,
+          transition: 'opacity 0.25s ease, stroke-width 0.25s ease',
         },
-        labelStyle: {fontSize: 11, fontWeight: 700, fill: 'var(--ag-attack)'},
+        labelStyle: {
+          fontSize: 11,
+          fontWeight: 700,
+          fill: 'var(--ag-attack)',
+          opacity: isLive ? 1 : 0.4,
+        },
         labelBgStyle: {fill: 'var(--ag-surface)', fillOpacity: 0.95},
         labelBgPadding: [4, 2],
         labelBgBorderRadius: 4,
@@ -152,7 +169,7 @@ export default function AttackGraph({
       },
     }));
     return [...attackEdges, ...supportEdges];
-  }, [attacks, supports]);
+  }, [attacks, supports, liveEdges]);
 
   const hasUndercut = attacks.some((e) => e.kind === 'undercut');
 
