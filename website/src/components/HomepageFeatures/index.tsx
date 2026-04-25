@@ -9,11 +9,12 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Auditable scene AI',
+    title: 'Inspectable scene traces',
     description: (
       <>
-        Every beat has a receipt: which arguments fired, which attacks bound,
-        which residual produced the acceptance. No black-box LLM hallucinations.
+        Each beat records the arguments asserted, the attacks that bound,
+        and the residual that produced the acceptance — something you can
+        read, replay, and reason about.
       </>
     ),
   },
@@ -28,12 +29,12 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'β — scene intensity as a first-class dial',
+    title: 'β — scene intensity as a single parameter',
     description: (
       <>
-        Tune how strictly attacks bind. Low β = every counter bites (courtroom
-        energy); high β = counters slide off (boardroom cordiality). One knob,
-        radically different scenes.
+        Tune how strictly attacks bind. Low β — every counter bites
+        (courtroom energy). High β — counters slide off (boardroom
+        cordiality). One parameter, a wide range of scene registers.
       </>
     ),
   },
@@ -48,12 +49,12 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Grounded in the canon',
+    title: 'Based on published research',
     description: (
       <>
-        Implements Dung (1995), Walton-Reed-Macagno (2008), Cayrol &
-        Lagasquie-Schiex (2005), Dunne et al. (2011), Modgil-Prakken ASPIC+ (2014).
-        Every primitive traces back to a paper.
+        Primitives from Dung (1995), Walton-Reed-Macagno (2008), Cayrol &
+        Lagasquie-Schiex (2005), Dunne et al. (2011), Modgil-Prakken ASPIC+
+        (2014). Every type traces back to a paper we link.
       </>
     ),
   },

@@ -1,0 +1,207 @@
+/* =====================================================================
+   BRUTALIST — Exposed concrete
+   Mono everywhere, harsh contrast, oxide orange accent, no radii.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --ifm-color-primary: #D84315;
+  --ifm-color-primary-dark: #C13C12;
+  --ifm-color-primary-darker: #A73510;
+  --ifm-color-primary-darkest: #7A2609;
+  --ifm-color-primary-light: #E5552A;
+  --ifm-color-primary-lighter: #EC6A44;
+  --ifm-color-primary-lightest: #F39072;
+
+  --wb-paper: #F5F5F0;
+  --wb-paper-alt: #EDEDE5;
+  --wb-ink: #0A0A0A;
+  --wb-concrete: #9E9E99;
+  --wb-accent: #D84315;
+
+  --ifm-background-color: var(--wb-paper);
+  --ifm-background-surface-color: var(--wb-paper-alt);
+  --ifm-font-family-base: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ifm-heading-font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  --ifm-font-family-monospace: 'IBM Plex Mono', ui-monospace, monospace;
+  --ifm-font-size-base: 15px;
+  --ifm-line-height-base: 1.55;
+  --ifm-heading-color: var(--wb-ink);
+  --ifm-color-content: var(--wb-ink);
+  --ifm-color-content-secondary: #3A3A3A;
+  --ifm-link-color: var(--wb-accent);
+  --ifm-link-hover-color: var(--wb-ink);
+  --ifm-navbar-background-color: var(--wb-paper);
+  --ifm-footer-background-color: var(--wb-ink);
+  --ifm-blockquote-border-color: var(--wb-accent);
+  --ifm-hr-border-color: var(--wb-ink);
+  --ifm-hr-border-width: 3px;
+  --ifm-button-border-radius: 0;
+  --ifm-card-border-radius: 0;
+  --ifm-global-radius: 0;
+  --ifm-toc-border-color: var(--wb-ink);
+  --docusaurus-highlighted-code-line-bg: rgba(216, 67, 21, 0.12);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #FF6B35;
+  --ifm-color-primary-dark: #FF5520;
+  --ifm-color-primary-darker: #F24A15;
+  --ifm-color-primary-darkest: #C13C12;
+  --ifm-color-primary-light: #FF8254;
+  --ifm-color-primary-lighter: #FF9770;
+  --ifm-color-primary-lightest: #FFB89A;
+
+  --ifm-background-color: #0A0A0A;
+  --ifm-background-surface-color: #141414;
+  --ifm-heading-color: #F5F5F0;
+  --ifm-color-content: #E8E8E2;
+  --ifm-color-content-secondary: #B0B0A8;
+  --ifm-link-color: #FF6B35;
+  --ifm-link-hover-color: #F5F5F0;
+  --ifm-navbar-background-color: #0A0A0A;
+  --ifm-footer-background-color: #000;
+  --ifm-hr-border-color: #F5F5F0;
+  --ifm-toc-border-color: #F5F5F0;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 107, 53, 0.14);
+}
+
+* { border-radius: 0 !important; }
+
+h1, .markdown h1 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 2.6rem;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-bottom: 0.5em;
+}
+
+h1::before {
+  content: "// ";
+  color: var(--wb-accent);
+  font-weight: 400;
+}
+
+h2 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  border-top: 3px solid currentColor;
+  padding-top: 0.6em;
+  margin-top: 2.5em;
+}
+
+h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+h3::before { content: "# "; color: var(--wb-accent); }
+
+.markdown p { max-width: 68ch; }
+
+a {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  padding-bottom: 2px;
+}
+a:hover {
+  background-color: var(--wb-accent);
+  color: var(--wb-paper) !important;
+  padding: 0 0.15em 2px;
+  background-image: none;
+}
+[data-theme='dark'] a:hover { color: var(--wb-ink) !important; }
+
+hr {
+  border: 0;
+  border-top: 3px solid currentColor;
+  margin: 2.5em 0;
+}
+
+blockquote {
+  border-left: 8px solid var(--wb-accent);
+  background: var(--ifm-background-surface-color);
+  padding: 1em 1.2em;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 500;
+}
+
+code { border: 1px solid currentColor; padding: 0.1em 0.35em; background: transparent !important; }
+
+.admonition,
+.theme-admonition {
+  border: 3px solid var(--ifm-color-primary) !important;
+  background: transparent !important;
+}
+
+pre, .prism-code {
+  border: 3px solid currentColor !important;
+  background: var(--ifm-background-color) !important;
+}
+
+.card {
+  border: 3px solid var(--wb-ink);
+  background: var(--ifm-background-surface-color);
+  box-shadow: 6px 6px 0 0 var(--wb-ink);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 0 var(--wb-accent); }
+[data-theme='dark'] .card { border-color: #F5F5F0; box-shadow: 6px 6px 0 0 #F5F5F0; }
+[data-theme='dark'] .card:hover { box-shadow: 8px 8px 0 0 var(--wb-accent); }
+
+.button {
+  border: 2px solid currentColor !important;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.button--secondary { background: var(--wb-accent) !important; color: var(--wb-paper) !important; border-color: var(--wb-accent) !important; }
+.button--secondary:hover { background: var(--wb-ink) !important; border-color: var(--wb-ink) !important; color: var(--wb-accent) !important; }
+
+.navbar {
+  border-bottom: 3px solid var(--wb-ink);
+  box-shadow: none;
+}
+[data-theme='dark'] .navbar { border-bottom-color: #F5F5F0; }
+
+.navbar__title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.navbar__title::before { content: "▮ "; color: var(--wb-accent); }
+
+.hero--primary {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 18px, rgba(216, 67, 21, 0.05) 18px 19px),
+    var(--wb-paper) !important;
+  color: var(--wb-ink) !important;
+  border-bottom: 3px solid var(--wb-ink);
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: var(--wb-ink) !important; }
+.hero--primary .hero__title { font-family: 'IBM Plex Mono', monospace; font-weight: 700; text-transform: uppercase; }
+[data-theme='dark'] .hero--primary {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 107, 53, 0.08) 18px 19px),
+    #0A0A0A !important;
+  border-bottom-color: #F5F5F0;
+}
+[data-theme='dark'] .hero--primary .hero__title,
+[data-theme='dark'] .hero--primary .hero__subtitle { color: #F5F5F0 !important; }

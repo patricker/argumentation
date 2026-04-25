@@ -1,0 +1,246 @@
+/* =====================================================================
+   EDITORIAL — Longform magazine
+   Spectral body, Playfair display, hairlines, saffron accent.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Archivo:wght@400;500;600&display=swap');
+
+:root {
+  --ifm-color-primary: #B45309;
+  --ifm-color-primary-dark: #92400E;
+  --ifm-color-primary-darker: #78350F;
+  --ifm-color-primary-darkest: #451A03;
+  --ifm-color-primary-light: #D97706;
+  --ifm-color-primary-lighter: #F59E0B;
+  --ifm-color-primary-lightest: #FCD34D;
+
+  --wb-ivory: #FAF7F2;
+  --wb-ivory-alt: #F2EDE4;
+  --wb-charcoal: #1A1A1A;
+  --wb-gray: #555;
+  --wb-saffron: #D97706;
+
+  --ifm-background-color: var(--wb-ivory);
+  --ifm-background-surface-color: var(--wb-ivory-alt);
+  --ifm-font-family-base: 'Spectral', Georgia, 'Times New Roman', serif;
+  --ifm-heading-font-family: 'Playfair Display', Georgia, serif;
+  --ifm-font-family-monospace: 'IBM Plex Mono', ui-monospace, monospace;
+  --ifm-font-size-base: 18px;
+  --ifm-line-height-base: 1.72;
+  --ifm-heading-color: var(--wb-charcoal);
+  --ifm-color-content: #2A2520;
+  --ifm-color-content-secondary: var(--wb-gray);
+  --ifm-link-color: var(--wb-saffron);
+  --ifm-link-hover-color: #92400E;
+  --ifm-navbar-background-color: rgba(250, 247, 242, 0.92);
+  --ifm-footer-background-color: var(--wb-charcoal);
+  --ifm-blockquote-border-color: var(--wb-saffron);
+  --ifm-hr-border-color: #D9D3C7;
+  --ifm-hr-border-width: 1px;
+  --ifm-toc-border-color: #E5DED0;
+  --docusaurus-highlighted-code-line-bg: rgba(217, 119, 6, 0.12);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #F59E0B;
+  --ifm-color-primary-dark: #D97706;
+  --ifm-color-primary-darker: #B45309;
+  --ifm-color-primary-darkest: #78350F;
+  --ifm-color-primary-light: #FBBF24;
+  --ifm-color-primary-lighter: #FCD34D;
+  --ifm-color-primary-lightest: #FDE68A;
+
+  --ifm-background-color: #14100C;
+  --ifm-background-surface-color: #1C1714;
+  --ifm-heading-color: #F5EFE3;
+  --ifm-color-content: #E8DFD1;
+  --ifm-color-content-secondary: #A89A82;
+  --ifm-link-color: #F59E0B;
+  --ifm-link-hover-color: #FCD34D;
+  --ifm-navbar-background-color: rgba(20, 16, 12, 0.9);
+  --ifm-footer-background-color: #0A0704;
+  --ifm-hr-border-color: #332920;
+  --ifm-toc-border-color: #332920;
+  --docusaurus-highlighted-code-line-bg: rgba(245, 158, 11, 0.18);
+}
+
+h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: 3.4rem;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.35em;
+}
+
+h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-top: 2.5em;
+  position: relative;
+}
+
+h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background: var(--wb-saffron);
+  margin-top: 0.4em;
+}
+
+h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.4rem;
+}
+
+h4, h5, h6 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+}
+
+.markdown > p:first-of-type::first-letter {
+  font-family: 'Playfair Display', serif;
+  font-size: 4em;
+  font-weight: 900;
+  float: left;
+  line-height: 0.9;
+  padding: 0.05em 0.08em 0 0;
+  color: var(--ifm-color-primary);
+}
+
+.markdown > p:first-of-type {
+  font-family: 'Spectral', serif;
+  font-weight: 400;
+  font-size: 1.15em;
+  line-height: 1.65;
+}
+
+.markdown p { max-width: 66ch; }
+
+a {
+  text-decoration: none;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+  transition: border-color 0.2s, color 0.2s;
+}
+a:hover { border-bottom-color: var(--ifm-link-hover-color); }
+
+blockquote {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  line-height: 1.3;
+  border-left: none;
+  padding: 0 2em;
+  margin: 2em 0;
+  text-align: center;
+  color: var(--ifm-color-content);
+  position: relative;
+}
+blockquote::before {
+  content: '"';
+  font-size: 5rem;
+  line-height: 0;
+  vertical-align: -0.4em;
+  color: var(--wb-saffron);
+  margin-right: 0.1em;
+  font-weight: 900;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--ifm-hr-border-color);
+  margin: 3em 0;
+  position: relative;
+  height: 1px;
+  overflow: visible;
+}
+hr::after {
+  content: '§';
+  position: absolute;
+  left: 50%;
+  top: -0.75em;
+  transform: translateX(-50%);
+  background: var(--ifm-background-color);
+  padding: 0 0.5em;
+  color: var(--wb-saffron);
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+}
+
+body { font-feature-settings: "onum" 1, "liga" 1, "kern" 1; }
+
+.navbar {
+  backdrop-filter: saturate(140%) blur(8px);
+  border-bottom: 1px solid var(--ifm-hr-border-color);
+  box-shadow: none;
+}
+
+.navbar__title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.hero--primary {
+  background: var(--wb-ivory) !important;
+  color: var(--wb-charcoal) !important;
+  border-bottom: 1px solid var(--ifm-hr-border-color);
+  padding: 6rem 0 !important;
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: var(--wb-charcoal) !important; }
+.hero--primary .hero__title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 5rem;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+}
+.hero--primary .hero__subtitle {
+  font-family: 'Spectral', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.35rem;
+  max-width: 52ch;
+  margin: 1em auto 0;
+  color: var(--wb-gray) !important;
+}
+
+[data-theme='dark'] .hero--primary {
+  background: #14100C !important;
+  border-bottom-color: #332920;
+}
+[data-theme='dark'] .hero--primary .hero__title,
+[data-theme='dark'] .hero--primary .hero__subtitle { color: #F5EFE3 !important; }
+[data-theme='dark'] .hero--primary .hero__subtitle { color: #A89A82 !important; }
+
+.button--secondary {
+  background: var(--wb-charcoal);
+  color: var(--wb-ivory);
+  border: 1px solid var(--wb-charcoal);
+  font-family: 'Archivo', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-radius: 0;
+}
+.button--secondary:hover { background: var(--wb-saffron); border-color: var(--wb-saffron); color: var(--wb-ivory); }
+.button--outline {
+  font-family: 'Archivo', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-radius: 0;
+}

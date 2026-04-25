@@ -18,7 +18,7 @@ function HomepageHeader() {
             Start with concepts →
           </Link>
           <Link className="button button--outline button--lg" to="/examples/thermostat">
-            See the marquee demo
+            Try the thermostat example
           </Link>
         </div>
       </div>

@@ -24,7 +24,7 @@ The default logic paper that motivated much of the field. Home of the Tweety-fli
 **Walton, D., Reed, C., Macagno, F. (2008).** *Argumentation Schemes.* Cambridge University Press.
 [[Publisher]](https://www.cambridge.org/core/books/argumentation-schemes/9AE7E4E6ABDE690565442B2BD516A8B6)
 
-The definitive catalogue of ~60 presumptive argument schemes. Each scheme comes with premises, conclusion, and critical questions. Our `argumentation-schemes` crate ships a subset.
+A comprehensive catalogue of ~60 presumptive argument schemes. Each scheme comes with premises, conclusion, and critical questions. Our `argumentation-schemes` crate ships a subset.
 
 ### walton2006
 **Walton, D. (2006).** *Fundamentals of Critical Argumentation.* Cambridge University Press.
@@ -51,7 +51,7 @@ The survey paper on bipolar. Covers multiple support semantics — worth reading
 **Dunne, P. E., Hunter, A., McBurney, P., Parsons, S., Wooldridge, M. (2011).** *Weighted argument systems: Basic definitions, algorithms, and complexity results.* Artificial Intelligence, 175(2), 457–486.
 [[PDF]](http://www.cs.ox.ac.uk/people/michael.wooldridge/pubs/aij2011a.pdf)
 
-Introduces weighted argument systems and β-budget inconsistency tolerance. The semantic foundation of our `argumentation-weighted` crate. Our β-as-scene-intensity is a direct application of this paper's machinery.
+Introduces weighted argument systems and β-budget inconsistency tolerance. The semantic foundation of our `argumentation-weighted` crate. The β-as-scene-intensity mapping is a direct application of this paper's machinery.
 
 ### amgoud2016
 **Amgoud, L., Ben-Naim, J. (2016).** *Axiomatic foundations of acceptability semantics.* KR 2016.
@@ -69,7 +69,7 @@ The original ASPIC+ paper. Builds structured arguments from strict/defeasible ru
 **Modgil, S., Prakken, H. (2014).** *The ASPIC+ framework for structured argumentation: a tutorial.* Argument and Computation, 5(1), 31–62.
 [[Publisher]](https://journals.sagepub.com/doi/10.1080/19462166.2013.869766)
 
-The friendlier entry point. Uses the Tweety penguin example. The tutorial we most recommend for newcomers to ASPIC+.
+An approachable entry point. Uses the Tweety penguin example. A good tutorial for newcomers to ASPIC+.
 
 ## Values & practical reasoning
 
@@ -97,4 +97,4 @@ Argumentation applied to legal evidence. Source of the snoring-witness / undercu
 ### baroni2011
 **Baroni, P., Caminada, M., Giacomin, M. (2011).** *An introduction to argumentation semantics.* The Knowledge Engineering Review, 26(4), 365–410.
 
-The field's best survey of Dung + post-Dung semantics. Covers complete, preferred, stable, grounded, plus ideal, eager, CF2, stage, etc.
+A widely-cited survey of Dung + post-Dung semantics. Covers complete, preferred, stable, grounded, plus ideal, eager, CF2, stage, and others.

@@ -1,0 +1,211 @@
+/* =====================================================================
+   BAUHAUS — Primary colors, geometric blocks
+   Red, blue, yellow on cream. Archivo Black display. Pure geometry.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --ifm-color-primary: #1D4ED8;
+  --ifm-color-primary-dark: #1E40AF;
+  --ifm-color-primary-darker: #1E3A8A;
+  --ifm-color-primary-darkest: #172554;
+  --ifm-color-primary-light: #3B82F6;
+  --ifm-color-primary-lighter: #60A5FA;
+  --ifm-color-primary-lightest: #93C5FD;
+
+  --wb-red: #E63946;
+  --wb-blue: #1D4ED8;
+  --wb-yellow: #FACC15;
+  --wb-cream: #F8F4E9;
+  --wb-cream-alt: #F0EADC;
+  --wb-ink: #0A0A0A;
+
+  --ifm-background-color: var(--wb-cream);
+  --ifm-background-surface-color: var(--wb-cream-alt);
+  --ifm-font-family-base: 'Archivo', system-ui, sans-serif;
+  --ifm-heading-font-family: 'Archivo Black', 'Archivo', sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', monospace;
+  --ifm-font-size-base: 17px;
+  --ifm-line-height-base: 1.6;
+  --ifm-heading-color: var(--wb-ink);
+  --ifm-color-content: var(--wb-ink);
+  --ifm-color-content-secondary: #4A4A4A;
+  --ifm-link-color: var(--wb-blue);
+  --ifm-link-hover-color: var(--wb-red);
+  --ifm-navbar-background-color: var(--wb-cream);
+  --ifm-footer-background-color: var(--wb-ink);
+  --ifm-blockquote-border-color: var(--wb-yellow);
+  --ifm-hr-border-color: var(--wb-ink);
+  --ifm-hr-border-width: 3px;
+  --ifm-global-radius: 0;
+  --ifm-toc-border-color: var(--wb-ink);
+  --docusaurus-highlighted-code-line-bg: rgba(250, 204, 21, 0.25);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #60A5FA;
+  --ifm-color-primary-dark: #3B82F6;
+  --ifm-color-primary-darker: #2563EB;
+  --ifm-color-primary-darkest: #1D4ED8;
+  --ifm-color-primary-light: #93C5FD;
+  --ifm-color-primary-lighter: #BFDBFE;
+  --ifm-color-primary-lightest: #DBEAFE;
+
+  --wb-cream: #0A0A0A;
+  --wb-cream-alt: #141414;
+  --wb-ink: #F8F4E9;
+
+  --ifm-background-color: #0A0A0A;
+  --ifm-background-surface-color: #141414;
+  --ifm-heading-color: #F8F4E9;
+  --ifm-color-content: #F0EADC;
+  --ifm-color-content-secondary: #A8A89A;
+  --ifm-link-color: #60A5FA;
+  --ifm-link-hover-color: #FF5A6A;
+  --ifm-navbar-background-color: #0A0A0A;
+  --ifm-footer-background-color: #000;
+  --ifm-hr-border-color: #F8F4E9;
+  --ifm-toc-border-color: #F8F4E9;
+  --docusaurus-highlighted-code-line-bg: rgba(250, 204, 21, 0.14);
+}
+
+* { border-radius: 0 !important; }
+
+h1 {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 900;
+  font-size: 3.4rem;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  position: relative;
+  padding-bottom: 0.3em;
+}
+h1::after {
+  content: '';
+  display: block;
+  width: 3.5rem;
+  height: 0.7rem;
+  background: var(--wb-red);
+  margin-top: 0.4em;
+}
+
+h2 {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 900;
+  font-size: 1.95rem;
+  text-transform: uppercase;
+  letter-spacing: -0.015em;
+  margin-top: 2.5em;
+  padding-left: 0.55em;
+  border-left: 0.35em solid var(--wb-blue);
+  line-height: 1.05;
+}
+
+h3 {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  position: relative;
+  padding-left: 1.1em;
+}
+h3::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0.18em;
+  width: 0.8em; height: 0.8em;
+  background: var(--wb-yellow);
+  border-radius: 50% !important;
+}
+
+a {
+  text-decoration: none;
+  box-shadow: inset 0 -0.3em 0 var(--wb-yellow);
+  padding: 0 0.1em;
+  transition: background 0.15s;
+}
+a:hover { background: var(--wb-yellow); color: var(--wb-ink) !important; box-shadow: none; }
+[data-theme='dark'] a:hover { color: var(--wb-ink) !important; }
+
+hr {
+  border: 0;
+  height: 8px;
+  background:
+    linear-gradient(to right, var(--wb-red) 0 33.33%, var(--wb-yellow) 33.33% 66.66%, var(--wb-blue) 66.66% 100%);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  background: var(--wb-yellow);
+  color: var(--wb-ink);
+  border: 3px solid var(--wb-ink);
+  padding: 1em 1.3em;
+  font-weight: 600;
+  font-size: 1.05em;
+}
+[data-theme='dark'] blockquote { background: var(--wb-yellow); color: #0A0A0A; border-color: #F8F4E9; }
+
+pre, .prism-code { border: 3px solid currentColor !important; }
+
+.card {
+  border: 3px solid currentColor;
+  background: var(--ifm-background-surface-color);
+}
+.card:nth-of-type(3n+1) { border-top: 14px solid var(--wb-red); }
+.card:nth-of-type(3n+2) { border-top: 14px solid var(--wb-blue); }
+.card:nth-of-type(3n+3) { border-top: 14px solid var(--wb-yellow); }
+
+.button {
+  border: 3px solid currentColor !important;
+  font-family: 'Archivo Black', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 900;
+}
+.button--secondary { background: var(--wb-red) !important; color: var(--wb-cream) !important; border-color: var(--wb-ink) !important; }
+.button--secondary:hover { background: var(--wb-blue) !important; }
+[data-theme='dark'] .button--secondary { color: #F8F4E9 !important; border-color: #F8F4E9 !important; }
+
+.navbar {
+  border-bottom: 3px solid currentColor;
+  box-shadow: none;
+}
+.navbar__title {
+  font-family: 'Archivo Black', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.hero--primary {
+  background:
+    radial-gradient(circle at 85% 20%, var(--wb-yellow) 0 60px, transparent 61px),
+    radial-gradient(circle at 15% 85%, var(--wb-red) 0 90px, transparent 91px),
+    linear-gradient(135deg, var(--wb-cream) 60%, var(--wb-blue) 200%) !important;
+  color: var(--wb-ink) !important;
+  border-bottom: 3px solid var(--wb-ink);
+}
+[data-theme='dark'] .hero--primary {
+  background:
+    radial-gradient(circle at 85% 20%, var(--wb-yellow) 0 60px, transparent 61px),
+    radial-gradient(circle at 15% 85%, var(--wb-red) 0 90px, transparent 91px),
+    linear-gradient(135deg, #0A0A0A 60%, var(--wb-blue) 200%) !important;
+  color: #F8F4E9 !important;
+  border-bottom-color: #F8F4E9;
+}
+.hero--primary .hero__title,
+.hero--primary .hero__subtitle { color: inherit !important; }
+.hero--primary .hero__title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 5.5rem;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.hero--primary .hero__subtitle {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 500;
+  font-size: 1.2rem;
+}

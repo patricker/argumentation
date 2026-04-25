@@ -26,9 +26,9 @@ Four major contributions this decade:
 
 ## 2010s — weighted semantics and ASPIC+ matures
 
-[Dunne, Hunter, McBurney, Parsons & Wooldridge (2011)](/academic/bibliography#dunne2011) introduced weighted argument systems — attacks carry real-valued weights, and a budget β tolerates a total attack weight being dropped. This single-knob machinery gave argumentation a continuous parameter, which is exactly what scene AI needs for tension modulation.
+[Dunne, Hunter, McBurney, Parsons & Wooldridge (2011)](/academic/bibliography#dunne2011) introduced weighted argument systems — attacks carry real-valued weights, and a budget β tolerates a total attack weight being dropped. The continuous parameter this adds to argumentation is the same parameter we use for scene-intensity modulation.
 
-[Modgil & Prakken (2014)](/academic/bibliography#modgil2014) published the ASPIC+ tutorial — the friendliest entry point to structured argumentation, complete with penguin examples and undercutting semantics.
+[Modgil & Prakken (2014)](/academic/bibliography#modgil2014) published the ASPIC+ tutorial — an approachable entry point to structured argumentation, complete with penguin examples and undercutting semantics.
 
 [Baroni, Caminada, Giacomin (2011)](/academic/bibliography#baroni2011) surveyed the field's semantics — complete, preferred, stable, grounded, plus ideal, eager, CF2, stage, and more. If Dung opened the question "which sets stand?", this paper shows how the field has answered it in multiple non-equivalent ways.
 
@@ -41,4 +41,4 @@ Argumentation has moved into:
 - **AI explainability** — using argument structure as a scaffold for interpretable reasoning.
 - **Scene AI** — which is what *this* library is about.
 
-The library you're reading about treats 30 years of this literature as primitives and asks a new question — what if we use all of this to drive *scenes*, not just resolve arguments? β becomes scene intensity; schemes become action templates; acceptance semantics becomes beat outcome. The formal machinery was always ready. The missing piece was an integration layer.
+This library is an attempt to apply that formal machinery to scene AI: β as scene intensity, schemes as action templates, acceptance as beat outcome. None of the individual pieces are new research — the work here is integration, and we owe every primitive to the papers linked throughout this site. It is one way to put this theory to use, not the only one.
