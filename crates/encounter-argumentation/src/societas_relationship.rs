@@ -373,4 +373,95 @@ mod tests {
             "alice→bob with high trust should weigh less than bob→alice baseline; got {w_alice_on_bob} vs {w_bob_on_alice}"
         );
     }
+
+    #[test]
+    fn multi_attacker_averages_per_pair_weights() {
+        // Two attackers, one target. Alice has high trust of target;
+        // Bob has neutral. The result should be the arithmetic mean of
+        // the two per-pair weights, not a min/max/first-wins.
+        let registry = RelationshipRegistry::new();
+        let mut store = MemStore::new();
+        let mut resolver: HashMap<String, EntityId> = HashMap::new();
+        resolver.insert("alice".to_string(), EntityId::from_u64(1));
+        resolver.insert("bob".to_string(), EntityId::from_u64(2));
+        resolver.insert("target".to_string(), EntityId::from_u64(3));
+        let mut actors: HashMap<ArgumentId, Vec<String>> = HashMap::new();
+        actors.insert(
+            ArgumentId::new("duo_attack"),
+            vec!["alice".to_string(), "bob".to_string()],
+        );
+        actors.insert(
+            ArgumentId::new("target_arg"),
+            vec!["target".to_string()],
+        );
+
+        // Alice trusts the target strongly; Bob is neutral.
+        registry.add_modifier(
+            &mut store,
+            EntityId::from_u64(1),
+            EntityId::from_u64(3),
+            Dimension::Trust,
+            1.0,
+            0.0,
+            ModifierSource::Personality,
+            Tick(0),
+        );
+
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("duo_attack"), &ArgumentId::new("target_arg"))
+            .unwrap();
+
+        let alice_pair = (BASELINE_WEIGHT + TRUST_COEF).clamp(0.0, 1.0);
+        let bob_pair = BASELINE_WEIGHT;
+        let expected = (alice_pair + bob_pair) / 2.0;
+        assert!(
+            (w - expected).abs() < 1e-9,
+            "two-attacker case should mean per-pair weights: expected {expected}, got {w}"
+        );
+    }
+
+    #[test]
+    fn unresolvable_actors_are_skipped_not_treated_as_neutral_pair() {
+        // Two attackers: alice (resolvable), eve (NOT in resolver).
+        // Expected behavior: eve is skipped entirely; result equals
+        // the alice-only weight, NOT mean(alice_pair, neutral_baseline).
+        // This makes the adapter robust to partial registries.
+        let registry = RelationshipRegistry::new();
+        let mut store = MemStore::new();
+        let mut resolver: HashMap<String, EntityId> = HashMap::new();
+        resolver.insert("alice".to_string(), EntityId::from_u64(1));
+        resolver.insert("target".to_string(), EntityId::from_u64(3));
+        // NOTE: "eve" is deliberately NOT in the resolver.
+        let mut actors: HashMap<ArgumentId, Vec<String>> = HashMap::new();
+        actors.insert(
+            ArgumentId::new("duo_attack"),
+            vec!["alice".to_string(), "eve".to_string()],
+        );
+        actors.insert(
+            ArgumentId::new("target_arg"),
+            vec!["target".to_string()],
+        );
+        registry.add_modifier(
+            &mut store,
+            EntityId::from_u64(1),
+            EntityId::from_u64(3),
+            Dimension::Trust,
+            1.0,
+            0.0,
+            ModifierSource::Personality,
+            Tick(0),
+        );
+        let source =
+            SocietasRelationshipSource::new(&registry, &store, &resolver, &actors, Tick(0));
+        let w = source
+            .weight_for(&ArgumentId::new("duo_attack"), &ArgumentId::new("target_arg"))
+            .unwrap();
+        let expected = (BASELINE_WEIGHT + TRUST_COEF).clamp(0.0, 1.0);
+        assert!(
+            (w - expected).abs() < 1e-9,
+            "unresolvable eve should be filtered out; result should match alice-only pair = {expected}, got {w}"
+        );
+    }
 }
