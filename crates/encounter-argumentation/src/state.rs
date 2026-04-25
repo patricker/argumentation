@@ -53,9 +53,10 @@ pub struct EncounterArgumentationState {
 impl EncounterArgumentationState {
     /// Create a new state with the given scheme registry and zero
     /// scene intensity. Consumers that want relationship-modulated
-    /// attack weights should construct a [`crate::societas_relationship::SocietasRelationshipSource`]
-    /// over a societas-relations registry and store, then pass its
-    /// computed weights into
+    /// attack weights should construct a societas-aware `WeightSource`
+    /// (e.g. `societas_encounter::SocietasRelationshipSource` from the
+    /// `societas-encounter` crate with the `argumentation` feature
+    /// enabled), then pass its computed weights into
     /// [`add_weighted_attack`](Self::add_weighted_attack); the state
     /// does not auto-wire the source.
     #[must_use]
@@ -187,10 +188,10 @@ impl EncounterArgumentationState {
     }
 
     /// Read-only access to the actor-per-argument map. Used by
-    /// bridge weight sources (notably
-    /// [`crate::societas_relationship::SocietasRelationshipSource`])
-    /// to resolve an [`ArgumentId`] back to the actors whose
-    /// asserted schemes produce that conclusion.
+    /// bridge weight sources (e.g.
+    /// `societas_encounter::SocietasRelationshipSource` from the
+    /// `societas-encounter` crate) to resolve an [`ArgumentId`] back
+    /// to the actors whose asserted schemes produce that conclusion.
     #[must_use]
     pub fn actors_by_argument(&self) -> &HashMap<ArgumentId, Vec<String>> {
         &self.actors_by_argument
