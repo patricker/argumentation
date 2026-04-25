@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import Layout from '@theme/Layout';
 import BrowserOnly from '@docusaurus/BrowserOnly';
+import {Framework, WeightedFramework} from '@site/src/lib/argumentation';
 
 function SmokeInner() {
   const [result, setResult] = useState<string[]>(['loading...']);
@@ -8,32 +9,24 @@ function SmokeInner() {
     let cancelled = false;
     (async () => {
       try {
-        // @ts-ignore — generated, no typings yet (Task 8 adds them)
-        const mod = await import('/wasm/argumentation/argumentation_wasm.js');
-        await mod.default();
+        const fw = await Framework.create();
+        fw.addArgument('A').addArgument('B').addArgument('C');
+        fw.addAttack('A', 'B').addAttack('B', 'C');
 
-        // Dung
-        const fw = new mod.WasmFramework();
-        fw.add_argument('A'); fw.add_argument('B'); fw.add_argument('C');
-        fw.add_attack('A', 'B'); fw.add_attack('B', 'C');
-        const grounded = fw.grounded_extension();
-
-        // Weighted
-        const w = new mod.WasmWeightedFramework();
-        w.add_argument('A'); w.add_argument('B');
-        w.add_weighted_attack('B', 'A', 0.4);
-        w.set_intensity(0.0);
-        const liveAt0 = w.live_attacks_at_current_beta();
-        const credAt0 = w.is_credulous('A');
-        w.set_intensity(0.4);
-        const liveAt4 = w.live_attacks_at_current_beta();
-        const credAt4 = w.is_credulous('A');
+        const w = await WeightedFramework.create();
+        w.addArgument('A').addArgument('B').addWeightedAttack('B', 'A', 0.4);
+        w.setIntensity(0.0);
+        const liveAt0 = [...w.liveAttackKeys()];
+        const credAt0 = w.isCredulouslyAccepted('A');
+        w.setIntensity(0.4);
+        const liveAt4 = [...w.liveAttackKeys()];
+        const credAt4 = w.isCredulouslyAccepted('A');
 
         if (!cancelled) setResult([
-          `grounded(A→B→C) = [${[...grounded].join(', ')}]`,
-          `weighted: live attacks at β=0.0 = [${[...liveAt0].join(', ')}]`,
+          `grounded(A→B→C) = [${fw.groundedExtension().join(', ')}]`,
+          `weighted: live attacks at β=0.0 = [${liveAt0.join(', ')}]`,
           `weighted: A credulous at β=0.0 = ${credAt0}`,
-          `weighted: live attacks at β=0.4 = [${[...liveAt4].join(', ')}]`,
+          `weighted: live attacks at β=0.4 = [${liveAt4.join(', ')}]`,
           `weighted: A credulous at β=0.4 = ${credAt4}`,
         ]);
       } catch (e) {
