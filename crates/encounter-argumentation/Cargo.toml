@@ -16,4 +16,3 @@ argumentation-weighted = { path = "../argumentation-weighted" }
 argumentation-weighted-bipolar = { path = "../argumentation-weighted-bipolar" }
 thiserror = "2.0"
 
-[dev-dependencies]

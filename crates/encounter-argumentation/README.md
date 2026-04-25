@@ -94,12 +94,22 @@ coefficient recipe.
 Wiring sketch:
 
 ```rust,ignore
+use argumentation_weighted::WeightSource;
+use societas_core::Tick;
 use societas_encounter::{SocietasRelationshipSource, names::StaticNameResolver};
-let resolver = StaticNameResolver::new();
+use societas_memory::MemStore;
+use societas_relations::RelationshipRegistry;
+
+let store = MemStore::new();                  // any &dyn SocialStore
+let registry = RelationshipRegistry::new();
+let mut resolver = StaticNameResolver::new();
+resolver.add("alice", /* alice's EntityId */);
+resolver.add("bob",   /* bob's EntityId   */);
+
 let source = SocietasRelationshipSource::new(
     &registry, &store, &resolver,
     state.actors_by_argument(),
-    tick,
+    Tick(0),
 );
 let w = source.weight_for(&attacker_arg, &target_arg).unwrap();
 state.add_weighted_attack(&attacker_arg, &target_arg, w)?;
