@@ -6,6 +6,7 @@ members = [
     "crates/argumentation-weighted",
     "crates/argumentation-weighted-bipolar",
     "crates/encounter-argumentation",
+    "crates/argumentation-wasm",
     "tools/scene-tracer",
 ]
 resolver = "2"
