@@ -46,4 +46,56 @@ impl WasmFramework {
         v.sort();
         v
     }
+
+    /// Returns each preferred extension as a JS `Array<Array<string>>`,
+    /// with each inner array sorted for stable JS output.
+    pub fn preferred_extensions(&self) -> js_sys::Array {
+        let outer = js_sys::Array::new();
+        let exts = self.inner.preferred_extensions().unwrap_or_default();
+        for ext in exts {
+            let mut sorted: Vec<String> = ext.into_iter().collect();
+            sorted.sort();
+            let inner = js_sys::Array::new();
+            for id in sorted {
+                inner.push(&JsValue::from_str(&id));
+            }
+            outer.push(&inner);
+        }
+        outer
+    }
+
+    /// Credulously accepted: present in at least one preferred extension.
+    pub fn is_credulously_accepted(&self, arg: &str) -> bool {
+        let target = arg.to_string();
+        self.inner
+            .preferred_extensions()
+            .map(|exts| exts.iter().any(|ext| ext.contains(&target)))
+            .unwrap_or(false)
+    }
+
+    /// Skeptically accepted: present in every preferred extension
+    /// (and at least one extension exists).
+    pub fn is_skeptically_accepted(&self, arg: &str) -> bool {
+        let target = arg.to_string();
+        self.inner
+            .preferred_extensions()
+            .map(|exts| !exts.is_empty() && exts.iter().all(|ext| ext.contains(&target)))
+            .unwrap_or(false)
+    }
+}
+
+// Plain-Rust helper used by integration tests. Not exposed to JS.
+impl WasmFramework {
+    pub fn preferred_extensions_for_test(&self) -> Vec<Vec<String>> {
+        self.inner
+            .preferred_extensions()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|ext| {
+                let mut v: Vec<String> = ext.into_iter().collect();
+                v.sort();
+                v
+            })
+            .collect()
+    }
 }
