@@ -3,3 +3,6 @@ Cargo.lock
 website/node_modules/
 website/.docusaurus/
 website/build/
+
+# Local worktrees for parallel feature work
+.worktrees/
