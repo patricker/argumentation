@@ -29,7 +29,7 @@ The flagship engine-driven demo. Two independent dials shape the outcome — **�
     {from: 'S', to: 'E', weight: 0.5},
   ]}
   height={420}
-  caption="Five attacks. Aleric (fortify) and Maren (abandon) attack each other — a mutual contested pair. Drust (sortie) attacks both Maren's retreat and Liss's evacuation; he claims the garrison cannot afford the time those plans need. Liss (evacuate) attacks Aleric (fortify): civilians must leave first. Edge weights shown are the *cold-climate* values; warm-climate weights are halved."
+  caption="Five attacks. Aleric (fortify) and Maren (abandon) attack each other — a mutual contested pair. Drust's sortie attacks Maren's retreat (the enemy is thinner than feared, no need to abandon) and Liss's evacuation (no time for a full evacuation). Liss (evacuate) attacks Aleric (fortify): civilians must leave first. Edge weights shown are the *cold-climate* values; warm-climate weights are halved."
 />
 
 ## Drag β to see the council shift
@@ -100,22 +100,24 @@ The snapshots below come from running the full encounter bridge with `MultiBeat`
   ]}
 />
 
-## What's actually happening — two distinct dynamics
+## What's actually happening — two regimes, not two climates
 
-The engine produces two qualitatively different acceptance patterns from the same attack graph:
+The engine produces two qualitatively different acceptance patterns from the same attack graph — but the dividing line isn't climate, it's whether enough attacks are still binding to give the framework a unique grounded extension:
 
-**Cold climate (heavy attacks).** Drust's `sortie` has no attacker, so it sits in the grounded extension. Sortie defeats both `abandon` (weight 0.6 attack) and `evacuate` (weight 0.5 attack). With those out, `fortify` has no live attacker either (its only attackers were `abandon` and `evacuate`) and joins the grounded extension. The `StateActionScorer` boosts the two grounded arguments (`fortify` and `sortie`). When Maren is asked to score her affordances, her own `argue_abandon` does *not* receive the boost — `argue_evacuate_first` does (because evacuate's claim is one of the credulously-accepted set in some β regimes), so Maren ends up arguing for evacuation rather than her own retreat plan. Every beat passes acceptance because no responder has a credulously-accepted counter to what's being proposed. The cold council ends up performing a *consensus around the grounded winners*, with officers letting their own losing positions go.
+**Binding regime (cold β=0.0/0.3/0.5; warm β=0.0).** When most attacks still have weight `> β`, the framework resolves to a clear grounded set. Drust's `sortie` has no attacker, so it sits in grounded. Sortie defeats both `abandon` (weight 0.6 attack) and `evacuate` (weight 0.5 attack). With those out, `fortify` has no live attacker either (its only attackers were `abandon` and `evacuate`) and joins the grounded extension. The `StateActionScorer` boosts the two grounded arguments (`fortify` and `sortie`). When Maren is asked to score her affordances, her own `argue_abandon` does *not* receive the boost; `argue_evacuate_first` does, so Maren ends up arguing for evacuation rather than her own retreat plan. Every beat passes acceptance because no responder has a credulously-accepted counter to what's being proposed. The council performs a *consensus around the grounded winners*, with officers letting their own losing positions go.
 
-**Warm climate (weak attacks).** With weights halved, even at β=0.3 most attacks have already dropped (only the 0.3-weight `sortie→abandon` is at the boundary). When few attacks bind, *all four arguments* are credulously accepted — the framework can't pick a winner. The scorer treats them all as boosted, so each officer argues their own claim. But responders now have credulously-accepted counters on hand: when Aleric proposes `fortify`, the responder finds `abandon` and `evacuate` both credulously accepted and rejects. When Maren proposes `abandon`, the responder finds `fortify` and `sortie` credulously accepted and rejects. The contested pair (fortify ↔ abandon) collapses. Sortie and evacuate survive because they have weaker counter-relationships in this attenuated graph. The warm council ends up *splitting along the lines of the contested pair*, with Drust and Liss winning while Aleric and Maren lose.
+**All-attacks-drop regime (warm β=0.3/0.5/0.8; cold β=0.8).** Once β exceeds the heaviest remaining attack weight, *every* attack drops and *all four arguments* are credulously accepted — the framework can't pick a winner. The scorer treats them all as boosted, so each officer argues their own claim. But responders now have credulously-accepted counters on hand: when Aleric proposes `fortify`, the responder finds `abandon` and `evacuate` both credulously accepted and rejects. When Maren proposes `abandon`, the responder finds `fortify` and `sortie` credulously accepted and rejects. The contested pair (fortify ↔ abandon) collapses. Sortie and evacuate survive because their attackers in this attenuated graph have also dropped. The council *splits along the lines of the contested pair*, with Drust and Liss winning while Aleric and Maren lose.
 
-This is a pattern the abstract weighted framework can't show you: **scorer-driven claim-rallying** (cold) vs **responder-driven rejection of the contested pair** (warm). Both are real arguments-engine behaviors; both fall out of the same five attacks under different attack-strength regimes.
+The two regimes are real arguments-engine behaviors — **scorer-driven claim-rallying** in the binding regime, **responder-driven rejection of the contested pair** in the all-drop regime. Climate doesn't change which regime exists; it changes the β at which the transition happens. The warm climate crosses into the all-drop regime at β=0.3 (heaviest weight 0.3); the cold climate doesn't cross until β=0.6 (heaviest weight 0.6, so cold β=0.8 is the first sample past it).
 
 ## Reading the outcome
 
-Two parameters, two qualitatively different roles in this scene:
+Two parameters interact along a single axis — *how many attacks are binding* — and both move you along that axis:
 
-- **β** is *the storyteller's dial* — turn it down for sharp scenes where every objection lands, up for cordial scenes where everyone tolerates dissent. In this scene, β controls when the cold→warm asymmetry kicks in: at β=0.0 both climates are permissive; by β=0.3 they diverge sharply; by β=0.8 they re-converge as even cold's heavy attacks have all dropped.
-- **Relationship weights** are *the world's state* — set by societas-relations modifiers, simulation history, or hand-authored by the storyteller per scene. Here the climate flips not just *whether* officers reach consensus but *what kind of consensus they reach*: cold produces an unspoken alignment behind the grounded winners; warm produces a visible four-way debate where the contested pair openly fails.
+- **β** is *the storyteller's dial* — turn it down for sharp scenes where every objection lands, up for cordial scenes where everyone tolerates dissent.
+- **Relationship weights** are *the world's state* — set by societas-relations modifiers, simulation history, or hand-authored by the storyteller per scene. They shift how high β has to climb before the transition happens.
+
+In this scene, the warm climate transitions out of the binding regime at β=0.3; the cold climate holds the binding regime all the way to β=0.5 and only crosses by β=0.8. So a storyteller can hit the same dramatic outcome (the contested pair openly failing) either by raising β in a cold scene or by leaving β low in a warm one — same regime, different paths in.
 
 ## How this scene is wired
 
