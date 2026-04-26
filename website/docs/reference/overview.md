@@ -61,6 +61,10 @@ Error enum for the bridge. Variants include `MissingProposerBinding` — surface
 | `argumentation-schemes` | Walton's 60+ schemes + catalog. |
 | `encounter-argumentation` | The bridge crate. |
 
+## What we don't have yet
+
+The library focuses on Dung frameworks, ASPIC+, weighted attacks, bipolar extensions, and the encounter bridge. Five formalisms remain on the roadmap; see [open areas](/concepts/open-areas) for the public map and the [VAF mini-RFC](/concepts/value-based-argumentation) for the deeper sketch of the headline gap.
+
 ## See also
 
 - [Full rustdoc](/api/)
