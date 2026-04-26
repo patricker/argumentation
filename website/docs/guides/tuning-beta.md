@@ -32,7 +32,7 @@ state.set_intensity(Budget::new(0.35).unwrap());  // formal meeting
 
 ## Step 3: Escalate mid-scene
 
-If the scene turns tense (say, after a specific beat), raise β *down*:
+If the scene turns tense (say, after a specific beat), drop β toward zero so counters bite harder:
 
 ```rust
 // After a confrontational beat, raise tension (lower β)

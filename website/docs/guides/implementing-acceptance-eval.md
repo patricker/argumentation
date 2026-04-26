@@ -40,9 +40,12 @@ impl<'a, P> AcceptanceEval<P> for PersonalityEval<'a> {
         if !self.bridge.evaluate(responder, action) {
             return false;  // bridge rejected — trust it
         }
-        // Bridge accepted; apply personality bias
-        let reject_prob = self.rejection_bias;  // you could vary per actor
-        reject_prob < 0.5  // simplified; use a real RNG in production
+        // Bridge accepted; apply personality bias.
+        // In production, draw from an RNG seeded per scene — e.g. via
+        // `rand::Rng::random::<f64>()` from the [`rand`](https://crates.io/crates/rand)
+        // crate. The simplified form below keeps the example deterministic.
+        let reject_prob = self.rejection_bias;
+        reject_prob < 0.5
     }
 }
 ```

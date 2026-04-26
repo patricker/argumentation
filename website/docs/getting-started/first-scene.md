@@ -32,7 +32,7 @@ Add to `Cargo.toml`:
 [dependencies]
 argumentation-schemes = "0.2"
 argumentation-weighted = "0.2"
-encounter-argumentation = "0.3"
+encounter-argumentation = "0.5"
 encounter = "0.1"
 ```
 
