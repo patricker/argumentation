@@ -1,9 +1,11 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 title: Hal & Carla
 ---
 
 import AttackGraph from '@site/src/components/AttackGraph';
+import BetaPlayground from '@site/src/components/BetaPlayground';
+import BetaSlider from '@site/src/components/BetaSlider';
 
 > Hal, a diabetic, loses his insulin. Before collapsing, he enters Carla's house and uses some of her insulin. Carla is another diabetic, not home. Should Hal be punished?
 
@@ -26,23 +28,66 @@ import AttackGraph from '@site/src/components/AttackGraph';
     {from: 'H2', to: 'C1'},
   ]}
   height={400}
-  caption="H1 and C1 attack each other symmetrically. C2 neutralises Hal's compensation argument H2 by showing Carla was also endangered. H2 in turn attacks C1 — if Hal cannot pay, property-rights-as-remedy dissolves."
+  caption="H1 and C1 attack each other symmetrically. C2 neutralises Hal's compensation argument H2 by showing Carla was also endangered. H2 in turn attacks C1 — if Hal cannot pay, property-rights-as-remedy dissolves. Notice that C2 has no in-edges: nothing in the framework attacks Carla's claim that this is her only dose."
 />
+
+## Drag β to see how the framework resolves
+
+<BetaPlayground
+  title="Hal & Carla — live"
+  args={[
+    {id: 'H1', label: 'Hal: life > property'},
+    {id: 'C1', label: 'Carla: property rights'},
+    {id: 'H2', label: 'Hal: too poor to compensate'},
+    {id: 'C2', label: 'Carla: my only dose'},
+  ]}
+  attacks={[
+    {from: 'C1', to: 'H1', weight: 0.5},
+    {from: 'H1', to: 'C1', weight: 0.5},
+    {from: 'C2', to: 'H2', weight: 0.6},
+    {from: 'H2', to: 'C1', weight: 0.4},
+  ]}
+  initialBeta={0}
+/>
+
+Watch C2 — it stays credulously accepted at every β, because nothing in the framework attacks it. As β rises, the H2 → C1 attack (weight 0.4) becomes droppable around β = 0.4, and the symmetric H1 ↔ C1 pair (both weight 0.5) becomes droppable around β = 0.5. But no β setting yields *Hal as the sole winner*: Carla's C2 is structurally unkillable in this graph, and the symmetric H1 ↔ C1 leaves both sides credulously accepted (multiple preferred extensions) rather than picking a winner.
+
+## A pre-recorded multi-beat trace at four discrete β
+
+<BetaSlider
+  title="Hal & Carla across β"
+  tracePaths={[
+    {beta: 0.0, path: '/traces/hal-carla-b00.json'},
+    {beta: 0.3, path: '/traces/hal-carla-b03.json'},
+    {beta: 0.5, path: '/traces/hal-carla-b05.json'},
+    {beta: 1.0, path: '/traces/hal-carla-b10.json'},
+  ]}
+/>
+
+The traces tell a stark story: in every beat at every β, Carla's proposal is accepted and Hal's is rejected. At β = 1.0 Hal pivots from arguing `life_over_property` to arguing `too_poor_to_compensate` — the scorer notices the H2 → C1 attack has dropped — but the rejection persists because Carla's C2 still defeats H2 (weight 0.6, too heavy to drop even at β = 1.0; in fact that edge would need β > 0.6 to fall).
+
+**This is the limit of the abstract weighted framework.** Tuning β changes which Hal-claim gets put forward, but never changes who wins. To get a different outcome, the framework would need to encode the moral preference itself — *life > property* — as a first-class part of the resolution. That's what value-based argumentation does.
 
 ## Why values matter
 
-Pure Dung semantics can't resolve this — symmetric attacks give you multiple extensions. But you can attach **values** to arguments: H1 promotes *life*, C1 promotes *property*. Different audiences with different value orderings reach different stable positions *rationally*:
+Pure Dung semantics — the engine you just played with — can't prefer Hal in the way humans intuitively do, because the framework treats H1 and C1 as ordinary attacks on each other (or on C1's targets). The preference "life is more important than property" is not encodable as an attack weight or a β setting. That's a *value preference*, not a scene-intensity setting.
 
-- An audience that ranks life > property → H1 accepted, C1 rejected.
-- An audience that ranks property > life → the opposite.
+Bench-Capon's solution: attach **values** to arguments. H1 promotes *life*; C1 promotes *property*; H2 promotes *fairness*; C2 promotes *life* (Carla's life, in this case). An audience is an ordering over values. Different audiences with different orderings reach different stable positions *rationally*:
 
-Bench-Capon's VAF framework is the machinery that makes "different audiences, same framework, different conclusions" formally precise.
+- An audience that ranks life > property → H1 and C2 accepted, C1 and H2 rejected. Hal goes free.
+- An audience that ranks property > life → the opposite. Hal is punished.
+
+The framework hasn't changed; the audience has. This is the formal machinery that makes "different audiences, same arguments, different conclusions" precise rather than vague.
 
 ## In our library
 
-Value-based argumentation is on the roadmap for a future crate (`argumentation-values`). Currently our [`argumentation-schemes`](/api/) supports a related mechanism: `PracticalReasoning` schemes carry a value dimension in their bindings, and `encounter-argumentation`'s `StateActionScorer` can be composed with a value-aware inner scorer to produce audience-conditioned outcomes.
+Value-based argumentation is on the roadmap as an open formalism. See the [VAF scoping page](/concepts/value-based-argumentation) for the design sketch — types, semantics, integration points, and what audience-conditioned outputs would look like in a scene. Currently our [`argumentation-schemes`](/api/) supports a related mechanism: `PracticalReasoning` schemes carry a value dimension in their bindings, and `encounter-argumentation`'s `StateActionScorer` can be composed with a value-aware inner scorer to produce audience-conditioned scoring (without the full VAF semantics).
 
 ## Further reading
 
 - [Bench-Capon (2003)](/academic/bibliography#benchcapon2003) — value-based argumentation frameworks.
 - [Atkinson & Bench-Capon (2007)](/academic/bibliography#atkinson2007) — practical reasoning over VAFs.
+- [Open areas](/concepts/open-areas) — formalisms not yet implemented in this library.
+- [VAF scoping](/concepts/value-based-argumentation) — what an `argumentation-values` crate would look like.
+- [The siege council (flagship)](/examples/siege-council) — multi-actor engine-driven scene.
+- [The east wall](/examples/east-wall) — the simplest engine-driven scene.
