@@ -30,11 +30,17 @@ argumentation-weighted-bipolar = "0.2"
 For the encounter bridge:
 
 ```toml
-encounter-argumentation = "0.3"
+encounter-argumentation = "0.5"
 encounter = "0.1"
 ```
 
-All four crates are dual-licensed MIT / Apache-2.0 and have no `[features]` you need to enable.
+For societas-modulated attack weights (optional):
+
+```toml
+societas-encounter = { version = "0.1", features = ["argumentation"] }
+```
+
+All crates are dual-licensed MIT / Apache-2.0. The argumentation core has no `[features]` you need to enable; `societas-encounter` requires the `argumentation` feature for `SocietasRelationshipSource`.
 
 ## Step 2: Verify
 

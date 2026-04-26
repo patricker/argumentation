@@ -32,7 +32,7 @@ state.set_intensity(Budget::new(0.35).unwrap());  // formal meeting
 
 ## Step 3: Escalate mid-scene
 
-If the scene turns tense (say, after a specific beat), raise β *down*:
+If the scene turns tense (say, after a specific beat), drop β toward zero so counters bite harder:
 
 ```rust
 // After a confrontational beat, raise tension (lower β)
@@ -60,4 +60,4 @@ Run the scene twice with β at 0.0 and at 0.8 — the number of rejected beats s
 ## Related
 
 - [Weighted and β concept](/concepts/weighted-and-beta) — the mechanics.
-- [Thermostat demo](/examples/thermostat) — β-modulated scene in action.
+- [East-wall demo](/examples/east-wall) — β-modulated scene in action.

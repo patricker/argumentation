@@ -1,6 +1,6 @@
 {
-  "scene_name": "thermostat",
-  "beta": 0.4,
+  "scene_name": "east_wall",
+  "beta": 1.0,
   "participants": [
     "alice",
     "bob"

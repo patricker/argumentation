@@ -1,6 +1,6 @@
 //! scene-tracer: pre-renders argumentation scenes to JSON for the website.
 //!
-//! Usage: `cargo run -p scene-tracer -- thermostat 0.5 website/static/traces/thermostat-b05.json`
+//! Usage: `cargo run -p scene-tracer -- east-wall 0.5 website/static/traces/east-wall-b05.json`
 
 use argumentation_schemes::catalog::default_catalog;
 use argumentation_weighted::types::Budget;
@@ -82,7 +82,7 @@ impl<P: Clone> ActionScorer<P> for UniformScorer {
     }
 }
 
-fn trace_thermostat(beta: f64) -> Trace {
+fn trace_east_wall(beta: f64) -> Trace {
     let registry = default_catalog();
     let scheme = registry.by_key("argument_from_expert_opinion").unwrap();
 
@@ -159,7 +159,7 @@ fn trace_thermostat(beta: f64) -> Trace {
     let result = MultiBeat.resolve(&participants, &practice, &catalog, &scorer, &acceptance);
 
     Trace {
-        scene_name: "thermostat".into(),
+        scene_name: "east_wall".into(),
         beta,
         participants,
         seeded_arguments: vec![
@@ -200,7 +200,7 @@ fn main() {
     }
     let beta: f64 = args[2].parse().expect("beta must be a float");
     let trace = match args[1].as_str() {
-        "thermostat" => trace_thermostat(beta),
+        "east-wall" => trace_east_wall(beta),
         other => {
             eprintln!("unknown scene: {}", other);
             std::process::exit(2);

@@ -1,6 +1,6 @@
 {
-  "scene_name": "thermostat",
-  "beta": 0.0,
+  "scene_name": "east_wall",
+  "beta": 0.4,
   "participants": [
     "alice",
     "bob"
@@ -27,8 +27,8 @@
   "beats": [
     {
       "actor": "alice",
-      "action": "argue_abandon_east",
-      "accepted": true
+      "action": "argue_fortify_east",
+      "accepted": false
     },
     {
       "actor": "bob",
@@ -37,8 +37,8 @@
     },
     {
       "actor": "alice",
-      "action": "argue_abandon_east",
-      "accepted": true
+      "action": "argue_fortify_east",
+      "accepted": false
     },
     {
       "actor": "bob",

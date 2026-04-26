@@ -38,10 +38,16 @@ A common latch entry is [`Error::MissingProposerBinding`](/api/): the bridge use
 
 ## Zero `encounter` changes
 
-The bridge was designed with the constraint that the sibling `encounter` crate could not be modified. Every Phase B feature — forward index, β dial, error latch — lives on our side of the trait boundary. That meant some interesting workarounds: `Sync` is required by encounter's trait bounds, so our state uses `Mutex<Budget>` and `Mutex<Vec<Error>>` internally (see the [plan doc](https://github.com/patricker/argumentation/blob/main/docs/superpowers/plans/2026-04-20-phase-b-state-scorer-bridge.md) for the full story).
+The bridge was designed with the constraint that the sibling `encounter` crate could not be modified. Every state feature — forward index, β dial, error latch — lives on this side of the trait boundary. `Sync` is required by encounter's trait bounds, so the state uses `Mutex<Budget>` and `Mutex<Vec<Error>>` internally rather than the more common `Cell` / `RefCell`.
+
+## Societas-modulated weights
+
+Attack weights can be derived from live `societas-relations` state via [`societas_encounter::SocietasRelationshipSource`](https://docs.rs/societas-encounter), which lives in the sibling [`societas-encounter`](https://github.com/patricker/societas) crate under the `argumentation` feature. It implements `WeightSource<ArgumentId>`, resolving an `ArgumentId` back to its asserting actors via [`actors_by_argument()`](/api/) and a `NameResolver`, then querying five relationship dimensions.
+
+`encounter-argumentation` itself stays focused on the encounter↔argumentation bridge — the societas adapter is composed in by consumers who want it. See the [societas-modulated weights how-to](/guides/societas-modulated-weights).
 
 ## Further reading
 
 - [encounter crate docs](https://docs.rs/encounter) — the scene engine.
-- [Our Phase B plan](https://github.com/patricker/argumentation/blob/main/docs/superpowers/plans/2026-04-20-phase-b-state-scorer-bridge.md) — the architectural walkthrough.
+- [Migration v0.4 → v0.5](/guides/migration-v0.4-to-v0.5) — what changed in the bridge surface.
 - [First scene guide](/getting-started/first-scene) — practical walkthrough.

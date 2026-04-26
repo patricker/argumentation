@@ -16,17 +16,18 @@ const sidebars: SidebarsConfig = {
   examplesSidebar: [
     {
       type: 'category',
-      label: 'Canonical',
+      label: 'Worked examples (literature)',
       items: [
-        'examples/hal-and-carla',
         'examples/nixon-diamond',
         'examples/tweety-penguin',
+        'examples/hal-and-carla',
+        'examples/courtroom',
       ],
     },
     {
       type: 'category',
-      label: 'Applied',
-      items: ['examples/thermostat', 'examples/courtroom'],
+      label: 'Engine-driven scenes',
+      items: ['examples/east-wall'],
     },
     {
       type: 'category',
@@ -40,9 +41,25 @@ const sidebars: SidebarsConfig = {
     'guides/implementing-action-scorer',
     'guides/implementing-acceptance-eval',
     'guides/tuning-beta',
+    'guides/debugging-acceptance',
+    'guides/societas-modulated-weights',
+    'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
     'reference/overview',
+    {
+      type: 'category',
+      label: 'Per-crate reference',
+      items: [
+        'reference/argumentation',
+        'reference/argumentation-bipolar',
+        'reference/argumentation-weighted',
+        'reference/argumentation-weighted-bipolar',
+        'reference/argumentation-schemes',
+        'reference/encounter-argumentation',
+      ],
+    },
+    'reference/changelog',
   ],
   academicSidebar: [
     'academic/reading-order',
