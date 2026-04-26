@@ -27,7 +27,10 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Engine-driven scenes',
-      items: ['examples/east-wall'],
+      items: [
+        'examples/siege-council',
+        'examples/east-wall',
+      ],
     },
     {
       type: 'category',
