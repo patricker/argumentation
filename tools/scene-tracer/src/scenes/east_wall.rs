@@ -28,6 +28,8 @@ impl<P: Clone> ActionScorer<P> for EastWallScorer {
             .map(|e| {
                 let mut bindings = HashMap::new();
                 bindings.insert("self".into(), actor.to_string());
+                // Pick claim by affordance name so the AffordanceKey lookup
+                // matches the seeded forward-index entry.
                 let claim = if e.spec.name == "argue_fortify_east" {
                     "fortify_east"
                 } else {
@@ -116,6 +118,7 @@ pub fn trace(beta: f64) -> Trace {
         duration_policy: DurationPolicy::MultiBeat { max_beats: 4 },
         entry_condition_source: String::new(),
     };
+    // 0.5 is the scorer boost magnitude, independent of scene β (set via set_intensity above).
     let scorer = StateActionScorer::new(&state, EastWallScorer, 0.5);
     let acceptance = StateAcceptanceEval::new(&state);
     let participants = vec!["alice".into(), "bob".into()];
