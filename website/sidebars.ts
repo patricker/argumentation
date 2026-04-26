@@ -40,9 +40,12 @@ const sidebars: SidebarsConfig = {
     'guides/implementing-action-scorer',
     'guides/implementing-acceptance-eval',
     'guides/tuning-beta',
+    'guides/societas-modulated-weights',
+    'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
     'reference/overview',
+    'reference/changelog',
   ],
   academicSidebar: [
     'academic/reading-order',
