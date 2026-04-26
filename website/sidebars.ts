@@ -12,6 +12,8 @@ const sidebars: SidebarsConfig = {
     'concepts/weighted-and-beta',
     'concepts/aspic-plus',
     'concepts/encounter-integration',
+    'concepts/open-areas',
+    'concepts/value-based-argumentation',
   ],
   examplesSidebar: [
     {
