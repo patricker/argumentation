@@ -1,0 +1,81 @@
+---
+sidebar_position: 8
+title: Open areas
+---
+
+**Five formalisms in the argumentation literature this library does not yet implement, with notes on what we'd build and why.**
+
+The library focuses on Dung abstract frameworks, ASPIC+ structured arguments, weighted attacks, bipolar (attack + support) extensions, and the encounter bridge. The argumentation literature is broader. This page is a public roadmap — not a commitment to ship, but an honest map of the gap.
+
+## 1. Value-based argumentation frameworks (VAF)
+
+**The headline open area.** Bench-Capon (2003) extended Dung frameworks with *values* — each argument promotes a value, and an *audience* is an ordering over values. Different audiences reach different rational conclusions from the same framework. This is the formal machinery for "reasonable disagreement on principle."
+
+**Why we want it.** Our [Hal & Carla example](/examples/hal-and-carla) demonstrates the limit of the abstract weighted framework: the moral preference *life > property* is not encodable as an attack weight or a β setting. VAF makes that preference a first-class citizen of the framework.
+
+**See the [VAF scoping page](/concepts/value-based-argumentation)** for the deeper sketch — types, semantics, audience-conditioned outputs, and integration with the existing weighted/bipolar machinery.
+
+**Key reference:** [Bench-Capon (2003)](/academic/bibliography#benchcapon2003).
+
+## 2. Probabilistic argumentation frameworks
+
+Hunter (2013) introduced two families of probabilistic semantics over Dung frameworks: the *epistemic* approach (probability *of* an argument's acceptance reflects belief in the argument) and the *constellation* approach (probability *over* sub-frameworks reflects uncertainty in which arguments and attacks exist).
+
+**Why a consumer might want it.** Scene engines often have uncertain knowledge about which arguments an actor *actually* holds — a witness's testimony is not certain to be remembered correctly; a rumour might not be trusted. The constellation approach lets you sample sub-frameworks and reason over the distribution of outcomes.
+
+**What we'd build.** A `argumentation-probabilistic` crate adding `ProbabilisticArgument` (an argument with a probability) and `ConstellationFramework` (samples sub-frameworks and aggregates extension membership). Composes with `argumentation-weighted` — an argument can be both probabilistic and have weighted attacks.
+
+**Tradeoff against shipping.** Adds a Monte Carlo dimension to extension-finding. Either you sample and aggregate (slower, gives confidence intervals on acceptance) or you compute exact probabilities by enumeration (intractable past ~20 uncertain arguments). Either is a meaningful design conversation, not a bolt-on.
+
+**Key references:** [Hunter (2013) "A probabilistic approach to modelling uncertain logical arguments"](https://www.sciencedirect.com/science/article/pii/S0888613X12001399); [Li, Oren, Norman (2011) "Probabilistic argumentation frameworks"](https://link.springer.com/chapter/10.1007/978-3-642-29184-5_1).
+
+## 3. Abstract dialectical frameworks (ADF)
+
+Brewka, Strass, Ellmauthaler, Wallner, Woltran (2013) generalised Dung frameworks: an argument's acceptance is not just "no live attacker" but an arbitrary *acceptance condition* over the truth values of its parents. Dung frameworks are a special case (the acceptance condition is "no parent is in"). ADFs let you say "this argument is in if at least two of its three parents are in," or "this argument is in iff its single supporter is in and no attacker is in."
+
+**Why a consumer might want it.** Bipolar reasoning at the framework level. The current bipolar crate handles attacks and supports as separate edge kinds with separate semantics; ADF unifies them under a single per-argument condition language.
+
+**What we'd build.** A `argumentation-adf` crate with an `AcceptanceCondition` AST (boolean formulas over parent truth values), per-argument acceptance evaluation, and the four ADF semantics (grounded, complete, preferred, stable — all generalised). Likely supersedes part of `argumentation-bipolar` once mature.
+
+**Tradeoff against shipping.** ADF is more general but its semantics are computationally harder. Stable models are NP-hard in the general case. We'd need to scope the supported acceptance-condition language carefully.
+
+**Key reference:** [Brewka et al. (2013) "Abstract dialectical frameworks revisited"](https://www.ijcai.org/Proceedings/13/Papers/119.pdf).
+
+## 4. Persuasion dialogue games
+
+Walton & Krabbe (1995) classified dialogue types (information-seeking, inquiry, persuasion, negotiation, deliberation, eristic). Persuasion dialogues are turn-based two-party games where each move is a speech act (*assert*, *challenge*, *concede*, *retract*) constrained by the dialogue's commitment store. Prakken (2006) gave a formal protocol; many subsequent papers refined the semantics.
+
+**Why a consumer might want it.** Our `MultiBeat` resolution loop is a flat round-robin — each actor proposes, each responder accepts or rejects. Real argumentation dialogues have richer move types (challenge, concede), commitment tracking, and termination conditions tied to the protocol. A dialogue-game layer above `encounter-argumentation` would let you author scenes where the *protocol* matters as much as the arguments.
+
+**What we'd build.** A `argumentation-dialogue` crate with `DialogueMove` enum, `CommitmentStore` per actor, and a `DialogueProtocol` trait the way `encounter` has a `Practice` trait. The existing `MultiBeat` becomes one of several protocols rather than the only one.
+
+**Tradeoff against shipping.** Significant new surface area. Worth doing only when a consumer actually needs a non-flat protocol — speculatively building this would create code without users.
+
+**Key references:** [Walton & Krabbe (1995) Commitment in Dialogue](https://www.amazon.com/Commitment-Dialogue-Interpersonal-Reasoning-Communication/dp/0791424596); [Prakken (2006) "Formal systems for persuasion dialogue"](https://www.cambridge.org/core/journals/knowledge-engineering-review/article/abs/formal-systems-for-persuasion-dialogue/3A38B73B89A1AC5DCED81F0697C0D43A).
+
+## 5. Dynamic argumentation frameworks
+
+Cayrol, de Saint-Cyr, Lagasquie-Schiex (2010) studied how extensions change as arguments and attacks are added or removed *over time*. The basic question: given a framework `F` with known extensions, and a small change `Δ`, can you compute the new extensions of `F + Δ` faster than recomputing from scratch?
+
+**Why a consumer might want it.** Scenes evolve. Each beat can introduce a new argument or invalidate an existing one (an argument's premise gets undercut, the argument falls). Currently the bridge recomputes acceptance from scratch each beat. A dynamic-AF layer would track incremental changes and reuse prior computation.
+
+**What we'd build.** Not a new crate — an extension to `argumentation` itself. `Framework::add_argument_incremental(...)` and `Framework::remove_argument_incremental(...)` returning a delta over previous extensions. Useful primarily as a performance optimisation; only worth doing once the bridge has profilable users hitting recompute cost.
+
+**Tradeoff against shipping.** Pure speed-of-light optimisation. Doesn't change what the library can express. Premature without a concrete bottleneck.
+
+**Key reference:** [Cayrol, de Saint-Cyr, Lagasquie-Schiex (2010) "Change in abstract argumentation frameworks"](https://www.sciencedirect.com/science/article/pii/S088861410800120X).
+
+## How to vote on which area to ship next
+
+Open an issue on the [argumentation repo](https://github.com/patricker/argumentation) titled `[open-area] <name>` and describe:
+- What you're building that needs it.
+- Which scenes can't be modelled without it.
+- Whether you're willing to co-design or only consume.
+
+We prioritise areas where there's a real consumer with a real scene that the current library cannot express.
+
+## Further reading
+
+- [Value-based argumentation framework — full mini-RFC](/concepts/value-based-argumentation) — the deeper sketch of the headline open area.
+- [Reading order](/academic/reading-order) — the literature path that gets you to these formalisms.
+- [Hal & Carla](/examples/hal-and-carla) — the engine-driven scene that motivates VAF.
