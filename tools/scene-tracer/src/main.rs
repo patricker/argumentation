@@ -23,7 +23,7 @@ fn main() {
         "east-wall" => scenes::east_wall::trace(beta),
         "siege-cold" => scenes::siege_council::trace(beta, scenes::siege_council::Climate::Cold),
         "siege-warm" => scenes::siege_council::trace(beta, scenes::siege_council::Climate::Warm),
-        // hal-carla added in Task 5.
+        "hal-carla" => scenes::hal_carla::trace(beta),
         other => {
             eprintln!("unknown scene: {}", other);
             std::process::exit(2);

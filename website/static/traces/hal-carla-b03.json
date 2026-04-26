@@ -1,0 +1,85 @@
+{
+  "scene_name": "hal_carla",
+  "beta": 0.3,
+  "participants": [
+    "hal",
+    "carla"
+  ],
+  "seeded_arguments": [
+    {
+      "actor": "hal",
+      "affordance_name": "argue_life_over_property",
+      "conclusion": "life_over_property"
+    },
+    {
+      "actor": "carla",
+      "affordance_name": "argue_property_rights",
+      "conclusion": "property_rights"
+    },
+    {
+      "actor": "hal",
+      "affordance_name": "argue_too_poor_to_compensate",
+      "conclusion": "too_poor_to_compensate"
+    },
+    {
+      "actor": "carla",
+      "affordance_name": "argue_my_only_dose",
+      "conclusion": "my_only_dose"
+    }
+  ],
+  "attacks": [
+    {
+      "attacker": "property_rights",
+      "target": "life_over_property",
+      "weight": 0.5
+    },
+    {
+      "attacker": "life_over_property",
+      "target": "property_rights",
+      "weight": 0.5
+    },
+    {
+      "attacker": "my_only_dose",
+      "target": "too_poor_to_compensate",
+      "weight": 0.6
+    },
+    {
+      "attacker": "too_poor_to_compensate",
+      "target": "property_rights",
+      "weight": 0.4
+    }
+  ],
+  "beats": [
+    {
+      "actor": "hal",
+      "action": "argue_life_over_property",
+      "accepted": false
+    },
+    {
+      "actor": "carla",
+      "action": "argue_my_only_dose",
+      "accepted": true
+    },
+    {
+      "actor": "hal",
+      "action": "argue_life_over_property",
+      "accepted": false
+    },
+    {
+      "actor": "carla",
+      "action": "argue_my_only_dose",
+      "accepted": true
+    },
+    {
+      "actor": "hal",
+      "action": "argue_life_over_property",
+      "accepted": false
+    },
+    {
+      "actor": "carla",
+      "action": "argue_my_only_dose",
+      "accepted": true
+    }
+  ],
+  "errors": []
+}
