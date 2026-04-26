@@ -16,20 +16,20 @@ const sidebars: SidebarsConfig = {
   examplesSidebar: [
     {
       type: 'category',
-      label: 'Worked examples (literature)',
-      items: [
-        'examples/nixon-diamond',
-        'examples/tweety-penguin',
-        'examples/hal-and-carla',
-        'examples/courtroom',
-      ],
-    },
-    {
-      type: 'category',
       label: 'Engine-driven scenes',
       items: [
         'examples/siege-council',
         'examples/east-wall',
+        'examples/hal-and-carla',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Worked examples (literature)',
+      items: [
+        'examples/nixon-diamond',
+        'examples/tweety-penguin',
+        'examples/courtroom',
       ],
     },
     {
