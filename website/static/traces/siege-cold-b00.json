@@ -1,0 +1,102 @@
+{
+  "scene_name": "siege_council_cold",
+  "beta": 0.0,
+  "participants": [
+    "aleric",
+    "maren",
+    "drust",
+    "liss"
+  ],
+  "seeded_arguments": [
+    {
+      "actor": "aleric",
+      "affordance_name": "argue_fortify",
+      "conclusion": "fortify"
+    },
+    {
+      "actor": "maren",
+      "affordance_name": "argue_abandon",
+      "conclusion": "abandon"
+    },
+    {
+      "actor": "drust",
+      "affordance_name": "argue_sortie",
+      "conclusion": "sortie"
+    },
+    {
+      "actor": "liss",
+      "affordance_name": "argue_evacuate_first",
+      "conclusion": "evacuate_first"
+    }
+  ],
+  "attacks": [
+    {
+      "attacker": "abandon",
+      "target": "fortify",
+      "weight": 0.5
+    },
+    {
+      "attacker": "fortify",
+      "target": "abandon",
+      "weight": 0.4
+    },
+    {
+      "attacker": "sortie",
+      "target": "abandon",
+      "weight": 0.6
+    },
+    {
+      "attacker": "evacuate_first",
+      "target": "fortify",
+      "weight": 0.3
+    },
+    {
+      "attacker": "sortie",
+      "target": "evacuate_first",
+      "weight": 0.5
+    }
+  ],
+  "beats": [
+    {
+      "actor": "aleric",
+      "action": "argue_fortify",
+      "accepted": true
+    },
+    {
+      "actor": "maren",
+      "action": "argue_evacuate_first",
+      "accepted": true
+    },
+    {
+      "actor": "drust",
+      "action": "argue_sortie",
+      "accepted": true
+    },
+    {
+      "actor": "liss",
+      "action": "argue_evacuate_first",
+      "accepted": true
+    },
+    {
+      "actor": "aleric",
+      "action": "argue_fortify",
+      "accepted": true
+    },
+    {
+      "actor": "maren",
+      "action": "argue_evacuate_first",
+      "accepted": true
+    },
+    {
+      "actor": "drust",
+      "action": "argue_sortie",
+      "accepted": true
+    },
+    {
+      "actor": "liss",
+      "action": "argue_evacuate_first",
+      "accepted": true
+    }
+  ],
+  "errors": []
+}

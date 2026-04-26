@@ -21,7 +21,9 @@ fn main() {
     let beta: f64 = args[2].parse().expect("beta must be a float");
     let trace = match args[1].as_str() {
         "east-wall" => scenes::east_wall::trace(beta),
-        // siege-cold / siege-warm added in Task 2; hal-carla added in Task 5.
+        "siege-cold" => scenes::siege_council::trace(beta, scenes::siege_council::Climate::Cold),
+        "siege-warm" => scenes::siege_council::trace(beta, scenes::siege_council::Climate::Warm),
+        // hal-carla added in Task 5.
         other => {
             eprintln!("unknown scene: {}", other);
             std::process::exit(2);
