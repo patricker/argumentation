@@ -17,8 +17,8 @@ function HomepageHeader() {
           <Link className="button button--secondary button--lg" to="/concepts/what-is-argumentation">
             Start with concepts →
           </Link>
-          <Link className="button button--outline button--lg" to="/examples/thermostat">
-            Try the thermostat example
+          <Link className="button button--outline button--lg" to="/examples/east-wall">
+            Try the east-wall example
           </Link>
         </div>
       </div>

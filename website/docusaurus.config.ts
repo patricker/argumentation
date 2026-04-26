@@ -54,7 +54,7 @@ const config: Config = {
           items: [
             {label: 'Getting Started', to: '/getting-started/first-scene'},
             {label: 'Concepts', to: '/concepts/what-is-argumentation'},
-            {label: 'Examples', to: '/examples/thermostat'},
+            {label: 'Examples', to: '/examples/east-wall'},
             {label: 'Guides', to: '/guides/installation'},
             {label: 'Reference', to: '/reference/overview'},
           ],

@@ -3,7 +3,7 @@ sidebar_position: 1
 title: Build your first scene
 ---
 
-Build a working thermostat-dispute scene end-to-end. You'll seed two arguments, set a scene intensity, run `MultiBeat`, and print the resulting beats.
+Build a working east-wall scene end-to-end. You'll seed two arguments, set a scene intensity, run `MultiBeat`, and print the resulting beats.
 
 ## What you'll build
 
@@ -135,7 +135,7 @@ let catalog = vec![
     CatalogEntry { spec: make_spec("argue_abandon_east"), precondition: String::new() },
 ];
 let practice = PracticeSpec {
-    name: "thermostat-dispute".into(),
+    name: "east-wall-debate".into(),
     affordances: vec!["argue_fortify_east".into(), "argue_abandon_east".into()],
     turn_policy: TurnPolicy::RoundRobin,
     duration_policy: DurationPolicy::MultiBeat { max_beats: 4 },

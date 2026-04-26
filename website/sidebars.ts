@@ -26,7 +26,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Applied',
-      items: ['examples/thermostat', 'examples/courtroom'],
+      items: ['examples/east-wall', 'examples/courtroom'],
     },
     {
       type: 'category',

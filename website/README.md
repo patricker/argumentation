@@ -21,14 +21,14 @@ Emits static files to `build/`. The production deploy combines this with workspa
 
 ## Regenerate scene traces
 
-The β slider on `/examples/thermostat` and `/concepts/weighted-and-beta` pulls pre-computed JSON traces from `static/traces/`. When the underlying library semantics change, regenerate:
+The β slider on `/examples/east-wall` and `/concepts/weighted-and-beta` pulls pre-computed JSON traces from `static/traces/`. When the underlying library semantics change, regenerate:
 
 ```bash
 cd ..
-cargo run -q -p scene-tracer -- thermostat 0.0 website/static/traces/thermostat-b00.json
-cargo run -q -p scene-tracer -- thermostat 0.4 website/static/traces/thermostat-b04.json
-cargo run -q -p scene-tracer -- thermostat 0.5 website/static/traces/thermostat-b05.json
-cargo run -q -p scene-tracer -- thermostat 1.0 website/static/traces/thermostat-b10.json
+cargo run -q -p scene-tracer -- east-wall 0.0 website/static/traces/east-wall-b00.json
+cargo run -q -p scene-tracer -- east-wall 0.4 website/static/traces/east-wall-b04.json
+cargo run -q -p scene-tracer -- east-wall 0.5 website/static/traces/east-wall-b05.json
+cargo run -q -p scene-tracer -- east-wall 1.0 website/static/traces/east-wall-b10.json
 ```
 
 ## Deployment

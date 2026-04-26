@@ -60,4 +60,4 @@ Run the scene twice with β at 0.0 and at 0.8 — the number of rejected beats s
 ## Related
 
 - [Weighted and β concept](/concepts/weighted-and-beta) — the mechanics.
-- [Thermostat demo](/examples/thermostat) — β-modulated scene in action.
+- [East-wall demo](/examples/east-wall) — β-modulated scene in action.

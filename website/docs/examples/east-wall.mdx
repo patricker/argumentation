@@ -1,40 +1,40 @@
 ---
 sidebar_position: 1
-title: The thermostat
+title: The east wall
 ---
 
 import BetaPlayground from '@site/src/components/BetaPlayground';
 import BetaSlider from '@site/src/components/BetaSlider';
 
-> Two roommates argue about the thermostat. Alice wants 72°F; Bob wants 68°F. We model the disagreement as a single scene with two arguments and a weighted attack, then watch how the outcome changes as we move β — the scene's intensity dial.
+> Two officers debate whether to fortify or abandon the east position. Alice, the military strategist, argues to fortify. Bob, the logistics officer, argues to abandon. Each presents an argument from their own expertise; we model the disagreement as a single scene with one weighted attack and watch the outcome shift as we move β — the scene's intensity dial.
 
 A worked example for the `encounter-argumentation` bridge: a scene where both parties have a valid argument, the arguments attack each other, and the framework decides the outcome based on β.
 
 ## Drag β to see the scene flip
 
 <BetaPlayground
-  title="Thermostat scene — live"
+  title="The east wall — live"
   args={[
-    {id: 'A', label: 'Alice: warmer is healthier'},
-    {id: 'B', label: 'Bob: cooler saves energy'},
+    {id: 'A', label: 'Alice (military): fortify the east'},
+    {id: 'B', label: 'Bob (logistics): abandon the east'},
   ]}
   attacks={[{from: 'B', to: 'A', weight: 0.4}]}
   initialBeta={0}
 />
 
-Two arguments, one directed weighted attack. The attack weight is **0.4**, meaning Bob's argument is credible enough to undermine Alice's when β is at or below 0.4. The slider above runs the real `argumentation` engine compiled to WebAssembly — every drag recomputes credulous acceptance in your browser.
+Two arguments, one directed weighted attack. The attack weight is **0.4** — strong enough that Bob's logistics objection undermines Alice's strategic case at low β, but droppable once β reaches 0.4. The slider above runs the real `argumentation` engine compiled to WebAssembly — every drag recomputes credulous acceptance in your browser.
 
 ## A pre-recorded scene trace at four discrete β
 
 For comparison, the snapshots below come from running the full encounter bridge with `MultiBeat` resolution at four fixed β values, captured to JSON traces:
 
 <BetaSlider
-  title="The thermostat across β"
+  title="The east wall across β"
   tracePaths={[
-    {beta: 0.0, path: '/traces/thermostat-b00.json'},
-    {beta: 0.4, path: '/traces/thermostat-b04.json'},
-    {beta: 0.5, path: '/traces/thermostat-b05.json'},
-    {beta: 1.0, path: '/traces/thermostat-b10.json'},
+    {beta: 0.0, path: '/traces/east-wall-b00.json'},
+    {beta: 0.4, path: '/traces/east-wall-b04.json'},
+    {beta: 0.5, path: '/traces/east-wall-b05.json'},
+    {beta: 1.0, path: '/traces/east-wall-b10.json'},
   ]}
 />
 
@@ -48,11 +48,11 @@ At **β = 0.5** and **β = 1.0**, the dynamic is the same as at 0.4 for this fix
 
 ## The trace
 
-Each beat is recorded in the trace JSON (for example, `/traces/thermostat-b05.json`). You can read off the seeded arguments, the attack graph, the per-beat acceptance decision, and any errors latched by the bridge. Replayable and deterministic.
+Each beat is recorded in the trace JSON (for example, `/traces/east-wall-b05.json`). You can read off the seeded arguments, the attack graph, the per-beat acceptance decision, and any errors latched by the bridge. Replayable and deterministic.
 
 ## Reading the outcome
 
-In this scene, the outcome is a function of β rather than a branching tree you hand-author. Turn β down for courtroom-sharp scenes where every objection lands; turn β up for family-dinner scenes where people let each other have a point.
+In this scene, the outcome is a function of β rather than a branching tree you hand-author. Turn β down for courtroom-sharp scenes where every objection lands; turn β up for war-room scenes where commanders let each other have a point even when the case isn't airtight.
 
 ## Further reading
 
