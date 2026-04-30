@@ -73,6 +73,7 @@ pub mod value_argument;
 pub use acceptance::ArgumentAcceptanceEval;
 pub use affordance_key::AffordanceKey;
 pub use arg_id::ArgumentId;
+pub use argumentation_values::{Audience, Value, ValueAssignment, ValueBasedFramework};
 pub use critical_moves::{cq_to_beat, critical_question_beats};
 pub use error::Error;
 pub use knowledge::{ArgumentKnowledge, ArgumentPosition, StaticKnowledge};

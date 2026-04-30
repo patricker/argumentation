@@ -10,6 +10,7 @@ use crate::arg_id::ArgumentId;
 use crate::error::Error;
 use argumentation_schemes::instance::SchemeInstance;
 use argumentation_schemes::registry::CatalogRegistry;
+use argumentation_values::Audience;
 use argumentation_weighted::types::Budget;
 use argumentation_weighted_bipolar::WeightedBipolarFramework;
 use std::collections::HashMap;
@@ -42,6 +43,11 @@ pub struct EncounterArgumentationState {
     /// `resolve` loops — while still being `Sync`, which encounter's
     /// `AcceptanceEval`/`ActionScorer` traits require.
     intensity: Mutex<Budget>,
+    /// Per-character audiences (value preference orderings). Mutable via
+    /// `set_audience` through a shared reference, mirroring how `intensity`
+    /// is stored. Empty map means no audiences are configured; consumers
+    /// that opt into VAF-aware scoring should populate this before resolve.
+    audiences: Mutex<HashMap<String, Audience>>,
     /// Error buffer: errors observed by bridge impls whose trait
     /// signatures can't propagate `Result` (e.g.,
     /// `AcceptanceEval::evaluate`). Bridge impls APPEND to this
@@ -68,6 +74,7 @@ impl EncounterArgumentationState {
             instances_by_argument: HashMap::new(),
             argument_id_by_affordance: HashMap::new(),
             intensity: Mutex::new(Budget::zero()),
+            audiences: Mutex::new(HashMap::new()),
             errors: Mutex::new(Vec::new()),
         }
     }
@@ -321,6 +328,29 @@ impl EncounterArgumentationState {
     /// [`Self::at_intensity`].
     pub fn set_intensity(&self, intensity: Budget) {
         *self.intensity_guard() = intensity;
+    }
+
+    /// Set the audience (value preference ordering) for one actor.
+    /// Mirrors `set_intensity` — uses a shared reference plus interior mutability.
+    pub fn set_audience(&self, actor: &str, audience: Audience) {
+        let mut map = self.audiences.lock().expect("audiences mutex poisoned");
+        map.insert(actor.to_string(), audience);
+    }
+
+    /// Borrow the audience for one actor, if set. Returns a clone because
+    /// the underlying mutex guard cannot be held across the boundary.
+    #[must_use]
+    pub fn audience_for(&self, actor: &str) -> Option<Audience> {
+        let map = self.audiences.lock().expect("audiences mutex poisoned");
+        map.get(actor).cloned()
+    }
+
+    /// All (actor, audience) pairs as owned data. The lock is released
+    /// before returning, so callers can iterate without holding it.
+    #[must_use]
+    pub fn audiences(&self) -> Vec<(String, Audience)> {
+        let map = self.audiences.lock().expect("audiences mutex poisoned");
+        map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 
     /// Whether the argument is credulously accepted under the current
@@ -834,6 +864,18 @@ mod tests {
     fn actors_by_argument_is_empty_on_new_state() {
         let state = EncounterArgumentationState::new(default_catalog());
         assert!(state.actors_by_argument().is_empty());
+    }
+
+    #[test]
+    fn audiences_round_trip() {
+        use argumentation_values::{Audience, Value};
+        let registry = argumentation_schemes::catalog::default_catalog();
+        let state = EncounterArgumentationState::new(registry);
+        let audience = Audience::total([Value::new("life"), Value::new("property")]);
+        state.set_audience("alice", audience.clone());
+        let read = state.audience_for("alice").unwrap();
+        assert_eq!(read.value_count(), 2);
+        assert!(state.audience_for("bob").is_none());
     }
 
     #[test]
