@@ -116,27 +116,17 @@ impl<A: Clone + Eq + Hash + Ord + std::fmt::Debug> ValueBasedFramework<A> {
         Ok(extensions.iter().any(|ext| ext.contains(arg)))
     }
 
-    /// Audience-conditioned grounded extension.
+    /// Audience-conditioned grounded extension (Dung 1995).
     ///
-    /// Convenience for inspecting "the unique skeptically accepted set"
-    /// under one audience. Useful for tests and for explanation generation.
-    ///
-    /// Implementation: if the underlying `argumentation` crate exposes a
-    /// `grounded_extension()` method on `ArgumentationFramework`, this
-    /// delegates to it. Otherwise it intersects the preferred extensions
-    /// (which is the formal definition of grounded — the unique smallest
-    /// preferred extension that survives skeptical acceptance).
+    /// Returns the unique skeptically-accepted set under the audience-conditioned
+    /// defeat graph. The grounded extension is computed by the upstream
+    /// `argumentation` crate via least-fixed-point of the characteristic
+    /// function (not via intersection of preferred extensions, which is the
+    /// ideal extension and may be a strict superset on non-well-founded
+    /// frameworks).
     pub fn grounded_for(&self, audience: &Audience) -> Result<HashSet<A>, Error> {
         let defeat = self.defeat_graph(audience)?;
-        let extensions = defeat.preferred_extensions().map_err(Error::from)?;
-        if extensions.is_empty() {
-            return Ok(HashSet::new());
-        }
-        let mut grounded = extensions[0].clone();
-        for ext in &extensions[1..] {
-            grounded.retain(|a| ext.contains(a));
-        }
-        Ok(grounded)
+        Ok(defeat.grounded_extension())
     }
 }
 
