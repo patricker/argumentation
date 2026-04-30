@@ -106,6 +106,17 @@ impl EncounterArgumentationState {
         self.errors.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    // Lock audiences, recovering from poisoning — see `intensity_guard`
+    // for rationale.
+    //
+    // NON-REENTRANT: `std::sync::Mutex` does not support recursive
+    // locking on the same thread. Callers must NOT hold the returned
+    // guard across another call to `set_audience`, `audience_for`, or
+    // `audiences`.
+    fn audiences_guard(&self) -> std::sync::MutexGuard<'_, HashMap<String, Audience>> {
+        self.audiences.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     /// Number of argument nodes in the framework.
     #[must_use]
     pub fn argument_count(&self) -> usize {
@@ -333,7 +344,7 @@ impl EncounterArgumentationState {
     /// Set the audience (value preference ordering) for one actor.
     /// Mirrors `set_intensity` — uses a shared reference plus interior mutability.
     pub fn set_audience(&self, actor: &str, audience: Audience) {
-        let mut map = self.audiences.lock().expect("audiences mutex poisoned");
+        let mut map = self.audiences_guard();
         map.insert(actor.to_string(), audience);
     }
 
@@ -341,7 +352,7 @@ impl EncounterArgumentationState {
     /// the underlying mutex guard cannot be held across the boundary.
     #[must_use]
     pub fn audience_for(&self, actor: &str) -> Option<Audience> {
-        let map = self.audiences.lock().expect("audiences mutex poisoned");
+        let map = self.audiences_guard();
         map.get(actor).cloned()
     }
 
@@ -349,7 +360,7 @@ impl EncounterArgumentationState {
     /// before returning, so callers can iterate without holding it.
     #[must_use]
     pub fn audiences(&self) -> Vec<(String, Audience)> {
-        let map = self.audiences.lock().expect("audiences mutex poisoned");
+        let map = self.audiences_guard();
         map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 
