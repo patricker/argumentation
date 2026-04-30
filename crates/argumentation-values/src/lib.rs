@@ -11,8 +11,9 @@
 //! degenerates to Bench-Capon (2003) single-value when each argument
 //! promotes exactly one value. See [`framework::ValueBasedFramework::defeats`].
 //!
-//! Module barrel grows as Tasks 5/6/9/10 add their files.
+//! Module barrel grows as Tasks 6/9/10 add their files.
 
+pub mod acceptance;
 pub mod error;
 pub mod framework;
 pub mod types;

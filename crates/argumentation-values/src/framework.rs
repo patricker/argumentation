@@ -128,6 +128,18 @@ impl<A: Clone + Eq + Hash + Ord + std::fmt::Debug> ValueBasedFramework<A> {
         let defeat = self.defeat_graph(audience)?;
         Ok(defeat.grounded_extension())
     }
+
+    /// Subjective acceptance — accepted by *some* total ordering of values
+    /// in this framework. See [`crate::acceptance::subjectively_accepted`].
+    pub fn subjectively_accepted(&self, arg: &A) -> Result<bool, Error> {
+        crate::acceptance::subjectively_accepted(self, arg)
+    }
+
+    /// Objective acceptance — accepted by *every* total ordering of values
+    /// in this framework. See [`crate::acceptance::objectively_accepted`].
+    pub fn objectively_accepted(&self, arg: &A) -> Result<bool, Error> {
+        crate::acceptance::objectively_accepted(self, arg)
+    }
 }
 
 #[cfg(test)]
