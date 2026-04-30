@@ -4,9 +4,18 @@
 //! promotes a value, and an *audience* is an ordering over values. Different
 //! audiences reach different rational conclusions from the same framework.
 //!
-//! Module barrel grows as Tasks 2/3/5/6/9/10 add their files. The full
-//! crate-level docs land in Task 2 along with the public types.
+//! # Multi-value support
+//!
+//! This implementation follows Kaci & van der Torre (2008) and supports
+//! arguments promoting multiple values. The defeat rule (Pareto-defeating)
+//! degenerates to Bench-Capon (2003) single-value when each argument
+//! promotes exactly one value. See [`framework::ValueBasedFramework::defeats`]
+//! once the framework module lands in Task 3.
+//!
+//! Module barrel grows as Tasks 3/5/6/9/10 add their files.
 
 pub mod error;
+pub mod types;
 
 pub use error::Error;
+pub use types::{Audience, Value, ValueAssignment};
