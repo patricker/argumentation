@@ -5,6 +5,7 @@ members = [
     "crates/argumentation-bipolar",
     "crates/argumentation-weighted",
     "crates/argumentation-weighted-bipolar",
+    "crates/argumentation-values",
     "crates/encounter-argumentation",
     "crates/argumentation-wasm",
     "tools/scene-tracer",

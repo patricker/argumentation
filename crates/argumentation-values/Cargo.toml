@@ -1,0 +1,18 @@
+[package]
+name = "argumentation-values"
+version = "0.1.0"
+edition = "2024"
+description = "Value-based argumentation frameworks (Bench-Capon 2003) built on the argumentation crate"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["argumentation", "values", "vaf", "bench-capon", "audience"]
+categories = ["algorithms"]
+
+[dependencies]
+argumentation = { path = "../.." }
+argumentation-schemes = { path = "../argumentation-schemes" }
+smallvec = "1.13"
+thiserror = "2.0"
+
+[dev-dependencies]
+proptest = "1.4"
