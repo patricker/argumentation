@@ -68,6 +68,62 @@ The traces tell a stark story: in every beat at every β, Carla's proposal is ac
 
 **This is the limit of the abstract weighted framework.** Tuning β changes which Hal-claim gets put forward, but never changes who wins. To get a different outcome, the framework would need to encode the moral preference itself — *life > property* — as a first-class part of the resolution. That's what value-based argumentation does.
 
+## With values: the audience flips the outcome
+
+The abstract weighted framework above can't prefer Hal — but `argumentation-values` can. Below, the same four arguments and four attacks, but with values attached: H1 promotes *life*, C1 promotes *property*, H2 promotes *fairness*, C2 promotes *life*. Each side panel shows the audience-conditioned **defeat graph** under one audience.
+
+<div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+
+<div style={{flex: '1 1 350px'}}>
+
+### Audience: life &gt; property
+
+<AttackGraph
+  title="Defeat graph — life ≻ property"
+  arguments={[
+    {id: 'H1', label: 'Hal: life > property', accepted: true},
+    {id: 'C1', label: 'Carla: property rights'},
+    {id: 'H2', label: 'Hal: too poor to compensate'},
+    {id: 'C2', label: 'Carla: my only dose', accepted: true},
+  ]}
+  attacks={[
+    {from: 'H1', to: 'C1'},
+    {from: 'C2', to: 'H2'},
+    {from: 'H2', to: 'C1'},
+  ]}
+  height={320}
+  caption="C1's attack on H1 is filtered out (life is preferred over property). Grounded extension: {H1, C2}. Hal goes free."
+/>
+
+</div>
+
+<div style={{flex: '1 1 350px'}}>
+
+### Audience: property &gt; life
+
+<AttackGraph
+  title="Defeat graph — property ≻ life"
+  arguments={[
+    {id: 'H1', label: 'Hal: life > property'},
+    {id: 'C1', label: 'Carla: property rights', accepted: true},
+    {id: 'H2', label: 'Hal: too poor to compensate'},
+    {id: 'C2', label: 'Carla: my only dose', accepted: true},
+  ]}
+  attacks={[
+    {from: 'C1', to: 'H1'},
+    {from: 'C2', to: 'H2'},
+    {from: 'H2', to: 'C1'},
+  ]}
+  height={320}
+  caption="H1's attack on C1 is filtered out (property is preferred over life). Grounded extension: {C1, C2}. Hal punished."
+/>
+
+</div>
+
+</div>
+
+The framework hasn't changed; the audience has. Same four arguments, same four attacks, opposite outcome. This is the formal machinery of value-based argumentation.
+
 ## Why values matter
 
 Pure Dung semantics — the engine you just played with — can't prefer Hal in the way humans intuitively do, because the framework treats H1 and C1 as ordinary attacks on each other (or on C1's targets). The preference "life is more important than property" is not encodable as an attack weight or a β setting. That's a *value preference*, not a scene-intensity setting.
@@ -81,7 +137,9 @@ The framework hasn't changed; the audience has. This is the formal machinery tha
 
 ## In our library
 
-Value-based argumentation is on the roadmap as an open formalism. See the [VAF scoping page](/concepts/value-based-argumentation) for the design sketch — types, semantics, integration points, and what audience-conditioned outputs would look like in a scene. Currently our [`argumentation-schemes`](/api/) supports a related mechanism: `PracticalReasoning` schemes carry a value dimension in their bindings, and `encounter-argumentation`'s `StateActionScorer` can be composed with a value-aware inner scorer to produce audience-conditioned scoring (without the full VAF semantics).
+Value-based argumentation is implemented in the [`argumentation-values`](https://docs.rs/argumentation-values) crate. The audience-flip demonstration above uses the actual library to derive the defeat graphs shown. For full API details, types, and the Hal & Carla integration test that pins this exact behaviour, see the [VAF concepts page](/concepts/value-based-argumentation).
+
+For multi-character scene wiring (per-character audiences flowing into the encounter bridge), see the [wiring per-character values](/guides/wiring-character-values) how-to.
 
 ## Further reading
 
@@ -89,5 +147,6 @@ Value-based argumentation is on the roadmap as an open formalism. See the [VAF s
 - [Atkinson & Bench-Capon (2007)](/academic/bibliography#atkinson2007) — practical reasoning over VAFs.
 - [Open areas](/concepts/open-areas) — formalisms not yet implemented in this library.
 - [VAF scoping](/concepts/value-based-argumentation) — what an `argumentation-values` crate would look like.
+- [Wiring per-character values](/guides/wiring-character-values) — how to wire per-character audiences into a multi-actor scene.
 - [The siege council (flagship)](/examples/siege-council) — multi-actor engine-driven scene.
 - [The east wall](/examples/east-wall) — the simplest engine-driven scene.
