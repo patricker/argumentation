@@ -69,6 +69,7 @@ pub mod state;
 pub mod state_acceptance;
 pub mod state_scorer;
 pub mod value_argument;
+pub mod value_scorer;
 
 pub use acceptance::ArgumentAcceptanceEval;
 pub use affordance_key::AffordanceKey;
@@ -83,6 +84,7 @@ pub use state::EncounterArgumentationState;
 pub use state_acceptance::StateAcceptanceEval;
 pub use state_scorer::StateActionScorer;
 pub use value_argument::scheme_value_argument;
+pub use value_scorer::ValueAwareScorer;
 
 /// Numeric rank for a scheme strength (higher = stronger).
 pub(crate) fn strength_rank(strength: argumentation_schemes::types::SchemeStrength) -> u8 {
