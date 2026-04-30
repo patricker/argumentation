@@ -47,6 +47,25 @@ Per-crate release history. The full per-crate `CHANGELOG.md` files in the repo a
 
 **Notes.** Multi-actor arguments aggregate per-pair weights by arithmetic mean across the (attacker × target) Cartesian product. Unresolvable actor names are silently skipped (not promoted to baseline pairs). Calibration is provisional — pending gameplay telemetry.
 
+## `argumentation-values`
+
+### 0.1.0 — 2026-04-30 (initial release)
+
+**Added.** First release of the `argumentation-values` crate.
+
+- `Value`, `ValueAssignment<A>` (multi-value via SmallVec), `Audience` (ranked tiers with `rank()` accessor) — Bench-Capon (2003) types extended with Kaci & van der Torre (2008) multi-value support.
+- `ValueBasedFramework<A>` with `defeat_graph(audience)`, `defeats(attacker, target, audience)`, `accepted_for(audience, arg)`, `grounded_for(audience)`. Pareto-defeating rule.
+- `subjectively_accepted` and `objectively_accepted` (capped at 6 distinct values per Dunne & Bench-Capon 2004 complexity).
+- `MultiAudience` for multi-character consensus queries (DiArg-style AgreementScenario).
+- APX format I/O (`from_apx` / `to_apx`) for ASPARTIX interop.
+- `from_scheme_instances` bridge for populating `ValueAssignment` from instantiated `argument_from_values` Walton schemes.
+- 40 tests including the Hal & Carla integration test under three audiences as the success criterion.
+
+**Companion change in `encounter-argumentation`** (no version bump — same crate v0.5):
+
+- `EncounterArgumentationState` gains per-actor `audiences: Mutex<HashMap<String, Audience>>` storage, mirroring `intensity`.
+- `ValueAwareScorer<S>` wraps any inner scorer and adds audience-conditioned value-preference boost.
+
 ## See also
 
 - [`encounter-argumentation` CHANGELOG](https://github.com/patricker/argumentation/blob/main/crates/encounter-argumentation/CHANGELOG.md) (canonical)

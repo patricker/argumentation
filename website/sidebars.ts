@@ -48,6 +48,7 @@ const sidebars: SidebarsConfig = {
     'guides/tuning-beta',
     'guides/debugging-acceptance',
     'guides/societas-modulated-weights',
+    'guides/wiring-character-values',
     'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
