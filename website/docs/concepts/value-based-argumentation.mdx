@@ -1,125 +1,140 @@
 ---
 sidebar_position: 9
-title: Value-based argumentation (mini-RFC)
+title: Value-based argumentation (VAF)
 ---
 
-**A scoping document for an `argumentation-values` crate. Not implemented yet — this page describes what we'd build.**
+**The `argumentation-values` crate adds value-based argumentation frameworks to the workspace. This page is the conceptual overview; for API details see [the rustdoc](/api/argumentation_values/).**
 
-The headline [open area](/concepts/open-areas). Bench-Capon (2003) introduced Value-based Argumentation Frameworks (VAFs) as a Dung extension where arguments promote values, and audiences are orderings over values. Different audiences reach different rational conclusions from the same framework. This page sketches the design.
+Bench-Capon (2003) extended Dung frameworks with *values* — each argument promotes a value, and an *audience* is an ordering over values. Different audiences reach different rational conclusions from the same framework. Our implementation supports the multi-value generalisation from Kaci & van der Torre (2008).
 
-## The motivating example
-
-Hal, a diabetic, takes Carla's insulin to save his life. Should he be punished? See the full [Hal & Carla scene](/examples/hal-and-carla) for the engine-driven version. The abstract weighted framework cannot, on its own, encode the preference "life > property" — that preference is the audience, not the framework.
-
-## Types
+## Types at a glance
 
 ```rust
-/// A value an argument can promote. Strings for now; could become an
-/// extensible enum-like trait in the future.
-pub struct Value(pub String);
+use argumentation::ArgumentationFramework;
+use argumentation_values::{Audience, Value, ValueAssignment, ValueBasedFramework};
 
-/// Maps each argument to the value it promotes. An argument might
-/// promote no value (None) — those arguments behave as in pure Dung.
-pub struct ValueAssignment {
-    promoted: HashMap<ArgumentId, Value>,
-}
+let mut base = ArgumentationFramework::new();
+base.add_argument("h1");
+base.add_argument("c1");
+base.add_attack(&"h1", &"c1").unwrap();
+base.add_attack(&"c1", &"h1").unwrap();
 
-/// An audience is a strict partial order over values. We represent it
-/// as a Vec of value names from most to least preferred (ties allowed
-/// via the second nested level).
-///
-/// Example: vec![vec!["life"], vec!["fairness"], vec!["property"]]
-/// means life > fairness > property strictly.
-///
-/// Example: vec![vec!["life", "fairness"], vec!["property"]]
-/// means {life, fairness} > property; life and fairness incomparable.
-pub struct Audience {
-    ranked: Vec<Vec<Value>>,
-}
+let mut values = ValueAssignment::new();
+values.promote("h1", Value::new("life"));
+values.promote("c1", Value::new("property"));
 
-impl Audience {
-    /// Strict preference: returns true iff `a` is strictly preferred to `b`.
-    pub fn prefers(&self, a: &Value, b: &Value) -> bool { /* ... */ }
-}
+let vaf = ValueBasedFramework::new(base, values);
+let life_first = Audience::total([Value::new("life"), Value::new("property")]);
 
-/// A VAF — Dung framework + value assignment. Extensions are computed
-/// per-audience, not globally.
-pub struct ValueBasedFramework {
-    base: Framework,
-    values: ValueAssignment,
-}
+assert!(vaf.accepted_for(&life_first, &"h1").unwrap());
+assert!(!vaf.accepted_for(&life_first, &"c1").unwrap());
 ```
 
-## Semantics
+## Defeat semantics (Kaci & van der Torre 2008, Pareto)
 
-A VAF defeats the symmetric-attack ambiguity by adding an *audience-specific defeat* relation:
+Given attack `(A, B)` in the underlying Dung framework and audience `X`, A *defeats* B in the audience-conditioned graph iff:
 
-> Argument A *defeats* argument B (with respect to audience X) iff:
->   1. A attacks B in the underlying Dung framework, and
->   2. The value B promotes is *not* strictly preferred over the value A promotes by audience X.
+> for every value `v_b` promoted by B, there exists some value `v_a` promoted by A such that `v_b` is **not** strictly preferred over `v_a` under X.
 
-In Hal & Carla under audience X = `[[life], [property]]`:
-- H1 (promotes life) attacks C1 (promotes property). Is C1's value (property) strictly preferred over H1's (life)? No. So H1 *defeats* C1.
-- C1 (promotes property) attacks H1 (promotes life). Is H1's value (life) strictly preferred over C1's (property)? Yes. So C1 does *not* defeat H1.
+Single-value (Bench-Capon 2003) is the degenerate case where each argument promotes exactly one value.
 
-The symmetric attack becomes asymmetric defeat; H1 is in the unique grounded extension, C1 is out. Hal goes free.
+**Special cases:**
+- A or B promotes no value → A defeats B (no preference can intervene).
+- A value is unranked in the audience → considered incomparable (no strict preference); attacker side wins ties.
 
-Standard Dung extensions (grounded, preferred, stable) are then computed over the audience-specific *defeat* graph rather than the original *attack* graph. Two new acceptance terms enter the vocabulary:
+## Acceptance modes
 
-- **Subjectively acceptable** in a VAF: accepted by *some* audience.
-- **Objectively acceptable**: accepted by *every* audience.
+| Method | Cost | Use case |
+|---|---|---|
+| `accepted_for(&audience, &arg)` | Polynomial-ish (one preferred-extension call) | Runtime: "what does this character believe?" |
+| `subjectively_accepted(&arg)` | NP-complete; capped at 6 distinct values | Authoring: "is there *any* audience under which X is accepted?" |
+| `objectively_accepted(&arg)` | co-NP-complete; capped at 6 distinct values | Authoring: "is X accepted under *every* audience? (i.e., universally compelling)" |
+| `MultiAudience::common_grounded(&vaf)` | k × preferred extensions, where k = audience count | Multi-character scenes: "which proposals does the *whole council* agree on?" |
 
-## Integration with existing crates
+The `ENUMERATION_LIMIT` cap on subjective/objective queries is per Dunne & Bench-Capon (2004). Past 6 values, methods return `Err(Error::AudienceTooLarge)` — use a fixed-audience query instead.
 
-```
-argumentation
-    ↑
-    │ (re-uses Framework, ArgumentId)
-    │
-argumentation-values         (this RFC)
-    ↑
-    ├─ argumentation-weighted-values  (β + values; future)
-    └─ argumentation-bipolar-values   (supports + values; future)
-```
+## Hal & Carla, worked
 
-The simplest version is `argumentation-values` alone — it composes a `Framework` with a `ValueAssignment` and exposes the audience-specific defeat graph. Weighted and bipolar variants follow the same pattern as today: a value-aware framework is an inner Dung framework + values + the additional structure.
-
-The `WeightSource<ArgumentId>` trait already in `argumentation-weighted` is the natural plug-in point — values modulate weights at resolution time. An audience could be expressed as a `WeightSource` that boosts attacks in line with the preference order, collapsing the defeat semantics into the existing weighted machinery without a separate crate. Both approaches are viable; the first is more faithful to Bench-Capon, the second is cheaper to build and composes with everything.
-
-## Integration with the encounter bridge
-
-`StateActionScorer` already wraps an inner scorer to add credulous-acceptance boost. A VAF-aware scorer would wrap a baseline scorer to add an *audience parameter* — same affordances scored differently by characters with different value orderings.
+The canonical example. See [the engine-driven scene](/examples/hal-and-carla) for the live version.
 
 ```rust
-let alice_scorer = ValueAwareScorer::new(baseline, &vaf, alice_audience);
-let bob_scorer   = ValueAwareScorer::new(baseline, &vaf, bob_audience);
+let mut base = ArgumentationFramework::new();
+for a in ["h1", "c1", "h2", "c2"] { base.add_argument(a); }
+base.add_attack(&"h1", &"c1").unwrap();   // life attacks property
+base.add_attack(&"c1", &"h1").unwrap();   // property attacks life
+base.add_attack(&"c2", &"h2").unwrap();   // Carla's "my only dose" defeats fairness appeal
+base.add_attack(&"h2", &"c1").unwrap();   // Hal's poverty attacks property
+
+let mut values = ValueAssignment::new();
+values.promote("h1", Value::new("life"));
+values.promote("c1", Value::new("property"));
+values.promote("h2", Value::new("fairness"));
+values.promote("c2", Value::new("life"));
+
+let vaf = ValueBasedFramework::new(base, values);
+
+// Audience 1: life > property → Hal goes free.
+let life_first = Audience::total([Value::new("life"), Value::new("property")]);
+let g1 = vaf.grounded_for(&life_first).unwrap();
+assert!(g1.contains("h1") && g1.contains("c2"));
+
+// Audience 2: property > life → Hal punished.
+let property_first = Audience::total([Value::new("property"), Value::new("life")]);
+let g2 = vaf.grounded_for(&property_first).unwrap();
+assert!(g2.contains("c1") && g2.contains("c2"));
 ```
 
-In a multi-actor scene each character can have their own audience, and the same proposal scores differently for each. This is the formal grounding for "Alice prioritises duty; Bob prioritises survival; same scene, different character preferences."
+## Encounter bridge integration
 
-## Open design questions
+`encounter-argumentation` ships `ValueAwareScorer` for runtime use:
 
-These are the questions that need answers before implementation, not blockers to publishing the scoping doc:
+```rust
+use encounter_argumentation::{
+    EncounterArgumentationState, SchemeActionScorer, ValueAwareScorer,
+    Audience, Value,
+};
 
-1. **Should `Value` be a string, an extensible enum, or generic over a trait?** Current sketch uses `String` for ergonomics. Trait-based would let consumers attach domain semantics (numerical magnitude, hierarchical taxonomies). String is enough for v0; revisit if a consumer needs more.
+let state = EncounterArgumentationState::new(catalog);
+state.set_audience("alice", Audience::total([Value::new("duty"), Value::new("survival")]));
+state.set_audience("bob", Audience::total([Value::new("survival"), Value::new("duty")]));
 
-2. **How are audiences specified at scene authoring time?** Two options: per-character (each actor carries an audience as part of their state) or per-scene (the storyteller specifies which audience the framework resolves under). Per-character is more expressive but means every acceptance evaluation is per-character. Per-scene is cheaper but less faithful to multi-perspective scenes.
+let scorer = ValueAwareScorer::new(
+    SchemeActionScorer::new(knowledge, registry, baseline_scorer, 0.3),
+    &state,
+    0.2,
+);
+```
 
-3. **Subjective vs objective acceptance: which does the bridge surface?** The bridge needs *some* boolean answer. Most likely: subjective for `StateActionScorer` (the proposer wants to know "could this land with anyone?") and objective for `StateAcceptanceEval` (the responder rejects only what no audience would accept). Open to debate.
+Per-character audiences flow through the scorer at resolve time — Alice and Bob score the same affordance differently when their value orderings differ.
 
-4. **Compatibility with weighted attacks.** β tunes how strictly attacks bind. Values change *which* attacks are defeats. Composing both: attack from A to B is a *binding defeat* iff its weight `w` satisfies `w > β` AND audience does not strictly prefer B's value over A's. Straightforward, but worth writing tests against the published VAF semantics.
+See the [wiring per-character values](/guides/wiring-character-values) how-to for a complete worked example.
 
-5. **Hal & Carla as the integration test.** The scoping doc is finished when there's a unit test that, given the Hal & Carla framework and audience `[[life], [property]]`, returns the grounded extension `{H1, C2}` and rejects `{C1, H2}`. That test is the success criterion.
+## APX format I/O
 
-## What this RFC is not
+ASPARTIX-compatible APX format with VAF extension:
 
-- **Not a commitment to ship.** Open areas are open until a consumer needs them.
-- **Not the only path to value-aware argumentation.** A consumer could build value-aware scoring as a `WeightSource` today, without waiting for the crate. The crate is the principled formalisation; the workaround is the practical one.
-- **Not a replacement for ASPIC+ or weighted frameworks.** It composes with both; it does not subsume either.
+```text
+arg(h1).
+arg(c1).
+att(h1, c1).
+att(c1, h1).
+val(h1, life).
+val(c1, property).
+valpref(life, property).
+```
 
-## Further reading
+Use `argumentation_values::apx::from_apx(text)` to parse, `to_apx(&vaf, &audience)` to serialise. Round-trips preserve the framework + audience. Useful for importing benchmark VAFs from the literature or exporting scenes for analysis in ASPARTIX.
+
+## Bibliography
 
 - [Bench-Capon (2003)](/academic/bibliography#benchcapon2003) — the original VAF paper.
 - [Atkinson & Bench-Capon (2007)](/academic/bibliography#atkinson2007) — practical reasoning over VAFs.
-- [Open areas](/concepts/open-areas) — the broader roadmap context.
-- [Hal & Carla](/examples/hal-and-carla) — the scene this RFC is built around.
+- Kaci, S. & van der Torre, L. (2008). "Preference-based argumentation: Arguments supporting multiple values." *International Journal of Approximate Reasoning* 48(3): 730–751.
+- Dunne, P.E. & Bench-Capon, T. (2004). "Complexity in Value-Based Argument Systems." *JELIA 2004*: 360–371.
+- Bodanza, G.A. & Freidin, E. (2023). "Confronting value-based argumentation frameworks with people's assessment of argument strength." *Argument & Computation* 14(3): 247–273. — empirical critique; informs why we expose `SchemeActionScorer`'s direct value-importance scoring alongside the orthodox VAF defeat semantics.
+
+## Further reading
+
+- [Hal & Carla](/examples/hal-and-carla) — the engine-driven scene this implementation was built around.
+- [Open areas](/concepts/open-areas) — what's still on the roadmap (probabilistic AF, ADF, dialogue games, dynamic AF).
+- [Wiring per-character values](/guides/wiring-character-values) — how-to.
