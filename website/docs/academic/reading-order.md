@@ -21,6 +21,8 @@ Read in order:
 4. [**Cayrol & Lagasquie-Schiex (2005)**](/academic/bibliography#cayrol2005) — *On the acceptability of arguments in bipolar frameworks.* Short (~15 pages).
 5. [**Dunne, Hunter, McBurney, Parsons, Wooldridge (2011)**](/academic/bibliography#dunne2011) — *Weighted argument systems.* §1–§3 for definitions; skim complexity results unless you care.
 6. [**Bench-Capon (2003)**](/academic/bibliography#benchcapon2003) — *Persuasion in practical argument.* Hal & Carla + values.
+7. [**Kaci & van der Torre (2008)**](/academic/bibliography#kaci2008) — *Preference-based argumentation: Arguments supporting multiple values.* The multi-value extension to Bench-Capon. Read §2 (defeat rule) carefully — it's the spec our `argumentation-values` crate implements.
+8. [**Dunne & Bench-Capon (2004)**](/academic/bibliography#dunne2004) — *Complexity in VAF.* Read §3 for the NP/co-NP results that motivate the `ENUMERATION_LIMIT` cap on `subjectively_accepted` / `objectively_accepted` queries.
 
 ## If you want to teach this to someone
 
@@ -28,4 +30,4 @@ Use Walton (2006) — *Fundamentals of Critical Argumentation* — as the textbo
 
 ## If you want to build with this
 
-Read the Modgil-Prakken tutorial, then this library's [guides](/guides/installation). The `encounter-argumentation` bridge is the primary entry point.
+Read the Modgil-Prakken tutorial for ASPIC+ basics, then this library's [guides](/guides/installation). The `encounter-argumentation` bridge is the primary entry point for scene engines; the `argumentation-values` crate is the entry point for value-based reasoning. Pick one — the [Choose your path](/getting-started/choose-your-path) page routes you by goal.
