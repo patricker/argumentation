@@ -3,6 +3,7 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   gettingStartedSidebar: [
     'getting-started/first-scene',
+    'getting-started/second-scene-with-schemes',
   ],
   conceptsSidebar: [
     'concepts/what-is-argumentation',
