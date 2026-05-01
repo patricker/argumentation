@@ -1,53 +1,137 @@
 ---
 sidebar_position: 7
-title: Encounter integration
+title: The encounter bridge — proposer/responder model
 ---
 
-**The `encounter-argumentation` crate bridges formal argumentation into a trait-inverted scene engine.** It translates the formalisms into an interface a scene engine can consume — two trait impls the engine asks every beat.
+**The `encounter-argumentation` crate is the bridge between formal argumentation and the encounter scene engine. This page explains the model — why a bridge crate exists, the proposer/responder split, the dimensions it composes, and the error-latch design.**
 
-## The two-question architecture
+The encounter scene engine is a separate library (`encounter`) that orchestrates multi-actor scenes via three trait hooks: `ActionScorer` (proposer-side), `AcceptanceEval` (responder-side), and a resolution loop (`MultiBeat`, `SingleExchange`, ...). Argumentation provides the semantics; the bridge wires the two together so each scene beat is decided by argumentation reasoning.
 
-Scene engines like [`encounter`](https://github.com/patricker/encounter) are trait-inverted — they don't know how to score actions or decide acceptance. They delegate via traits:
+## Why a bridge crate?
 
-- `ActionScorer<P>::score_actions` — how much does actor X want to take action Y right now?
-- `AcceptanceEval<P>::evaluate` — does the responder accept Y's proposal?
+A scene engine and a reasoning library shouldn't know about each other. The bridge crate exists so:
 
-Our bridge provides one impl of each:
+- The argumentation crates stay pure-formal — no scene-engine concepts leak in.
+- The encounter crate stays scene-engine-pure — no argumentation concepts leak in.
+- Consumers can swap reasoning backends (or use neither) without touching the engine.
 
-- [`StateActionScorer<'a, S>`](/api/) wraps any inner scorer and **boosts** affordances whose backing argument is credulously accepted at current β. Proposer-side salience.
-- [`StateAcceptanceEval<'a>`](/api/) **rejects** when the responder has put forward a credulously-accepted counter-argument. Responder-side gate.
+The bridge crate (`encounter-argumentation`) implements `ActionScorer` and `AcceptanceEval` against an `EncounterArgumentationState` — a single state object that composes scheme reasoning, bipolar graph structure, weighted attack strengths, β intensity, per-character audiences, and an error latch.
 
-These ask genuinely different questions. The scorer is "what's in the proposer's vocabulary right now?" — a global-β credulous check. The eval is "does the responder have ammunition?" — a per-responder check using [`has_accepted_counter_by`](/api/).
+## The proposer/responder split
 
-## Lifecycle
+Each scene beat is the resolution of one proposer's affordance against the responder(s). The bridge handles the two sides differently:
 
-1. Build an [`EncounterArgumentationState`](/api/) with your scheme catalog.
-2. Set β via [`set_intensity`](/api/).
-3. For each (actor, affordance) pair in the scene, call [`add_scheme_instance_for_affordance`](/api/) — this seeds the forward index that the bridge uses at resolve time.
-4. Construct a `StateActionScorer` and `StateAcceptanceEval`, both borrowing the state.
-5. Hand them to `encounter::resolution::MultiBeat::resolve` (or `SingleExchange`).
-6. After resolve returns, call [`drain_errors`](/api/) to collect any latched errors.
+**Proposer side** (`StateActionScorer`): scores the affordances available to the proposer. Higher score = more likely to be picked. The scorer reads:
+- The actor's affordances from the scene catalogue.
+- The actor's `ArgumentKnowledge` (which schemes they invoke for which actions).
+- The current state of the framework (β, audiences, accepted arguments).
 
-See the [first-scene guide](/getting-started/first-scene) for a complete worked example.
+It boosts affordances whose backing argument is credulously accepted at current β. Optionally wraps a `SchemeActionScorer` for scheme-strength boost, and a `ValueAwareScorer` for audience-conditioned value boost.
 
-## Why the error latch?
+**Responder side** (`StateAcceptanceEval`): for each proposer's affordance, evaluates whether the responder accepts. The eval reads:
+- The proposer's argument ID for this affordance.
+- The framework state.
+- The responder's actor name.
 
-Bridge traits return `bool`, not `Result<bool, Error>`. If `has_accepted_counter_by` fails internally (e.g., framework exceeds the weighted-bipolar enumeration limit), we default to **accept** — permissive — and **append** the error to a per-state buffer. Consumers drain via `drain_errors()` after the scene. This keeps scenes flowing even under internal failure, and exposes failures on the normal drain path.
+It returns true iff the responder does NOT have a credulously accepted counter-argument to the proposer's argument. "Has counter" → reject; "no counter" → accept.
 
-A common latch entry is [`Error::MissingProposerBinding`](/api/): the bridge uses `"self"` as the proposer slot by convention, and will surface this error when an affordance's bindings don't contain one.
+The split mirrors how human deliberation works: each speaker proposes the strongest argument they can; each listener decides whether they have grounds to push back.
 
-## Zero `encounter` changes
+## What the bridge composes
 
-The bridge was designed with the constraint that the sibling `encounter` crate could not be modified. Every state feature — forward index, β dial, error latch — lives on this side of the trait boundary. `Sync` is required by encounter's trait bounds, so the state uses `Mutex<Budget>` and `Mutex<Vec<Error>>` internally rather than the more common `Cell` / `RefCell`.
+The bridge composes several dimensions into one resolution:
 
-## Societas-modulated weights
+| Dimension | Where it lives | What it shapes |
+|---|---|---|
+| Scene tension β | `state.intensity: Mutex<Budget>` | Which attack weights bind. |
+| Per-character audiences | `state.audiences: Mutex<HashMap<String, Audience>>` | Which value-promoting affordances each actor scores up. |
+| Scheme strength | `argumentation-schemes` (`Strength` enum) | How much `SchemeActionScorer` boosts an affordance. |
+| Argument credulity | `state.is_credulously_accepted(...)` | Whether the proposer's argument survives current β. |
+| Counter-credulity | `state.has_accepted_counter_by(...)` | Whether the responder has a survivor counter. |
 
-Attack weights can be derived from live `societas-relations` state via [`societas_encounter::SocietasRelationshipSource`](https://docs.rs/societas-encounter), which lives in the sibling [`societas-encounter`](https://github.com/patricker/societas) crate under the `argumentation` feature. It implements `WeightSource<ArgumentId>`, resolving an `ArgumentId` back to its asserting actors via [`actors_by_argument()`](/api/) and a `NameResolver`, then querying five relationship dimensions.
+These compose at scoring time (proposer side) and at acceptance time (responder side). A single beat's outcome is the combined result.
 
-`encounter-argumentation` itself stays focused on the encounter↔argumentation bridge — the societas adapter is composed in by consumers who want it. See the [societas-modulated weights how-to](/guides/societas-modulated-weights).
+## Audiences as character state
+
+Per-character audiences are first-class state on `EncounterArgumentationState` — same lifecycle as β. A character authored once can carry their value priorities across many scenes:
+
+```rust
+state.set_audience("alice", Audience::total([Value::new("duty"), Value::new("survival")]));
+state.set_audience("bob", Audience::total([Value::new("survival"), Value::new("duty")]));
+```
+
+When the resolution loop calls `score_actions` for Alice, the wrapped `ValueAwareScorer` reads `state.audience_for("alice")` and boosts duty-promoting affordances. When it calls for Bob, it reads Bob's audience and boosts survival-promoting ones instead. Same scene, same arguments — different actors reach for different proposals.
+
+See [Wiring per-character values](/guides/wiring-character-values) for the runtime integration pattern.
+
+## The error latch
+
+A subtle but important design choice: the bridge does NOT return errors from `ActionScorer::score_actions` or `AcceptanceEval::evaluate` — both trait methods return owned values, not `Result`. So when something goes wrong inside a scoring or acceptance call, the bridge has nowhere to put the error.
+
+Instead: the state owns an error latch (`Mutex<Vec<Error>>`). On internal failure, the bridge appends an error and returns a permissive default (accept the affordance, skip the boost). The scene continues — D5 contract: "permissive on failure."
+
+After resolution returns, callers MUST drain the latch:
+
+```rust
+let errors = state.drain_errors();
+if !errors.is_empty() {
+    // log, propagate, or ignore — your choice
+}
+```
+
+This pattern matches how the rest of the bridge handles state mutation (interior mutability via `Mutex`, recovery on poisoning) — see the `intensity_guard` and `audiences_guard` private helpers for the exact pattern.
+
+## Cost note: scoring and acceptance recompute on each beat
+
+`StateActionScorer` and `StateAcceptanceEval` query the framework on every beat without caching. For narrative-scale frameworks (≤ 22 arguments per `argumentation::ENUMERATION_LIMIT`), this is fine — preferred-extension enumeration is bounded.
+
+For longer scenes or larger frameworks, two patterns help:
+1. Pre-seed only the arguments the scene needs (don't load the entire knowledge base).
+2. Reuse a single `EncounterArgumentationState` across beats; do NOT reconstruct it per beat.
+
+## Integration shape
+
+A typical wiring:
+
+```rust
+let state = EncounterArgumentationState::new(catalog);
+state.set_intensity(Budget::new(0.5).unwrap());
+state.set_audience("alice", alice_audience);
+state.set_audience("bob", bob_audience);
+
+let scorer = ValueAwareScorer::new(
+    SchemeActionScorer::new(knowledge, registry, baseline_scorer, 0.3),
+    &state,
+    0.2,
+);
+let acceptance = StateAcceptanceEval::new(&state);
+
+let result = MultiBeat.resolve(&participants, &practice, &catalog, &scorer, &acceptance);
+
+// Drain errors after resolution.
+let errors = state.drain_errors();
+```
+
+Three layers, additively composed:
+1. Baseline scorer (consumer-supplied — anything that implements `ActionScorer`).
+2. `SchemeActionScorer` (boosts scheme-backed affordances by scheme strength).
+3. `ValueAwareScorer` (boosts value-promoting affordances by audience).
+
+## In our library
+
+| Type | Purpose |
+|---|---|
+| `EncounterArgumentationState` | The composed state object — schemes + bipolar + weighted + audiences + errors. |
+| `StateActionScorer<S>` | `ActionScorer<P>` impl wrapping any inner scorer; adds credulous-acceptance boost. |
+| `SchemeActionScorer<K, S>` | Wraps `S`; adds scheme-strength × `preference_weight` boost. |
+| `ValueAwareScorer<S>` | Wraps `S`; adds audience-conditioned value boost. |
+| `StateAcceptanceEval` | `AcceptanceEval<P>` impl; checks for credulously-accepted counter-arguments. |
+| `ArgumentKnowledge` | Trait — supplies per-character argument positions. `StaticKnowledge` is the default impl for fixtures. |
 
 ## Further reading
 
-- [encounter crate docs](https://docs.rs/encounter) — the scene engine.
-- [Migration v0.4 → v0.5](/guides/migration-v0.4-to-v0.5) — what changed in the bridge surface.
-- [First scene guide](/getting-started/first-scene) — practical walkthrough.
+- [Wiring per-character values](/guides/wiring-character-values) — integration how-to.
+- [Implementing an ActionScorer](/guides/implementing-action-scorer) — for custom scoring inside the chain.
+- [Implementing an AcceptanceEval](/guides/implementing-acceptance-eval) — for responder-side custom logic.
+- [Debugging "why didn't this argument get accepted?"](/guides/debugging-acceptance) — the diagnostic chain when the bridge produces unexpected results.
+- [Glossary](/concepts/glossary) — quick definitions.
