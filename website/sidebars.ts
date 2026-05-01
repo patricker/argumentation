@@ -4,6 +4,7 @@ const sidebars: SidebarsConfig = {
   gettingStartedSidebar: [
     'getting-started/first-scene',
     'getting-started/second-scene-with-schemes',
+    'getting-started/third-scene-with-values',
   ],
   conceptsSidebar: [
     'concepts/what-is-argumentation',
