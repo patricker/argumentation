@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
     'concepts/encounter-integration',
     'concepts/open-areas',
     'concepts/value-based-argumentation',
+    'concepts/glossary',
   ],
   examplesSidebar: [
     {
