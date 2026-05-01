@@ -1,58 +1,124 @@
 ---
 sidebar_position: 5
-title: Weighted frameworks and β
+title: Weighted attacks and β (scene intensity)
 ---
 
-import BetaSlider from '@site/src/components/BetaSlider';
+import AttackGraph from '@site/src/components/AttackGraph';
 
-**Weighted argumentation assigns a real-valued strength to each attack. A *budget* β lets you drop attacks whose total weight fits in the budget — turning acceptance from a binary question into a continuous one.**
+**Weighted attacks let you express "this attack is stronger than that one." β (scene intensity) is a single dial that decides how strongly attacks bind. This page explains both with worked regimes.**
 
-Introduced by Dunne, Hunter, McBurney, Parsons & Wooldridge (2011), weighted argument systems are the mechanism that lets scene tension modulate outcome. In our bridge, β is the **scene intensity** dial.
+Dung's classical framework treats every attack as binary — it either defeats or it doesn't. For scene authoring, that's too coarse: a casual remark is not the same as a sworn-on-oath testimony. Weighted argumentation (Dunne, Hunter, McBurney, Parsons, Wooldridge 2011) attaches a weight to each attack, and a single intensity parameter β decides which weights bind.
 
-## The semantic chain
+## The mechanics
 
-1. A framework has attacks with weights `w(a, b) > 0`.
-2. Given a budget β, you consider all *residuals* — frameworks obtained by dropping some subset of attacks whose total cost ≤ β.
-3. An argument is **credulously accepted at β** if it is credulously accepted in at least one such residual.
+Each attack edge `(attacker, target)` carries a weight `w ∈ [0, 1]`. A scene-level **budget** `β ∈ [0, 1]` is the threshold below which attacks are considered "droppable":
 
-At β = 0 you can drop nothing (equivalent to ordinary Dung semantics). At β large enough to cover every attack, every non-self-attacking argument becomes acceptable.
+- `w > β` → attack **binds** (acts as a regular Dung attack).
+- `w ≤ β` → attack **drops** (treated as if absent).
 
-The boundary is **inclusive**: attacks whose weight exactly equals β are droppable.
+Higher β = more attacks drop = more permissive scene = more arguments survive. Lower β = fewer attacks drop = sharper scene = fewer arguments survive.
 
-## As scene intensity
+The β-residual of a framework at a given β is the Dung framework you get by removing all dropped attacks. Acceptance semantics then run on the residual exactly as they do on a classical framework.
 
-Think of β as how much the scene can "let slide":
+## Three regimes, one framework
 
-- **β = 0.0** — every counter bites. Tense courtroom energy.
-- **β = 0.4** — mid-range; some counters survive, some are waved off.
-- **β = 1.0** — counters slide off; amicable boardroom cordiality.
+Take a simple two-argument framework with one weighted attack:
 
-Here's the [east-wall example](/examples/east-wall) at four discrete β values:
-
-<BetaSlider
-  title="East-wall scene across β"
-  tracePaths={[
-    {beta: 0.0, path: '/traces/east-wall-b00.json'},
-    {beta: 0.4, path: '/traces/east-wall-b04.json'},
-    {beta: 0.5, path: '/traces/east-wall-b05.json'},
-    {beta: 1.0, path: '/traces/east-wall-b10.json'},
+<AttackGraph
+  title="A → B with weight 0.4"
+  arguments={[
+    {id: 'A', label: 'A'},
+    {id: 'B', label: 'B'},
   ]}
+  attacks={[{from: 'A', to: 'B', weight: 0.4}]}
+  height={200}
 />
 
-Drag the slider. At β = 0 both characters accept everything (no attacks survive the budget check below zero — so neither argument is credulous, no boost fires, both fall back to the same action and accept each other). At β = 0.4 and above, alice's argument becomes credulous — the scorer boosts it, she switches to her signature action, and bob rejects with his accepted counter.
+Walk three β regimes:
 
-## Weighted support (bipolar)
+### β = 0.0 — sharp regime
 
-Supports can also carry weights. They don't consume budget — they reinforce the supported argument in the weighted-bipolar semantics of [argumentation-weighted-bipolar](/api/).
+The attack weight (0.4) is greater than β (0.0), so the attack binds. The framework is equivalent to classical Dung with one attack. Grounded extension: `{A}` (A has no attacker; A attacks B; B is out). B is rejected.
+
+### β = 0.4 — boundary
+
+At the inclusive boundary `w ≤ β`, the attack drops. The framework is equivalent to classical Dung with no attacks. Grounded extension: `{A, B}`. B is accepted.
+
+### β = 1.0 — permissive regime
+
+All attacks drop unconditionally. Same answer as β = 0.4 here. As β passes each attack weight, that attack drops out one at a time.
+
+## β as a tension dial
+
+For a single attack, β acts as a binary switch — either the attack binds or it doesn't. The richer behaviour comes when a framework has *multiple* attacks at different weights:
+
+| Attack weights | β = 0.0 | β = 0.3 | β = 0.5 | β = 0.8 |
+|---|---|---|---|---|
+| 0.2, 0.4, 0.6 | all bind | 0.2 drops | 0.2, 0.4 drop | all drop |
+| 0.5 (one) | binds | binds | drops (boundary) | drops |
+| 0.5, 0.5 | both bind | both bind | both drop (boundary) | both drop |
+
+As β rises, attacks drop in weight order. The acceptance pattern shifts at each crossing.
+
+## Picking β
+
+There's no "correct" β for a scene — it's an authoring choice that shapes the dramatic register:
+
+| Register | Suggested β | Why |
+|---|---|---|
+| Courtroom | 0.0–0.2 | Every objection lands; arguments must withstand strict scrutiny. |
+| Heated debate | 0.2–0.4 | Most attacks bind; weak attacks drop. |
+| Boardroom | 0.4–0.6 | Mid-strength attacks drop; tolerance for partial agreement. |
+| Cordial discussion | 0.6–0.8 | Only the strongest objections matter. |
+| Brainstorming | 0.8–1.0 | Almost everything stands; ideas get to breathe. |
+
+See the [tune-β guide](/guides/tuning-beta) for picking β by scene register and escalating mid-scene.
+
+## Worked four-attack regime sweep
+
+Take the [east-wall example](/examples/east-wall) — Alice (military) wants to fortify; Bob (logistics) wants to abandon. Multiple attacks at different weights:
+
+- Bob's logistics objection → Alice's fortify proposal: weight 0.4
+- Alice's strategic objection → Bob's abandon proposal: weight 0.5
+- (no others)
+
+Regime sweep:
+
+| β | Attack states | Grounded |
+|---|---|---|
+| 0.0 | Both bind | `∅` (both attacked) |
+| 0.3 | Both bind | `∅` |
+| 0.4 | Bob's drops (boundary); Alice's still binds | `{abandon}` (Alice's argument has no live counter; abandon defeats fortify; abandon survives) |
+| 0.45 | Bob's dropped; Alice's binds | `{abandon}` |
+| 0.5 | Both drop (boundary) | `{fortify, abandon}` |
+| 0.8 | Both drop | `{fortify, abandon}` |
+
+The scene's outcome flips at each β crossing. The east-wall's [BetaPlayground](/examples/east-wall) lets you drag β and watch the acceptance pattern shift live.
+
+## Composition with other dimensions
+
+β composes with bipolar (attack + support), values, and scheme strength:
+
+- **Bipolar:** supports propagate acceptance; β decides which attacks block. The two compose at the residual layer — drop attacks first, then run bipolar semantics.
+- **Values:** the audience-conditioned defeat graph filters attacks first (using `Audience::prefers`), then β filters by weight. An attack must survive *both* filters to bind.
+- **Scheme strength:** schemes carry a `Strength` (Strong/Moderate/Weak) that the bridge's `SchemeActionScorer` reads. This scales boost magnitudes, not attack weights — orthogonal to β.
 
 ## In our library
 
-- [`argumentation_weighted::types::Budget`](/api/) — a validated β value in [0, 1].
-- [`argumentation_weighted_bipolar::WeightedBipolarFramework`](/api/) — the underlying graph.
-- [`EncounterArgumentationState::set_intensity`](/api/) — set β mid-scene through a shared reference.
-- [`EncounterArgumentationState::is_credulously_accepted`](/api/) — acceptance at current β.
+| Construct | Method |
+|---|---|
+| Set β | `state.set_intensity(Budget::new(beta).unwrap())` |
+| Add a weighted attack | `state.add_weighted_attack(&attacker, &target, weight)?` |
+| Credulous acceptance at current β | `state.is_credulously_accepted(&arg)?` |
+| Skeptical acceptance at current β | `state.is_skeptically_accepted(&arg)?` |
+| Inspect direct attackers (β-independent) | `state.attackers_of(&target)` |
+
+`Budget::new(beta)` returns `Result` because β must be in `[0, 1]` — anything outside is an error.
 
 ## Further reading
 
-- [Dunne, Hunter, McBurney, Parsons, Wooldridge (2011)](/academic/bibliography#dunne2011) — weighted argument systems.
-- [Amgoud, Ben-Naim (2016)](/academic/bibliography#amgoud2016) — graded semantics in weighted frameworks.
+- [Dunne et al. (2011)](/academic/bibliography#dunne2011) — weighted argument systems, the formal basis.
+- [The east wall](/examples/east-wall) — engine-driven example with live β slider.
+- [The siege council](/examples/siege-council) — multi-attack framework where β crossings matter.
+- [Tune β for your scene](/guides/tuning-beta) — practical authoring how-to.
+- [Glossary](/concepts/glossary) — quick definitions.
