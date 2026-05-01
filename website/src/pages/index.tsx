@@ -14,8 +14,11 @@ function HomepageHeader() {
         <Heading as="h1" className="hero__title">{siteConfig.title}</Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
+          <Link className="button button--primary button--lg" to="/getting-started/choose-your-path">
+            Choose your path →
+          </Link>
           <Link className="button button--secondary button--lg" to="/concepts/what-is-argumentation">
-            Start with concepts →
+            Concepts
           </Link>
           <Link className="button button--outline button--lg" to="/examples/siege-council">
             Try the flagship demo
