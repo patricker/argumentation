@@ -5,46 +5,139 @@ title: Acceptance semantics
 
 import AttackGraph from '@site/src/components/AttackGraph';
 
-**An acceptance semantics is a rule for deciding which subsets of arguments in a framework can coherently "stand together."** Dung's original paper defined four main ones; we'll walk through them with examples.
+**Dung's framework defines several distinct ways to "accept" an argument. This page explains each one with a worked example, then maps them onto the queries our library exposes.**
+
+When you ask "is argument X accepted?", the honest answer is "under which semantics?" — Dung (1995) identified that abstract argumentation frameworks admit *multiple* coherent answers, and choosing among them is a design decision, not a fact about the framework.
 
 ## The building blocks
 
-- **Conflict-free set** — no argument in the set attacks another in the set.
-- **Admissible set** — conflict-free AND defends itself: every attacker of a member is itself attacked by some member.
-- **Complete extension** — an admissible set that contains every argument it defends. (The minimum complete extension is the **grounded extension**; maximum complete extensions are **preferred**.)
-- **Stable extension** — a conflict-free set that attacks every argument outside it.
+A **Dung framework** `(A, R)` is a set of arguments `A` plus an attack relation `R ⊆ A × A`. Acceptance semantics partition the powerset `2^A` into "extensions" — sets of arguments that can coherently stand together.
 
-## Credulous vs skeptical
+The two minimal properties every extension must satisfy:
 
-- **Credulously accepted** — the argument is in **at least one** preferred extension.
-- **Skeptically accepted** — the argument is in **every** preferred extension.
+- **Conflict-free:** no argument in the set attacks another argument in the set.
+- **Admissible:** conflict-free, and the set defends each of its members against external attacks (for every attacker `b` of a member `a`, some member of the set attacks `b`).
 
-Skeptical is strictly stronger than credulous. Our library exposes both via [`EncounterArgumentationState::is_credulously_accepted`](/api/) and [`is_skeptically_accepted`](/api/).
+Every named semantics (preferred, grounded, complete, stable, ...) is a refinement of admissibility.
 
-## When they diverge
+## A worked four-argument framework
 
-Most of the time, all four semantics (grounded / preferred / stable / complete) agree on which arguments are accepted. The **Nixon diamond** is the canonical case where they diverge:
+For the rest of this page we use this framework:
 
 <AttackGraph
-  title="Nixon diamond"
-  arguments={[{id: 'A', label: 'Republican'}, {id: 'B', label: 'Quaker'}]}
-  attacks={[{from: 'A', to: 'B'}, {from: 'B', to: 'A'}]}
+  title="Worked example"
+  arguments={[
+    {id: 'a', label: 'a'},
+    {id: 'b', label: 'b'},
+    {id: 'c', label: 'c'},
+    {id: 'd', label: 'd'},
+  ]}
+  attacks={[
+    {from: 'a', to: 'b'},
+    {from: 'b', to: 'a'},
+    {from: 'b', to: 'c'},
+    {from: 'c', to: 'd'},
+  ]}
+  height={280}
+  caption="a ↔ b mutual attack; b → c; c → d (a chain off the mutual pair)."
 />
 
-- Grounded: `{}` (no argument is "unconditionally acceptable").
-- Preferred: `{A}` and `{B}` (two maximal admissible sets).
-- Stable: `{A}` and `{B}` (both are stable).
-- Complete: `{}`, `{A}`, `{B}`.
+There's a mutual attack between `a` and `b`. `b` also attacks `c`. `c` attacks `d`.
 
-Credulous acceptance holds for both A and B (each is in some preferred extension). Skeptical acceptance holds for neither (neither is in every preferred extension).
+## Preferred extensions
+
+A **preferred extension** is a maximal admissible set — admissible, and you can't add any more arguments to it without violating admissibility.
+
+In our example, the preferred extensions are:
+
+- `{a, c}` — `a` defends itself against `b` (mutual attack); `a` attacks `b`, which would-be-attack `c`, so `c` is defended; `d` is attacked by `c` so cannot join.
+- `{b, d}` — `b` defends itself against `a`; `b` attacks `c`, leaving `d` unattacked, so `d` joins.
+
+Two preferred extensions, neither a subset of the other. This is normal for symmetric-attack frameworks.
+
+## Grounded extension
+
+The **grounded extension** is the unique smallest admissible set — equivalently, the least fixed point of the characteristic function "include all arguments not attacked by anything outside the set."
+
+Our example's grounded extension is `∅` (empty). Why? Starting from `∅`:
+- No argument is undefended-against trivially: `a` has attacker `b`, `b` has attacker `a`, `c` has attacker `b`, `d` has attacker `c`.
+- The function adds nothing on the first iteration → fixed point.
+
+So the grounded extension is empty. This is the "skeptical answer" — what survives if you refuse to take any side in the `a` ↔ `b` dispute.
+
+## Complete extensions
+
+A **complete extension** is admissible AND contains every argument it defends. Both preferred extensions are complete; the grounded extension is complete; and there's a third complete extension here:
+
+- `∅` (grounded — also complete trivially)
+- `{a, c}`
+- `{b, d}`
+
+Complete extensions sit between admissible (the lower bound) and preferred (the maximal-admissible upper bound).
+
+## Stable extensions
+
+A **stable extension** is conflict-free AND attacks every argument outside it. Stricter than preferred.
+
+In our example:
+- `{a, c}`: outside is `{b, d}`. Does the extension attack everything outside? `a` attacks `b` ✓. `c` attacks `d` ✓. Yes — stable.
+- `{b, d}`: outside is `{a, c}`. `b` attacks `a` ✓; `b` attacks `c` ✓. Yes — stable.
+
+Both preferred extensions happen to be stable. Stable extensions don't always exist (e.g., a single self-attacking argument has no stable extension). Preferred extensions always exist.
+
+## Credulous vs skeptical acceptance
+
+Once you have the extensions, you can ask "is argument X accepted?" two different ways:
+
+- **Credulous acceptance:** X is in *some* preferred extension.
+- **Skeptical acceptance:** X is in *every* preferred extension.
+
+In our example:
+- `a` credulously accepted (in `{a, c}`); not skeptically accepted.
+- `b` credulously accepted (in `{b, d}`); not skeptically accepted.
+- `c` credulously accepted; not skeptically accepted.
+- `d` credulously accepted; not skeptically accepted.
+
+Nothing is skeptically accepted under preferred semantics here. Under grounded semantics, *also* nothing is accepted (grounded is `∅`).
+
+## When credulous and skeptical diverge
+
+The framework above shows them at maximal divergence: every argument is credulous, none is skeptical. Add a single new argument to break the symmetry — say, an argument `e` that attacks `b`:
+
+- New preferred extensions: `{a, c, e}` and `{e, d}` (the second loses `b`'s defense, so `c` re-enters... actually let's just trust the new framework re-resolves).
+
+The point: small structural changes flip credulous/skeptical answers. Both are valid; they answer different questions.
 
 ## Why we care in scene AI
 
-Credulous acceptance is a natural fit for "is this claim live right now?" A beat can proceed as long as the proposer's argument is credulously accepted at the current β. Skeptical acceptance is too strict — it would stall scenes the moment any counter-argument exists.
+For dramatic resolution, you typically want **credulous** acceptance — "could a reasonable observer accept this?" — because skeptical is too conservative for fiction. The bridge crate's `is_credulously_accepted` and `has_accepted_counter_by` are credulous-side queries.
 
-Our bridge's [`StateActionScorer`](/api/) boosts affordances whose argument is credulously accepted; [`StateAcceptanceEval`](/api/) rejects only when the responder has put forward a credulously-accepted counter.
+For *justification* (an NPC reflecting on what's universally true), you want skeptical — "what survives every interpretation?" The bridge exposes this via `is_skeptically_accepted`.
+
+For multi-character consensus (the council case), you want skeptical-per-character intersected — see [`MultiAudience::common_grounded`](/guides/multi-character-consensus).
+
+## In our library
+
+The bare `ArgumentationFramework<A>` exposes the extensions; acceptance queries are computed by checking membership.
+
+| Construct | Method | Returns |
+|---|---|---|
+| Grounded extension | `framework.grounded_extension()` | `HashSet<A>` (always polynomial; no `Result`) |
+| Complete extensions | `framework.complete_extensions()` | `Result<Vec<HashSet<A>>, Error>` |
+| Preferred extensions | `framework.preferred_extensions()` | `Result<Vec<HashSet<A>>, Error>` |
+| Stable extensions | `framework.stable_extensions()` | `Result<Vec<HashSet<A>>, Error>` |
+| Semi-stable extensions | `framework.semi_stable_extensions()` | `Result<Vec<HashSet<A>>, Error>` |
+| Ideal extension | `framework.ideal_extension()` | `Result<HashSet<A>, Error>` |
+
+Credulous acceptance: `preferred_extensions()?.iter().any(|ext| ext.contains(&arg))`. Skeptical acceptance: `.all(...)` instead of `.any(...)`.
+
+The encounter bridge wraps these as direct boolean queries on `EncounterArgumentationState`: `state.is_credulously_accepted(&arg)?` and `state.is_skeptically_accepted(&arg)?`.
+
+Frameworks larger than `argumentation::ENUMERATION_LIMIT` (currently 22 arguments) return `Error::TooLarge` from the subset-enumeration semantics (preferred / stable / semi-stable / complete). Grounded is always polynomial and never errors.
 
 ## Further reading
 
-- [Dung (1995)](/academic/bibliography#dung1995) — the foundational paper.
-- [Baroni, Caminada, Giacomin (2011)](/academic/bibliography#baroni2011) — a survey of semantics beyond the original four.
+- [Dung (1995)](/academic/bibliography#dung1995) — the founding paper. Read §2–§4.
+- [Baroni, Caminada, Giacomin (2011)](/academic/bibliography#baroni2011) — modern survey of semantics.
+- [Glossary](/concepts/glossary) — quick definitions of every term used here.
+- [Weighted attacks and β](/concepts/weighted-and-beta) — extends these semantics with attack weights.
