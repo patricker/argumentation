@@ -49,6 +49,7 @@ const sidebars: SidebarsConfig = {
     'guides/debugging-acceptance',
     'guides/societas-modulated-weights',
     'guides/wiring-character-values',
+    'guides/import-export-apx',
     'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
