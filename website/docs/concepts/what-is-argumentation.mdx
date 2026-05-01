@@ -9,6 +9,21 @@ import AttackGraph from '@site/src/components/AttackGraph';
 
 It sounds abstract, but it's the formal machinery behind auditable reasoning. When a courtroom jury decides which testimony to believe, or when a scientific review board weighs competing studies, they're doing argumentation informally. Formal argumentation gives you primitives — *argument*, *attack*, *support*, *acceptance* — that a computer can reason about.
 
+## The mental model
+
+Picture a knowledge base as a graph. Nodes are *arguments* — conclusions backed by reasoning. Edges are *attacks* — one argument undermining another. Acceptance semantics tell you which subsets of arguments can coherently stand together, given the attacks.
+
+The library treats arguments as **abstract** by default — opaque IDs in a graph, no internal structure. This is Dung (1995). When you need to look inside arguments (to attack a premise rather than a conclusion, say), the [`argumentation-schemes`](/concepts/walton-schemes) and [ASPIC+](/concepts/aspic-plus) crates give you that structure.
+
+## What argumentation is *not*
+
+A few common confusions worth heading off:
+
+- **Not natural-language understanding.** This library doesn't parse sentences or extract arguments from text. You give it argument IDs; it tells you which sets are coherent.
+- **Not probabilistic reasoning.** Acceptance is a yes/no question (per semantics). Probabilistic AF is a separate research line — see [open areas](/concepts/open-areas).
+- **Not theorem proving.** Argumentation handles *defeasible* reasoning — conclusions that can be defeated by counter-arguments, even when each step looks valid in isolation. Classical logic doesn't admit defeat.
+- **Not a chatbot.** No language generation. The library is the *reasoning scaffold* underneath; a language model on top is a separate concern.
+
 ## Why it matters for scene AI
 
 Formal argumentation gives you a structural layer for scenes: a graph of arguments and attacks, a semantics for deciding which stand. In a scene, each beat carries a record of:
@@ -17,7 +32,7 @@ Formal argumentation gives you a structural layer for scenes: a graph of argumen
 - The attacks that bound under the current scene tension.
 - The acceptance semantics that produced the beat outcome.
 
-You can replay the scene deterministically, tune one parameter (β, scene intensity) and see the beats change in a transparent way, or combine this with other tools — language models for surface prose, handwritten branches for pivotal moments. Argumentation gives you a reasoning scaffold; what you build on top is up to you.
+You can replay the scene deterministically, tune one parameter ([β, scene intensity](/concepts/weighted-and-beta)) and see the beats change in a transparent way, or combine this with other tools — language models for surface prose, handwritten branches for pivotal moments. Argumentation gives you a reasoning scaffold; what you build on top is up to you.
 
 ## The smallest example
 
@@ -33,17 +48,35 @@ Two arguments that attack each other — the [Nixon diamond](/examples/nixon-dia
   height={260}
 />
 
-Neither argument "wins" in isolation. Dung's acceptance semantics tell you which subsets of these arguments can coherently stand together — in this case, either-or, but not both. The [Nixon diamond example](/examples/nixon-diamond) walks through this in detail.
+Neither argument "wins" in isolation. Dung's [acceptance semantics](/concepts/semantics) tell you which subsets of these arguments can coherently stand together — in this case, either-or, but not both. The [Nixon diamond example](/examples/nixon-diamond) walks through this in detail.
+
+## The four big ideas
+
+If you read no other concept page, know these four:
+
+1. **[Acceptance semantics](/concepts/semantics)** — multiple ways to "accept" an argument (credulous, skeptical, grounded, preferred, stable). Pick one per query.
+2. **[Walton schemes](/concepts/walton-schemes)** — ~60 named patterns of human argumentation (expert opinion, cause to effect, analogy, ...) with their critical questions baked in.
+3. **[Weighted attacks and β](/concepts/weighted-and-beta)** — attacks have strengths; a single dial decides which strengths bind.
+4. **[Value-based argumentation](/concepts/value-based-argumentation)** — characters' value priorities make the same framework reach different conclusions.
+
+The [encounter bridge](/concepts/encounter-integration) ties these together for narrative scenes.
 
 ## In our library
 
-- `argumentation` — the core Dung + ASPIC+ implementation.
-- `argumentation-bipolar` — attack + support graph structure.
+The workspace is layered: a Dung core, then extensions, then the bridge:
+
+- `argumentation` — the Dung + ASPIC+ core.
+- `argumentation-bipolar` — attacks + supports.
 - `argumentation-weighted` — edge weights and β-budgets.
-- `argumentation-weighted-bipolar` — the composition of the two.
-- `argumentation-schemes` — Walton's 60+ presumptive argument schemes.
+- `argumentation-weighted-bipolar` — composition of the above.
+- `argumentation-schemes` — Walton's 60+ presumptive schemes.
+- `argumentation-values` — value-based argumentation (Bench-Capon 2003 + multi-value).
 - `encounter-argumentation` — the bridge into scene AI via the [`encounter`](https://github.com/patricker/encounter) crate.
+
+See the [reference overview](/reference/overview) for the curated entry-point types per crate.
 
 ## Further reading
 
 Start with [Dung (1995)](/academic/bibliography#dung1995), the paper that founded the field. Then [Walton, Reed & Macagno (2008)](/academic/bibliography#walton2008) for schemes. See [the reading order](/academic/reading-order) for a full curriculum.
+
+If you'd rather *do* than read, jump to [your first scene](/getting-started/first-scene).
