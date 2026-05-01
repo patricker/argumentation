@@ -62,6 +62,7 @@ const sidebars: SidebarsConfig = {
         'reference/argumentation-weighted',
         'reference/argumentation-weighted-bipolar',
         'reference/argumentation-schemes',
+        'reference/argumentation-values',
         'reference/encounter-argumentation',
       ],
     },
