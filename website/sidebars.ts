@@ -50,6 +50,7 @@ const sidebars: SidebarsConfig = {
     'guides/societas-modulated-weights',
     'guides/wiring-character-values',
     'guides/import-export-apx',
+    'guides/multi-character-consensus',
     'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
