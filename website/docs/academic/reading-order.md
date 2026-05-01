@@ -24,6 +24,32 @@ Read in order:
 7. [**Kaci & van der Torre (2008)**](/academic/bibliography#kaci2008) — *Preference-based argumentation: Arguments supporting multiple values.* The multi-value extension to Bench-Capon. Read §2 (defeat rule) carefully — it's the spec our `argumentation-values` crate implements.
 8. [**Dunne & Bench-Capon (2004)**](/academic/bibliography#dunne2004) — *Complexity in VAF.* Read §3 for the NP/co-NP results that motivate the `ENUMERATION_LIMIT` cap on `subjectively_accepted` / `objectively_accepted` queries.
 
+## Reading the docs themselves
+
+If you want to read the *docs site* in order rather than the underlying papers, here's a curated path:
+
+**Foundations (read these first):**
+
+1. [What is argumentation?](/concepts/what-is-argumentation) — the front door; introduces the four big ideas.
+2. [Acceptance semantics](/concepts/semantics) — credulous, skeptical, grounded, preferred, stable. With worked examples.
+3. [Glossary](/concepts/glossary) — quick reference for terms used everywhere else.
+
+**Structure of arguments:**
+
+4. [Walton schemes](/concepts/walton-schemes) — the ~60 named patterns the library ships.
+5. [Attacks and supports](/concepts/attacks-and-supports) — bipolar argumentation.
+6. [ASPIC+](/concepts/aspic-plus) — structured arguments with rules and premises.
+
+**Tuning the resolution:**
+
+7. [Weighted attacks and β](/concepts/weighted-and-beta) — attack strengths and the scene intensity dial.
+8. [Value-based argumentation](/concepts/value-based-argumentation) — character value priorities.
+
+**Wiring into a scene engine:**
+
+9. [The encounter bridge](/concepts/encounter-integration) — proposer/responder model and how the dimensions compose.
+10. [Open areas](/concepts/open-areas) — what's still on the roadmap.
+
 ## If you want to teach this to someone
 
 Use Walton (2006) — *Fundamentals of Critical Argumentation* — as the textbook. It has the short dialogues that make the formalism click for non-specialists. Then bring in the Modgil-Prakken tutorial for the formal mechanics.
