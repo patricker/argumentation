@@ -2,6 +2,7 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   gettingStartedSidebar: [
+    'getting-started/choose-your-path',
     'getting-started/first-scene',
     'getting-started/second-scene-with-schemes',
     'getting-started/third-scene-with-values',
