@@ -2,7 +2,10 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   gettingStartedSidebar: [
+    'getting-started/choose-your-path',
     'getting-started/first-scene',
+    'getting-started/second-scene-with-schemes',
+    'getting-started/third-scene-with-values',
   ],
   conceptsSidebar: [
     'concepts/what-is-argumentation',
@@ -14,6 +17,7 @@ const sidebars: SidebarsConfig = {
     'concepts/encounter-integration',
     'concepts/open-areas',
     'concepts/value-based-argumentation',
+    'concepts/glossary',
   ],
   examplesSidebar: [
     {
@@ -49,6 +53,8 @@ const sidebars: SidebarsConfig = {
     'guides/debugging-acceptance',
     'guides/societas-modulated-weights',
     'guides/wiring-character-values',
+    'guides/import-export-apx',
+    'guides/multi-character-consensus',
     'guides/migration-v0.4-to-v0.5',
   ],
   referenceSidebar: [
@@ -62,6 +68,7 @@ const sidebars: SidebarsConfig = {
         'reference/argumentation-weighted',
         'reference/argumentation-weighted-bipolar',
         'reference/argumentation-schemes',
+        'reference/argumentation-values',
         'reference/encounter-argumentation',
       ],
     },

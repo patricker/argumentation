@@ -58,6 +58,12 @@ Introduces weighted argument systems and β-budget inconsistency tolerance. The 
 
 Graded semantics in weighted frameworks — ordering arguments by acceptance strength. Relevant if you want per-argument acceptance *scores* rather than binary accept/reject.
 
+### dunne2004
+
+**Dunne, P.E. & Bench-Capon, T. (2004).** [*Complexity in Value-Based Argument Systems.*](https://link.springer.com/chapter/10.1007/978-3-540-30227-8_31) JELIA 2004, LNCS 3229: 360–371.
+
+Headline complexity result for VAF: subjective acceptance is NP-complete, objective is co-NP-complete in general; both polynomial for fixed audiences on tree-like graphs.
+
 ## ASPIC+
 
 ### prakken2010
@@ -84,6 +90,18 @@ Introduces value-based argumentation. Home of the Hal & Carla example.
 [[ScienceDirect]](https://www.sciencedirect.com/science/article/pii/S0004370207000689)
 
 Practical reasoning (deliberation between actions) modeled as argumentation over action-transitions. Relevant to scene AI where characters deliberate.
+
+### kaci2008
+
+**Kaci, S. & van der Torre, L. (2008).** [*Preference-based argumentation: Arguments supporting multiple values.*](https://www.sciencedirect.com/science/article/pii/S0888613X07000989) International Journal of Approximate Reasoning, 48(3): 730–751.
+
+Generalises Bench-Capon's VAF to allow arguments promoting multiple values; introduces the Pareto-defeating rule we implement.
+
+### bodanza2023
+
+**Bodanza, G.A. & Freidin, E. (2023).** [*Confronting value-based argumentation frameworks with people's assessment of argument strength.*](https://content.iospress.com/articles/argument-and-computation/aac220008) Argument & Computation, 14(3): 247–273.
+
+Empirical psychology study of VAF semantics; finds that human acceptance correlates with value importance directly rather than the attack/defeat propagation VAF prescribes. Informs why we expose value-importance scoring (`SchemeActionScorer` + `preference_weight`) alongside the orthodox defeat semantics.
 
 ## Legal / forensic
 

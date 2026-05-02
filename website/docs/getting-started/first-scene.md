@@ -5,6 +5,8 @@ title: Build your first scene
 
 Build a working east-wall scene end-to-end. You'll seed two arguments, set a scene intensity, run `MultiBeat`, and print the resulting beats.
 
+**Learning objective:** build a working two-actor argumentation scene with weighted attacks and a tunable β, run it end-to-end with `cargo run`, and read the resulting beat-by-beat acceptance trace — in under 10 minutes, with no prior argumentation-theory knowledge.
+
 ## What you'll build
 
 A small Rust program that runs a 4-beat scene between Alice and Bob over whether to fortify the east wall. Alice asserts an argument from expert opinion. Bob asserts a counter. At β=0.5, the scorer boosts Alice's claim, Bob rejects with his credulous counter, and the beats print deterministically.
